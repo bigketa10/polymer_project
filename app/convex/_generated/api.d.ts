@@ -8,7 +8,9 @@
  * @module
  */
 
+import type * as lessons from "../lessons.js";
 import type * as messages from "../messages.js";
+import type * as userProgress from "../userProgress.js";
 
 import type {
   ApiFromModules,
@@ -17,7 +19,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  lessons: typeof lessons;
   messages: typeof messages;
+  userProgress: typeof userProgress;
 }>;
 
 /**
