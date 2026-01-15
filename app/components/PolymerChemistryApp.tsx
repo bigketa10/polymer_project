@@ -22,7 +22,6 @@ import {
   Book,
   Settings,
   Download,
-  Upload,
   RotateCcw,
 } from "lucide-react";
 
@@ -30,9 +29,16 @@ const PolymerChemistryApp = () => {
   const [currentLesson, setCurrentLesson] = useState<any>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  // store answers for all questions in the lesson
+  const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>(
+    []
+  );
   const [showResult, setShowResult] = useState(false);
+  // keep score for in-quiz display if you want, but final calculation will use selectedAnswers
   const [score, setScore] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showReview, setShowReview] = useState(false); // NEW: show mini review
+  const [reviewAnimate, setReviewAnimate] = useState(false); // controls animation state
   const [initialized, setInitialized] = useState(false);
 
   // Convex queries and mutations
@@ -52,6 +58,20 @@ const PolymerChemistryApp = () => {
     }
   }, [lessons, initialized, initializeDefaults]);
 
+  // Trigger entrance animation shortly after review mounts, and reset animation when review hidden
+  useEffect(() => {
+    let t: number | undefined;
+    if (showReview) {
+      // Small delay ensures element is mounted before we flip the animated state
+      t = window.setTimeout(() => setReviewAnimate(true), 20);
+    } else {
+      setReviewAnimate(false);
+    }
+    return () => {
+      if (t) clearTimeout(t);
+    };
+  }, [showReview]);
+
   const xp = userProgress?.xp || 0;
   const streak = userProgress?.streak || 0;
   const completedLessonIds = userProgress?.completedLessonIds || [];
@@ -62,47 +82,76 @@ const PolymerChemistryApp = () => {
     setSelectedAnswer(null);
     setShowResult(false);
     setScore(0);
+    setShowReview(false);
+    setReviewAnimate(false);
+    // initialize answers array for this lesson
+    setSelectedAnswers(Array(lesson.questions.length).fill(null));
   };
 
   const handleAnswerSelect = (index: number) => {
     if (!showResult) {
       setSelectedAnswer(index);
+      setSelectedAnswers((prev) => {
+        const next = [...prev];
+        next[currentQuestion] = index;
+        return next;
+      });
     }
   };
 
   const checkAnswer = () => {
-    const isCorrect =
-      selectedAnswer === currentLesson.questions[currentQuestion].correct;
     setShowResult(true);
-
-    if (isCorrect) {
-      setScore(score + 1);
-    }
+    // update the interim score for visual feedback (optional)
+    const interimScore = selectedAnswers.reduce((acc, ans, idx) => {
+      if (ans === currentLesson.questions[idx].correct) return acc + 1;
+      return acc;
+    }, 0);
+    setScore(interimScore);
   };
 
   const nextQuestion = () => {
     if (currentQuestion < currentLesson.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
-      setSelectedAnswer(null);
+      setSelectedAnswer(selectedAnswers[currentQuestion + 1] ?? null);
       setShowResult(false);
     } else {
-      completeLesson();
+      // Instead of immediately completing, show the mini review
+      setShowReview(true);
     }
   };
 
-  // Replace your completeLesson function with this:
+  // compute final score from selectedAnswers
+  const computeFinalScore = () => {
+    if (!currentLesson) return 0;
+    return selectedAnswers.reduce((acc, ans, idx) => {
+      if (ans === currentLesson.questions[idx].correct) return acc + 1;
+      return acc;
+    }, 0);
+  };
+
+  // Helper to close review with hide animation, then run optional callback
+  const hideReview = (callback?: () => void) => {
+    setReviewAnimate(false);
+    // wait for animation to finish before unmounting / running callback
+    window.setTimeout(() => {
+      setShowReview(false);
+      if (callback) callback();
+    }, 220); // matches CSS duration below (200ms + small buffer)
+  };
+
+  // completeLesson now computes XP from selectedAnswers and updates progress
   const completeLesson = async () => {
+    if (!currentLesson) return;
+
+    const finalScore = computeFinalScore();
     const earnedXP = Math.round(
-      (score / currentLesson.questions.length) * currentLesson.xpReward
+      (finalScore / currentLesson.questions.length) * currentLesson.xpReward
     );
     const newXp = xp + earnedXP;
     const newStreak = streak + 1;
 
-    // FIX: Use the lesson ID, not the index
-    let newCompletedLessons = [...completedLessonIds]; // Create a copy
+    let newCompletedLessons = [...completedLessonIds];
 
-    // Check if ID is already in the list
-    // Note: We cast to string for comparison to be safe, though Convex handles IDs automatically
     const isAlreadyCompleted = newCompletedLessons.some(
       (id) => id === currentLesson._id
     );
@@ -114,10 +163,17 @@ const PolymerChemistryApp = () => {
     await updateProgress({
       xp: newXp,
       streak: newStreak,
-      completedLessonIds: newCompletedLessons, // FIX: Match the argument name in your mutation
+      completedLessonIds: newCompletedLessons,
     });
 
+    // reset lesson state and close
+    setShowReview(false);
+    setReviewAnimate(false);
     setCurrentLesson(null);
+    setSelectedAnswers([]);
+    setSelectedAnswer(null);
+    setScore(0);
+    setShowResult(false);
   };
 
   const handleResetProgress = async () => {
@@ -153,12 +209,13 @@ const PolymerChemistryApp = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `polymer-chemistry-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `polymer-chemistry-backup-${
+      new Date().toISOString().split("T")[0]
+    }.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  // Replace your getLessonStatus function with this:
   const getLessonStatus = (lessonId: string) => {
     return completedLessonIds.some((id) => id === lessonId)
       ? "completed"
@@ -176,6 +233,7 @@ const PolymerChemistryApp = () => {
     );
   }
 
+  // SETTINGS SCREEN (unchanged)
   if (showSettings) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
@@ -256,9 +314,168 @@ const PolymerChemistryApp = () => {
     );
   }
 
+  // LESSON RUNNING + REVIEW
   if (currentLesson) {
+    // if review screen is active, show the mini review
+    if (showReview) {
+      const finalScore = computeFinalScore();
+      const earnedXPPreview = Math.round(
+        (finalScore / currentLesson.questions.length) * currentLesson.xpReward
+      );
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+          <div className="max-w-2xl mx-auto">
+            <div className="mb-6 flex items-center justify-between">
+              <Button
+                variant="outline"
+                onClick={() => hideReview()}
+                className="cursor-pointer"
+              >
+                ← Back to Quiz
+              </Button>
+
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-orange-500" />
+                  <span className="font-bold">{streak}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Star className="w-5 h-5 text-yellow-500" />
+                  <span className="font-bold">
+                    {finalScore}/{currentLesson.questions.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Animated wrapper: transitions opacity, translate and scale */}
+            <div
+              className={`transform transition-all duration-200 ease-out ${
+                reviewAnimate
+                  ? "opacity-100 translate-y-0 scale-100"
+                  : "opacity-0 translate-y-3 scale-95"
+              }`}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl">Lesson Review</CardTitle>
+                  <CardDescription>
+                    Quick summary of your answers and what you'll earn
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent>
+                  <div className="mb-4">
+                    <p className="text-lg font-semibold">
+                      Score: {finalScore} / {currentLesson.questions.length}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Earned XP (preview): +{earnedXPPreview} XP
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    {currentLesson.questions.map((q: any, idx: number) => {
+                      const userAns = selectedAnswers[idx];
+                      const correctIdx = q.correct;
+                      const isCorrect = userAns === correctIdx;
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-3 rounded-md border ${
+                            isCorrect
+                              ? "border-green-200 bg-green-50"
+                              : "border-red-200 bg-red-50"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium">{q.question}</p>
+                              <p className="text-sm text-gray-700 mt-1">
+                                Your answer:{" "}
+                                <span className="font-semibold">
+                                  {userAns === null
+                                    ? "No answer"
+                                    : q.options[userAns]}
+                                </span>
+                              </p>
+                              {!isCorrect && (
+                                <p className="text-sm text-gray-700">
+                                  Correct:{" "}
+                                  <span className="font-semibold">
+                                    {q.options[correctIdx]}
+                                  </span>
+                                </p>
+                              )}
+                              <p className="text-sm text-gray-600 mt-2">
+                                {q.explanation}
+                              </p>
+                            </div>
+                            <div className="ml-4">
+                              {isCorrect ? (
+                                <CheckCircle2 className="w-6 h-6 text-green-500" />
+                              ) : (
+                                <XCircle className="w-6 h-6 text-red-500" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex gap-3 justify-end">
+                    <Button
+                      onClick={() =>
+                        hideReview(() => {
+                          // retry: reset answers and go back to start of lesson
+                          setSelectedAnswers(
+                            Array(currentLesson.questions.length).fill(null)
+                          );
+                          setSelectedAnswer(null);
+                          setCurrentQuestion(0);
+                          setShowResult(false);
+                          setScore(0);
+                        })
+                      }
+                      variant="outline"
+                      className="cursor-pointer"
+                    >
+                      Retry Lesson
+                    </Button>
+
+                    <Button
+                      onClick={() => hideReview(() => completeLesson())}
+                      className="bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
+                    >
+                      Finish and Save Progress
+                    </Button>
+
+                    <Button
+                      onClick={() =>
+                        hideReview(() => {
+                          // close without saving progress
+                          setCurrentLesson(null);
+                        })
+                      }
+                      variant="ghost"
+                      className="cursor-pointer"
+                    >
+                      Back to Lessons (Don't Save)
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // normal quiz UI
     const question = currentLesson.questions[currentQuestion];
-    const isCorrect = selectedAnswer === question.correct;
+    const isCorrect = selectedAnswers[currentQuestion] === question.correct;
     const progress =
       ((currentQuestion + 1) / currentLesson.questions.length) * 100;
 
@@ -281,7 +498,7 @@ const PolymerChemistryApp = () => {
               <div className="flex items-center gap-2">
                 <Star className="w-5 h-5 text-yellow-500" />
                 <span className="font-bold">
-                  {score}/{currentLesson.questions.length}
+                  {computeFinalScore()}/{currentLesson.questions.length}
                 </span>
               </div>
             </div>
@@ -305,7 +522,7 @@ const PolymerChemistryApp = () => {
                     onClick={() => handleAnswerSelect(index)}
                     disabled={showResult}
                     className={`w-full p-4 text-left rounded-lg border-2 transition-all cursor-pointer disabled:cursor-not-allowed ${
-                      selectedAnswer === index
+                      selectedAnswers[currentQuestion] === index
                         ? showResult
                           ? index === question.correct
                             ? "border-green-500 bg-green-50"
@@ -322,7 +539,7 @@ const PolymerChemistryApp = () => {
                         <CheckCircle2 className="w-5 h-5 text-green-500" />
                       )}
                       {showResult &&
-                        selectedAnswer === index &&
+                        selectedAnswers[currentQuestion] === index &&
                         index !== question.correct && (
                           <XCircle className="w-5 h-5 text-red-500" />
                         )}
@@ -361,7 +578,7 @@ const PolymerChemistryApp = () => {
                 {!showResult ? (
                   <Button
                     onClick={checkAnswer}
-                    disabled={selectedAnswer === null}
+                    disabled={selectedAnswers[currentQuestion] === null}
                     className="bg-indigo-600 hover:bg-indigo-700 cursor-pointer disabled:cursor-not-allowed"
                   >
                     Check Answer
@@ -373,7 +590,7 @@ const PolymerChemistryApp = () => {
                   >
                     {currentQuestion < currentLesson.questions.length - 1
                       ? "Next Question"
-                      : "Complete Lesson"}
+                      : "Review Answers"}
                   </Button>
                 )}
               </div>
@@ -384,6 +601,7 @@ const PolymerChemistryApp = () => {
     );
   }
 
+  // MAIN LESSON LIST
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="max-w-4xl mx-auto">
@@ -405,7 +623,6 @@ const PolymerChemistryApp = () => {
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
-          {/* Reduced vertical padding and tightened text line-height to reduce the space beneath the text */}
           <Card>
             <CardContent className="py-2">
               <div className="flex items-center gap-3">
@@ -460,7 +677,6 @@ const PolymerChemistryApp = () => {
 
         <div className="space-y-4">
           {lessons?.map((lesson) => {
-            // FIX: Pass the ID, not the index
             const status = getLessonStatus(lesson._id);
             return (
               <Card
