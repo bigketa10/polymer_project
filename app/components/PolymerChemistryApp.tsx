@@ -101,11 +101,18 @@ const PolymerChemistryApp = () => {
 
   const checkAnswer = () => {
     setShowResult(true);
-    // update the interim score for visual feedback (optional)
-    const interimScore = selectedAnswers.reduce((acc, ans, idx) => {
-      if (ans === currentLesson.questions[idx].correct) return acc + 1;
-      return acc;
-    }, 0);
+
+    // Ensure we default to 0 if the reduce returns undefined/null
+    const interimScore =
+      selectedAnswers?.reduce((acc, ans, idx) => {
+        // Safety check: ensure the question exists before checking answer
+        const question = currentLesson?.questions?.[idx];
+        if (question && ans === question.correct) {
+          return (acc || 0) + 1;
+        }
+        return acc;
+      }, 0) ?? 0; // <--- The '?? 0' handles the error
+
     setScore(interimScore);
   };
 
@@ -124,7 +131,7 @@ const PolymerChemistryApp = () => {
   const computeFinalScore = () => {
     if (!currentLesson) return 0;
     return selectedAnswers.reduce((acc, ans, idx) => {
-      if (ans === currentLesson.questions[idx].correct) return acc + 1;
+      if (ans === currentLesson.questions[idx].correct) return (acc || 0) + 1;
       return acc;
     }, 0);
   };
@@ -145,7 +152,8 @@ const PolymerChemistryApp = () => {
 
     const finalScore = computeFinalScore();
     const earnedXP = Math.round(
-      (finalScore / currentLesson.questions.length) * currentLesson.xpReward
+      ((finalScore || 0) / currentLesson.questions.length) *
+        currentLesson.xpReward
     );
     const newXp = xp + earnedXP;
     const newStreak = streak + 1;
@@ -320,7 +328,8 @@ const PolymerChemistryApp = () => {
     if (showReview) {
       const finalScore = computeFinalScore();
       const earnedXPPreview = Math.round(
-        (finalScore / currentLesson.questions.length) * currentLesson.xpReward
+        ((finalScore || 0) / currentLesson.questions.length) *
+          currentLesson.xpReward
       );
 
       return (

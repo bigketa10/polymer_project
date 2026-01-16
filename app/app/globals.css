@@ -119,7 +119,38 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Make buttons look clickable */
+  button,
+  [type="button"],
+  [type="reset"],
+  [type="submit"],
+  [role="button"] {
+    cursor: pointer;
+  }
+}
+
+/* Target all buttons for hover/active states */
+button,
+[role="button"] {
+  /* Smooths out the animation */
+  transition:
+    transform 0.1s ease-in-out,
+    opacity 0.2s;
+}
+
+/* Dim slightly when hovering */
+button:hover,
+[role="button"]:hover {
+  opacity: 0.9;
+}
+
+/* Shrink slightly when clicking (pressing down) */
+button:active,
+[role="button"]:active {
+  transform: scale(0.98);
 }
