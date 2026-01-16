@@ -119,12 +119,11 @@
   * {
     @apply border-border outline-ring/50;
   }
-
   body {
     @apply bg-background text-foreground;
   }
 
-  /* Make buttons look clickable */
+  /* Applies to all buttons automatically */
   button,
   [type="button"],
   [type="reset"],

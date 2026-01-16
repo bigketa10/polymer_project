@@ -29,16 +29,14 @@ const PolymerChemistryApp = () => {
   const [currentLesson, setCurrentLesson] = useState<any>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  // store answers for all questions in the lesson
   const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>(
     []
   );
   const [showResult, setShowResult] = useState(false);
-  // keep score for in-quiz display if you want, but final calculation will use selectedAnswers
   const [score, setScore] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
-  const [showReview, setShowReview] = useState(false); // NEW: show mini review
-  const [reviewAnimate, setReviewAnimate] = useState(false); // controls animation state
+  const [showReview, setShowReview] = useState(false);
+  const [reviewAnimate, setReviewAnimate] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   // Convex queries and mutations
@@ -58,11 +56,10 @@ const PolymerChemistryApp = () => {
     }
   }, [lessons, initialized, initializeDefaults]);
 
-  // Trigger entrance animation shortly after review mounts, and reset animation when review hidden
+  // Trigger entrance animation for review
   useEffect(() => {
     let t: number | undefined;
     if (showReview) {
-      // Small delay ensures element is mounted before we flip the animated state
       t = window.setTimeout(() => setReviewAnimate(true), 20);
     } else {
       setReviewAnimate(false);
@@ -84,7 +81,6 @@ const PolymerChemistryApp = () => {
     setScore(0);
     setShowReview(false);
     setReviewAnimate(false);
-    // initialize answers array for this lesson
     setSelectedAnswers(Array(lesson.questions.length).fill(null));
   };
 
@@ -101,18 +97,14 @@ const PolymerChemistryApp = () => {
 
   const checkAnswer = () => {
     setShowResult(true);
-
-    // Ensure we default to 0 if the reduce returns undefined/null
     const interimScore =
       selectedAnswers?.reduce((acc, ans, idx) => {
-        // Safety check: ensure the question exists before checking answer
         const question = currentLesson?.questions?.[idx];
         if (question && ans === question.correct) {
           return (acc || 0) + 1;
         }
         return acc;
-      }, 0) ?? 0; // <--- The '?? 0' handles the error
-
+      }, 0) ?? 0;
     setScore(interimScore);
   };
 
@@ -122,12 +114,10 @@ const PolymerChemistryApp = () => {
       setSelectedAnswer(selectedAnswers[currentQuestion + 1] ?? null);
       setShowResult(false);
     } else {
-      // Instead of immediately completing, show the mini review
       setShowReview(true);
     }
   };
 
-  // compute final score from selectedAnswers
   const computeFinalScore = () => {
     if (!currentLesson) return 0;
     return selectedAnswers.reduce((acc, ans, idx) => {
@@ -136,17 +126,14 @@ const PolymerChemistryApp = () => {
     }, 0);
   };
 
-  // Helper to close review with hide animation, then run optional callback
   const hideReview = (callback?: () => void) => {
     setReviewAnimate(false);
-    // wait for animation to finish before unmounting / running callback
     window.setTimeout(() => {
       setShowReview(false);
       if (callback) callback();
-    }, 220); // matches CSS duration below (200ms + small buffer)
+    }, 220);
   };
 
-  // completeLesson now computes XP from selectedAnswers and updates progress
   const completeLesson = async () => {
     if (!currentLesson) return;
 
@@ -159,7 +146,6 @@ const PolymerChemistryApp = () => {
     const newStreak = streak + 1;
 
     let newCompletedLessons = [...completedLessonIds];
-
     const isAlreadyCompleted = newCompletedLessons.some(
       (id) => id === currentLesson._id
     );
@@ -174,7 +160,6 @@ const PolymerChemistryApp = () => {
       completedLessonIds: newCompletedLessons,
     });
 
-    // reset lesson state and close
     setShowReview(false);
     setReviewAnimate(false);
     setCurrentLesson(null);
@@ -196,11 +181,7 @@ const PolymerChemistryApp = () => {
 
   const exportData = () => {
     const data = {
-      progress: {
-        xp,
-        streak,
-        completedLessonIds,
-      },
+      progress: { xp, streak, completedLessonIds },
       lessons: lessons?.map((l) => ({
         title: l.title,
         description: l.description,
@@ -241,7 +222,7 @@ const PolymerChemistryApp = () => {
     );
   }
 
-  // SETTINGS SCREEN (unchanged)
+  // SETTINGS SCREEN
   if (showSettings) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
@@ -249,7 +230,7 @@ const PolymerChemistryApp = () => {
           <Button
             variant="outline"
             onClick={() => setShowSettings(false)}
-            className="mb-6 cursor-pointer"
+            className="mb-6"
           >
             ← Back to Lessons
           </Button>
@@ -273,7 +254,7 @@ const PolymerChemistryApp = () => {
                 </p>
                 <Button
                   onClick={exportData}
-                  className="w-full cursor-pointer"
+                  className="w-full"
                   variant="outline"
                 >
                   <Download className="w-4 h-4 mr-2" />
@@ -288,7 +269,7 @@ const PolymerChemistryApp = () => {
                 </p>
                 <Button
                   onClick={handleResetProgress}
-                  className="w-full cursor-pointer"
+                  className="w-full"
                   variant="destructive"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
@@ -324,7 +305,6 @@ const PolymerChemistryApp = () => {
 
   // LESSON RUNNING + REVIEW
   if (currentLesson) {
-    // if review screen is active, show the mini review
     if (showReview) {
       const finalScore = computeFinalScore();
       const earnedXPPreview = Math.round(
@@ -336,11 +316,7 @@ const PolymerChemistryApp = () => {
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
           <div className="max-w-2xl mx-auto">
             <div className="mb-6 flex items-center justify-between">
-              <Button
-                variant="outline"
-                onClick={() => hideReview()}
-                className="cursor-pointer"
-              >
+              <Button variant="outline" onClick={() => hideReview()}>
                 ← Back to Quiz
               </Button>
 
@@ -358,7 +334,6 @@ const PolymerChemistryApp = () => {
               </div>
             </div>
 
-            {/* Animated wrapper: transitions opacity, translate and scale */}
             <div
               className={`transform transition-all duration-200 ease-out ${
                 reviewAnimate
@@ -438,7 +413,6 @@ const PolymerChemistryApp = () => {
                     <Button
                       onClick={() =>
                         hideReview(() => {
-                          // retry: reset answers and go back to start of lesson
                           setSelectedAnswers(
                             Array(currentLesson.questions.length).fill(null)
                           );
@@ -449,14 +423,13 @@ const PolymerChemistryApp = () => {
                         })
                       }
                       variant="outline"
-                      className="cursor-pointer"
                     >
                       Retry Lesson
                     </Button>
 
                     <Button
                       onClick={() => hideReview(() => completeLesson())}
-                      className="bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
+                      className="bg-indigo-600 hover:bg-indigo-700"
                     >
                       Finish and Save Progress
                     </Button>
@@ -464,12 +437,10 @@ const PolymerChemistryApp = () => {
                     <Button
                       onClick={() =>
                         hideReview(() => {
-                          // close without saving progress
                           setCurrentLesson(null);
                         })
                       }
                       variant="ghost"
-                      className="cursor-pointer"
                     >
                       Back to Lessons (Don't Save)
                     </Button>
@@ -482,7 +453,7 @@ const PolymerChemistryApp = () => {
       );
     }
 
-    // normal quiz UI
+    // Normal Quiz UI
     const question = currentLesson.questions[currentQuestion];
     const isCorrect = selectedAnswers[currentQuestion] === question.correct;
     const progress =
@@ -492,11 +463,7 @@ const PolymerChemistryApp = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
         <div className="max-w-2xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
-            <Button
-              variant="outline"
-              onClick={() => setCurrentLesson(null)}
-              className="cursor-pointer"
-            >
+            <Button variant="outline" onClick={() => setCurrentLesson(null)}>
               ← Back
             </Button>
             <div className="flex items-center gap-4">
@@ -530,7 +497,8 @@ const PolymerChemistryApp = () => {
                     key={index}
                     onClick={() => handleAnswerSelect(index)}
                     disabled={showResult}
-                    className={`w-full p-4 text-left rounded-lg border-2 transition-all cursor-pointer disabled:cursor-not-allowed ${
+                    // We keep disabled:cursor-not-allowed, but rely on global CSS for the pointer
+                    className={`w-full p-4 text-left rounded-lg border-2 transition-all disabled:cursor-not-allowed ${
                       selectedAnswers[currentQuestion] === index
                         ? showResult
                           ? index === question.correct
@@ -588,14 +556,14 @@ const PolymerChemistryApp = () => {
                   <Button
                     onClick={checkAnswer}
                     disabled={selectedAnswers[currentQuestion] === null}
-                    className="bg-indigo-600 hover:bg-indigo-700 cursor-pointer disabled:cursor-not-allowed"
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed"
                   >
                     Check Answer
                   </Button>
                 ) : (
                   <Button
                     onClick={nextQuestion}
-                    className="bg-indigo-600 hover:bg-indigo-700 cursor-pointer"
+                    className="bg-indigo-600 hover:bg-indigo-700"
                   >
                     {currentQuestion < currentLesson.questions.length - 1
                       ? "Next Question"
@@ -618,11 +586,7 @@ const PolymerChemistryApp = () => {
           <div className="flex items-center justify-between mb-4">
             <div></div>
             <h1 className="text-4xl font-bold text-indigo-900">PolymerLearn</h1>
-            <Button
-              variant="ghost"
-              onClick={() => setShowSettings(true)}
-              className="cursor-pointer"
-            >
+            <Button variant="ghost" onClick={() => setShowSettings(true)}>
               <Settings className="w-5 h-5" />
             </Button>
           </div>
@@ -631,7 +595,7 @@ const PolymerChemistryApp = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-2 mb-8 max-w-2xl mx-auto">
           <Card>
             <CardContent className="py-2">
               <div className="flex items-center gap-3">
@@ -690,6 +654,7 @@ const PolymerChemistryApp = () => {
             return (
               <Card
                 key={lesson._id}
+                // Kept cursor-pointer here because Cards are divs, not buttons
                 className={`cursor-pointer transition-all hover:shadow-lg ${
                   status === "completed" ? "border-green-200 bg-green-50" : ""
                 }`}
