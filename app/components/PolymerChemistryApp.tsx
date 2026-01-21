@@ -108,9 +108,6 @@ const PolymerChemistryApp = () => {
       isCorrect ? "/sounds/correct.mp3" : "/sounds/wrong.mp3",
     );
 
-    // Lower volume slightly so it's not jarring
-    audio.volume = 0.5;
-
     // Play and catch errors (e.g., if user hasn't interacted with page yet)
     audio.play().catch((e) => console.log("Audio play failed:", e));
     const interimScore =
