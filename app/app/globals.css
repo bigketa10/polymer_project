@@ -156,28 +156,3 @@ button:active,
 [role="button"]:active {
   transform: scale(0.98);
 }
-
-/* 1. Disable text selection (makes it feel like an app, not a website) */
-body {
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* 2. Fix the "Rubber Band" scroll bounce on iOS */
-html,
-body {
-  overscroll-behavior-y: none;
-  position: fixed; /* Be careful with this, test it first */
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-/* 3. Allow scrolling only in your main container */
-#root,
-#__next {
-  height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
-}
