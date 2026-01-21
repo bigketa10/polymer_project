@@ -112,8 +112,8 @@ const PolymerChemistryApp = () => {
     audio.play().catch((e) => console.log("Audio play failed:", e));
     const interimScore =
       selectedAnswers?.reduce((acc, ans, idx) => {
-        const question = currentLesson?.questions?.[idx];
-        if (question && ans === question.correct) {
+        const q = currentLesson?.questions?.[idx];
+        if (q && ans === q.correct) {
           return (acc || 0) + 1;
         }
         return acc;
