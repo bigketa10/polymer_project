@@ -30,7 +30,7 @@ const PolymerChemistryApp = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>(
-    []
+    [],
   );
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
@@ -97,6 +97,22 @@ const PolymerChemistryApp = () => {
 
   const checkAnswer = () => {
     setShowResult(true);
+    // --- NEW: Play Sound Logic ---
+    const question = currentLesson.questions[currentQuestion];
+    const userAnswer = selectedAnswers[currentQuestion];
+    const isCorrect = userAnswer === question.correct;
+
+    // Create audio objects
+    // Note: The path starts with '/' which points to the public folder
+    const audio = new Audio(
+      isCorrect ? "/sounds/correct.mp3" : "/sounds/wrong.mp3",
+    );
+
+    // Lower volume slightly so it's not jarring
+    audio.volume = 0.5;
+
+    // Play and catch errors (e.g., if user hasn't interacted with page yet)
+    audio.play().catch((e) => console.log("Audio play failed:", e));
     const interimScore =
       selectedAnswers?.reduce((acc, ans, idx) => {
         const question = currentLesson?.questions?.[idx];
@@ -140,14 +156,14 @@ const PolymerChemistryApp = () => {
     const finalScore = computeFinalScore();
     const earnedXP = Math.round(
       ((finalScore || 0) / currentLesson.questions.length) *
-        currentLesson.xpReward
+        currentLesson.xpReward,
     );
     const newXp = xp + earnedXP;
     const newStreak = streak + 1;
 
     let newCompletedLessons = [...completedLessonIds];
     const isAlreadyCompleted = newCompletedLessons.some(
-      (id) => id === currentLesson._id
+      (id) => id === currentLesson._id,
     );
 
     if (!isAlreadyCompleted) {
@@ -172,7 +188,7 @@ const PolymerChemistryApp = () => {
   const handleResetProgress = async () => {
     if (
       confirm(
-        "Are you sure you want to reset all progress? This cannot be undone."
+        "Are you sure you want to reset all progress? This cannot be undone.",
       )
     ) {
       await resetProgress();
@@ -309,7 +325,7 @@ const PolymerChemistryApp = () => {
       const finalScore = computeFinalScore();
       const earnedXPPreview = Math.round(
         ((finalScore || 0) / currentLesson.questions.length) *
-          currentLesson.xpReward
+          currentLesson.xpReward,
       );
 
       return (
@@ -414,7 +430,7 @@ const PolymerChemistryApp = () => {
                       onClick={() =>
                         hideReview(() => {
                           setSelectedAnswers(
-                            Array(currentLesson.questions.length).fill(null)
+                            Array(currentLesson.questions.length).fill(null),
                           );
                           setSelectedAnswer(null);
                           setCurrentQuestion(0);
