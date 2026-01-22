@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import {
@@ -45,6 +45,10 @@ const PolymerChemistryApp = () => {
   const updateProgress = useMutation(api.userProgress.update);
   const resetProgress = useMutation(api.userProgress.reset);
   const initializeDefaults = useMutation(api.lessons.initializeDefaults);
+
+  // Create references for the audio players
+  const correctSound = useRef<HTMLAudioElement | null>(null);
+  const wrongSound = useRef<HTMLAudioElement | null>(null);
 
   // Initialize default lessons on first load
   useEffect(() => {
@@ -102,18 +106,39 @@ const PolymerChemistryApp = () => {
     const userAnswer = selectedAnswers[currentQuestion];
     const isCorrect = userAnswer === question.correct;
 
+    if (isCorrect) {
+      if (correctSound.current) {
+        correctSound.current.currentTime = 0; // Reset to start
+        correctSound.current.volume = 0.5;
+        correctSound.current
+          .play()
+          .catch((e) => console.error("Sound error:", e));
+      }
+    } else {
+      if (wrongSound.current) {
+        wrongSound.current.currentTime = 0;
+        wrongSound.current.volume = 0.5;
+        wrongSound.current
+          .play()
+          .catch((e) => console.error("Sound error:", e));
+      }
+    }
+
     // Create audio objects
     // Note: The path starts with '/' which points to the public folder
     const audio = new Audio(
-      isCorrect ? "/sounds/correct.mp3" : "/sounds/wrong.mp3",
+      isCorrect ? "/sounds/correct.mp3" : "/sounds/incorrect.mp3",
     );
+
+    // Lower volume slightly so it's not jarring
+    audio.volume = 0.2;
 
     // Play and catch errors (e.g., if user hasn't interacted with page yet)
     audio.play().catch((e) => console.log("Audio play failed:", e));
     const interimScore =
       selectedAnswers?.reduce((acc, ans, idx) => {
-        const q = currentLesson?.questions?.[idx];
-        if (q && ans === q.correct) {
+        const question = currentLesson?.questions?.[idx];
+        if (question && ans === question.correct) {
           return (acc || 0) + 1;
         }
         return acc;
@@ -312,6 +337,8 @@ const PolymerChemistryApp = () => {
             </CardContent>
           </Card>
         </div>
+        <audio ref={correctSound} src="/sounds/correct.mp3" preload="auto" />
+        <audio ref={wrongSound} src="/sounds/incorrect.mp3" preload="auto" />
       </div>
     );
   }
