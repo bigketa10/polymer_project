@@ -23,6 +23,7 @@ import {
   Settings,
   Download,
   RotateCcw,
+  Volume2,
 } from "lucide-react";
 
 const PolymerChemistryApp = () => {
@@ -73,6 +74,28 @@ const PolymerChemistryApp = () => {
     };
   }, [showReview]);
 
+  // Automatically read the question when it loads
+  useEffect(() => {
+    if (currentLesson && currentLesson.questions) {
+      // Get the text of the current question
+      const questionText = currentLesson.questions[currentQuestion].question;
+
+      // Cancel any previous speech (like the previous question) so they don't overlap
+      window.speechSynthesis.cancel();
+
+      // Add a tiny delay (300ms) so it feels natural after the transition
+      const timer = setTimeout(() => {
+        speak(questionText);
+      }, 300);
+
+      // Cleanup: If user clicks "Next" quickly, stop reading this one
+      return () => {
+        clearTimeout(timer);
+        window.speechSynthesis.cancel();
+      };
+    }
+  }, [currentQuestion, currentLesson]);
+
   const xp = userProgress?.xp || 0;
   const streak = userProgress?.streak || 0;
   const completedLessonIds = userProgress?.completedLessonIds || [];
@@ -88,8 +111,26 @@ const PolymerChemistryApp = () => {
     setSelectedAnswers(Array(lesson.questions.length).fill(null));
   };
 
+  // Text-to-Speech Helper
+  const speak = (text: string) => {
+    // Cancel any current speech to prevent overlap
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    // Optional: Customize the voice
+    utterance.rate = 0.9; // Slightly slower for clarity
+    utterance.pitch = 1;
+    utterance.lang = "en-GB";
+
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handleAnswerSelect = (index: number) => {
     if (!showResult) {
+      const optionText =
+        currentLesson.questions[currentQuestion].options[index];
+      speak(optionText);
       setSelectedAnswer(index);
       setSelectedAnswers((prev) => {
         const next = [...prev];
@@ -524,7 +565,16 @@ const PolymerChemistryApp = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">{question.question}</CardTitle>
+              <CardTitle className="text-2xl flex items-center gap-3">
+                {question.question}
+                <div
+                  onClick={() => speak(question.question)}
+                  className="p-2 rounded-full hover:bg-indigo-100 text-indigo-400 transition-colors cursor-pointer"
+                  title="Read question aloud"
+                >
+                  <Volume2 className="w-5 h-5" />
+                </div>
+              </CardTitle>
               <CardDescription>
                 Question {currentQuestion + 1} of{" "}
                 {currentLesson.questions.length}
