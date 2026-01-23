@@ -293,7 +293,7 @@ const PolymerChemistryApp = () => {
 
   if (lessons === undefined || userProgress === undefined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your progress...</p>
@@ -305,7 +305,7 @@ const PolymerChemistryApp = () => {
   // SETTINGS SCREEN
   if (showSettings) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+      <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
         <div className="max-w-2xl mx-auto">
           <Button
             variant="outline"
@@ -423,7 +423,7 @@ const PolymerChemistryApp = () => {
       );
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+        <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
           <div className="max-w-2xl mx-auto">
             <div className="mb-6 flex items-center justify-between">
               <Button variant="outline" onClick={() => hideReview()}>
@@ -570,7 +570,7 @@ const PolymerChemistryApp = () => {
       ((currentQuestion + 1) / currentLesson.questions.length) * 100;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+      <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
         <div className="max-w-2xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
             <Button variant="outline" onClick={() => setCurrentLesson(null)}>
@@ -738,7 +738,7 @@ const PolymerChemistryApp = () => {
 
   // MAIN LESSON LIST
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+    <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <div className="flex items-center justify-between mb-4">
