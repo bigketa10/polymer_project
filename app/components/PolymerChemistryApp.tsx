@@ -55,7 +55,8 @@ const PolymerChemistryApp = () => {
   useEffect(() => {
     if (!initialized && lessons !== undefined) {
       if (lessons.length === 0) {
-        initializeDefaults();
+        // FIX: Pass an empty object or explicit false to match the new signature
+        initializeDefaults({ forceReset: false });
       }
       setInitialized(true);
     }
@@ -375,6 +376,34 @@ const PolymerChemistryApp = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Developer Options */}
+              <div className="pt-4 border-t">
+                <h3 className="font-semibold mb-2 text-indigo-900">
+                  Developer Options
+                </h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Database has old lessons? Click this to force-load the new
+                  QXU5031 curriculum.
+                </p>
+                <Button
+                  onClick={async () => {
+                    try {
+                      // Explicitly pass the object with the boolean
+                      await initializeDefaults({ forceReset: true });
+                      alert("Curriculum Updated!");
+                      window.location.reload();
+                    } catch (err) {
+                      console.error(err);
+                      alert("Check console for error details.");
+                    }
+                  }}
+                  className="w-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-200"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Force Update Course Content
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -581,6 +610,45 @@ const PolymerChemistryApp = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* DEBUG: Show what imageUrl value is */}
+              <div className="mb-2 text-xs text-blue-600">
+                imageUrl:{" "}
+                {question.imageUrl
+                  ? "EXISTS - " + question.imageUrl.substring(0, 50) + "..."
+                  : "MISSING"}
+              </div>
+
+              {/* -------------------- NEW IMAGE SECTION -------------------- */}
+              {/* Check if the question has an image URL. If yes, show it. */}
+              {question.imageUrl && (
+                <div className="mb-6 flex justify-center bg-white rounded-xl border border-indigo-50 overflow-hidden shadow-sm p-4">
+                  <img
+                    src={question.imageUrl}
+                    alt="Diagram for question"
+                    crossOrigin="anonymous"
+                    style={{
+                      maxHeight: "256px",
+                      maxWidth: "100%",
+                      objectFit: "contain",
+                    }}
+                    onError={(e) => {
+                      console.error(
+                        "❌ Image failed to load:",
+                        question.imageUrl,
+                      );
+                      console.error("Error:", e);
+                    }}
+                    onLoad={() => {
+                      console.log(
+                        "✅ Image loaded successfully:",
+                        question.imageUrl,
+                      );
+                    }}
+                  />
+                </div>
+              )}
+              {/* ----------------------------------------------------------- */}
+
               <div className="space-y-3 mb-6">
                 {question.options.map((option: string, index: number) => (
                   <button
