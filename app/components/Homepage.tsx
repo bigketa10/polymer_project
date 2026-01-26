@@ -11,7 +11,7 @@ import {
 
 export default function Homepage() {
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900">
+    <div className="h-screen w-full overflow-y-auto scroll-smooth bg-white font-sans text-slate-900 overflow-x-hidden">
       {/* NAVBAR */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-2 font-bold text-xl text-indigo-600">
@@ -43,7 +43,7 @@ export default function Homepage() {
       </nav>
 
       {/* HERO SECTION */}
-      <main className="flex-1 flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-b from-white to-indigo-50">
+      <main className="flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-b from-white to-indigo-50 w-full">
         <div className="max-w-3xl space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-bold mb-4">
             <Atom className="w-4 h-4" />

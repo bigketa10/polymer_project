@@ -51,6 +51,7 @@ export const initializeDefaults = mutation({
         xpReward: 100,
         isDefault: true,
         order: 1,
+        section: "qxu5031",
         questions: [
           {
             question:
@@ -134,6 +135,7 @@ export const initializeDefaults = mutation({
         xpReward: 120,
         isDefault: true,
         order: 2,
+        section: "qxu5031",
         questions: [
           {
             question:
@@ -197,6 +199,7 @@ export const initializeDefaults = mutation({
         xpReward: 120,
         isDefault: true,
         order: 3,
+        section: "qxu5031",
         questions: [
           {
             question: "Identify the Propagation step:",
@@ -261,6 +264,7 @@ export const initializeDefaults = mutation({
         xpReward: 150,
         isDefault: true,
         order: 4,
+        section: "qxu5031",
         questions: [
           {
             question: "In Emulsion Polymerization, the main reaction site is:",
@@ -324,6 +328,7 @@ export const initializeDefaults = mutation({
         xpReward: 150,
         isDefault: true,
         order: 5,
+        section: "qxu5031",
         questions: [
           {
             question:
@@ -380,6 +385,176 @@ export const initializeDefaults = mutation({
             correct: 1,
             explanation:
               "Polymerize A until done, then add B. The 'living' ends of A initiate B.",
+          },
+        ],
+      },
+      // ---------------------------------------------------------
+      // ROTATION 3: Advanced Polymer Chemistry (QXU6033)
+      // ---------------------------------------------------------
+      {
+        title: "6. Controlled Radical Polym. (CRP)",
+        description: "QXU6033: NMP, ATRP, RAFT and Living Kinetics.",
+        difficulty: "Expert",
+        xpReward: 200,
+        isDefault: true,
+        order: 6,
+        section: "qxu6033",
+        questions: [
+          {
+            question:
+              "In an ideal Controlled Radical Polymerization (CRP), the kinetics are:",
+            imageUrl:
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Living_polymerization_molecular_weight_distribution.svg/640px-Living_polymerization_molecular_weight_distribution.svg.png",
+            options: [
+              "Zero order w.r.t Monomer",
+              "First order w.r.t Monomer (ln[M0]/[M] is linear)",
+              "Second order w.r.t Monomer",
+              "Independent of Initiator",
+            ],
+            correct: 1,
+            explanation:
+              "Ideal CRP shows first-order kinetics with respect to monomer concentration, indicating a constant concentration of active radicals.",
+          },
+          {
+            question: "In ATRP, what is the role of the Cu(II) species?",
+            imageUrl:
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/ATRP_Mechanism.svg/640px-ATRP_Mechanism.svg.png",
+            options: [
+              "It acts as the Activator",
+              "It acts as the Deactivator (Persistent Radical)",
+              "It initiates the reaction",
+              "It acts as the solvent",
+            ],
+            correct: 1,
+            explanation:
+              "Cu(I) activates the dormant species, while Cu(II) deactivates the growing radical, returning it to the dormant state to lower PDI.",
+          },
+          {
+            question:
+              "In a RAFT agent (Z-C(=S)S-R), what is the function of the 'Z' group?",
+            imageUrl:
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/RAFT_Mechanism.svg/640px-RAFT_Mechanism.svg.png",
+            options: [
+              "It leaves to initiate new chains",
+              "It controls the reactivity of the C=S bond",
+              "It acts as the monomer",
+              "It is the propagating species",
+            ],
+            correct: 1,
+            explanation:
+              "The Z-group modifies the reactivity of the C=S double bond, influencing the rate of radical addition and fragmentation.",
+          },
+          {
+            question:
+              "Which CRP method uses a stable nitroxide radical (like TEMPO) to cap the growing chain?",
+            imageUrl:
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/TEMPO_structure.svg/320px-TEMPO_structure.svg.png",
+            options: ["ATRP", "RAFT", "NMP (Nitroxide Mediated)", "SARA"],
+            correct: 2,
+            explanation:
+              "NMP uses stable radicals like TEMPO to reversibly couple with the active chain end, reducing termination events.",
+          },
+        ],
+      },
+      {
+        title: "7. Dendrimers & Hyperbranched",
+        description: "QXU6033: Divergent vs Convergent, PAMAM, and SCVP.",
+        difficulty: "Expert",
+        xpReward: 200,
+        isDefault: true,
+        order: 7,
+        section: "qxu6033",
+        questions: [
+          {
+            question:
+              "Which synthesis method builds a dendrimer from the 'Core' outwards?",
+            imageUrl:
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Dendrimer_divergent_synthesis.svg/640px-Dendrimer_divergent_synthesis.svg.png",
+            options: [
+              "Convergent (Fréchet)",
+              "Divergent (Tomalia)",
+              "Click Chemistry",
+              "Self-Condensing",
+            ],
+            correct: 1,
+            explanation:
+              "Divergent synthesis (pioneered by Tomalia for PAMAM) builds the molecule from the core to the periphery.",
+          },
+          {
+            question:
+              "Unlike perfect Dendrimers, Hyperbranched polymers prepared by one-pot synthesis:",
+            imageUrl:
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Hyperbranched_Polymer_Structure.svg/640px-Hyperbranched_Polymer_Structure.svg.png",
+            options: [
+              "Have a Degree of Branching (DB) = 1.0",
+              "Are perfectly monodisperse",
+              "Contain linear defects and are polydisperse",
+              "Cannot be crosslinked",
+            ],
+            correct: 2,
+            explanation:
+              "Hyperbranched polymers are synthesized in one step (e.g., SCVP) and contain structural imperfections (linear units), unlike monodisperse dendrimers.",
+          },
+          {
+            question:
+              "According to the Carothers equation for branching, the Gel Point occurs when:",
+            options: ["p = 1.0", "p = 2 / f_avg", "p = 0.5", "f_avg = 1"],
+            correct: 1,
+            explanation:
+              "For non-linear step growth, gelation (infinite network formation) occurs theoretically when conversion p = 2/fav.",
+          },
+        ],
+      },
+      {
+        title: "8. Complex Architectures",
+        description: "QXU6033: Star Polymers and Self-Assembly.",
+        difficulty: "Expert",
+        xpReward: 250,
+        isDefault: true,
+        order: 8,
+        section: "qxu6033",
+        questions: [
+          {
+            question:
+              "In the 'Arm-First' synthesis of Star Polymers, you typically react:",
+            imageUrl:
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Star_Polymer_Synthesis.svg/640px-Star_Polymer_Synthesis.svg.png",
+            options: [
+              "A multifunctional initiator with monomers",
+              "Linear macro-initiators with a crosslinker",
+              "Two different homopolymers",
+              "Dendrimers with linear chains",
+            ],
+            correct: 1,
+            explanation:
+              "Arm-first involves creating linear polymer chains ('arms') first, then crosslinking their active ends to form the core.",
+          },
+          {
+            question:
+              "Amphiphilic block copolymers in a selective solvent will self-assemble into:",
+            imageUrl:
+              "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Micelle_scheme-en.svg/640px-Micelle_scheme-en.svg.png",
+            options: [
+              "Random coils",
+              "Micelles or Vesicles",
+              "Homopolymers",
+              "Macroscopic precipitates",
+            ],
+            correct: 1,
+            explanation:
+              "To minimize free energy, the insoluble blocks aggregate (core) while the soluble blocks protect them (corona), forming micelles.",
+          },
+          {
+            question: "The 'Critical Micelle Concentration' (CMC) is:",
+            options: [
+              "The temperature where micelles break",
+              "The concentration above which unimers aggregate into micelles",
+              "The molecular weight of the block",
+              "The size of the core",
+            ],
+            correct: 1,
+            explanation:
+              "Below the CMC, copolymers exist as free chains (unimers). Above the CMC, they spontaneously assemble into micelles.",
           },
         ],
       },

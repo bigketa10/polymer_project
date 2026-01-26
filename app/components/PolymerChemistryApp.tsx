@@ -24,9 +24,37 @@ import {
   Download,
   RotateCcw,
   Volume2,
+  ArrowLeft,
+  Beaker,
+  BookOpen,
+  PlayCircle,
+  Atom,
 } from "lucide-react";
 
 const PolymerChemistryApp = () => {
+  // 1. DEFINE YOUR COURSE METADATA HERE
+  // This is the ONLY place you need to touch when adding new modules.
+  const COURSE_CONFIG: Record<string, any> = {
+    qxu5031: {
+      id: "qxu5031",
+      code: "QXU5031",
+      title: "Polymer Chemistry",
+      description: "Intro, MW, Step-Growth & Radical",
+      color: "indigo",
+      icon: BookOpen,
+    },
+    qxu6033: {
+      id: "qxu6033",
+      code: "QXU6033",
+      title: "Advanced Chemistry",
+      description: "CRP, Dendrimers & Self-Assembly",
+      color: "purple",
+      icon: Beaker,
+    },
+  };
+
+  // 2. DYNAMIC STATE
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [currentLesson, setCurrentLesson] = useState<any>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -610,16 +638,7 @@ const PolymerChemistryApp = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* DEBUG: Show what imageUrl value is */}
-              <div className="mb-2 text-xs text-blue-600">
-                imageUrl:{" "}
-                {question.imageUrl
-                  ? "EXISTS - " + question.imageUrl.substring(0, 50) + "..."
-                  : "MISSING"}
-              </div>
-
-              {/* -------------------- NEW IMAGE SECTION -------------------- */}
-              {/* Check if the question has an image URL. If yes, show it. */}
+              {/* -------------------- IMAGE SECTION -------------------- */}
               {question.imageUrl && (
                 <div className="mb-6 flex justify-center bg-white rounded-xl border border-indigo-50 overflow-hidden shadow-sm p-4">
                   <img
@@ -736,119 +755,221 @@ const PolymerChemistryApp = () => {
     );
   }
 
-  // MAIN LESSON LIST
+  // MAIN DASHBOARD & LESSON LIST
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="max-w-4xl mx-auto">
+        {/* HEADER */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-between mb-4">
             <div></div>
             <h1 className="text-4xl font-bold text-indigo-900">PolymerLearn</h1>
             <Button variant="ghost" onClick={() => setShowSettings(true)}>
-              <Settings className="w-5 h-5" />
+              <Settings className="w-6 h-6" />
             </Button>
           </div>
-          <p className="text-gray-600">
-            Master polymer chemistry, one lesson at a time
-          </p>
+          <p className="text-gray-600">Queen Mary University of London</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 mb-8 max-w-2xl mx-auto">
-          <Card>
-            <CardContent className="py-2">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-100 rounded-full">
-                  <Star className="w-6 h-6 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold leading-tight mb-0">{xp}</p>
-                  <p className="text-sm text-gray-600 mt-0">Total XP</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="py-2">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-full">
-                  <Flame className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold leading-tight mb-0">
-                    {streak}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-0">Day Streak</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="py-2">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-full">
-                  <Trophy className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold leading-tight mb-0">
-                    {completedLessonIds.length}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-0">Completed</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <Book className="w-6 h-6" />
-          Your Lessons
-        </h2>
-
-        <div className="space-y-4">
-          {lessons?.map((lesson) => {
-            const status = getLessonStatus(lesson._id);
-            return (
-              <Card
-                key={lesson._id}
-                // Kept cursor-pointer here because Cards are divs, not buttons
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  status === "completed" ? "border-green-200 bg-green-50" : ""
-                }`}
-                onClick={() => startLesson(lesson)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="flex items-center gap-2">
-                        {lesson.title}
-                        {status === "completed" && (
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                        )}
-                      </CardTitle>
-                      <CardDescription>{lesson.description}</CardDescription>
+        {/* --- DYNAMIC DASHBOARD --- */}
+        {!selectedModuleId && !currentLesson && (
+          <div className="space-y-8">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-2 max-w-2xl mx-auto">
+              <Card>
+                <CardContent className="py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-yellow-100 rounded-full">
+                      <Star className="w-6 h-6 text-yellow-600" />
                     </div>
-                    <div className="text-right">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                          lesson.difficulty === "Beginner"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-purple-100 text-purple-700"
-                        }`}
-                      >
-                        {lesson.difficulty}
-                      </span>
-                      <p className="text-sm text-gray-600 mt-2">
-                        +{lesson.xpReward} XP
+                    <div>
+                      <p className="text-2xl font-bold leading-tight mb-0">
+                        {xp}
                       </p>
+                      <p className="text-sm text-gray-600 mt-0">Total XP</p>
                     </div>
                   </div>
-                </CardHeader>
+                </CardContent>
               </Card>
-            );
-          })}
-        </div>
+
+              <Card>
+                <CardContent className="py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 rounded-full">
+                      <Flame className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold leading-tight mb-0">
+                        {streak}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-0">Day Streak</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-full">
+                      <Trophy className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold leading-tight mb-0">
+                        {completedLessonIds.length}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-0">Completed</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="text-center mt-8">
+              <h2 className="text-2xl font-bold text-indigo-900">
+                Select Your Course
+              </h2>
+            </div>
+
+            {/* DYNAMIC GRID: Renders a card for every course in COURSE_CONFIG */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {Object.values(COURSE_CONFIG).map((course) => {
+                const Icon = course.icon;
+                const lessonCount =
+                  lessons?.filter((l: any) => l.section === course.id).length ||
+                  0;
+                const bgColor = `bg-${course.color}-100`;
+                const borderColor = `border-${course.color}-100`;
+                const hoverBorderColor = `hover:border-${course.color}-500`;
+                const textColor = `text-${course.color}-600`;
+                const darkTextColor = `text-${course.color}-900`;
+                const hoverBgColor = `group-hover:bg-${course.color}-600`;
+
+                return (
+                  <div
+                    key={course.id}
+                    onClick={() => setSelectedModuleId(course.id)}
+                    className={`cursor-pointer group bg-white p-8 rounded-2xl border-2 ${borderColor} ${hoverBorderColor} hover:shadow-xl transition-all duration-200`}
+                  >
+                    <div
+                      className={`h-16 w-16 ${bgColor} rounded-full flex items-center justify-center mb-4 ${hoverBgColor} transition-colors`}
+                    >
+                      <Icon
+                        className={`w-8 h-8 ${textColor} group-hover:text-white`}
+                      />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                      {course.code}
+                    </h2>
+                    <h3 className={`text-lg font-medium ${darkTextColor} mb-3`}>
+                      {course.title}
+                    </h3>
+                    <p className="text-gray-600 mb-4 text-sm">
+                      {course.description}
+                    </p>
+                    <span
+                      className={`text-sm font-semibold ${textColor} group-hover:translate-x-1 inline-block transition-transform`}
+                    >
+                      {lessonCount > 0
+                        ? `View ${lessonCount} Lessons →`
+                        : "Coming Soon"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* --- DYNAMIC LESSON LIST --- */}
+        {selectedModuleId && !currentLesson && (
+          <div>
+            <button
+              onClick={() => setSelectedModuleId(null)}
+              className="flex items-center text-gray-500 hover:text-indigo-600 mb-6 font-medium transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Courses
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <Book className="w-6 h-6" />
+              {COURSE_CONFIG[selectedModuleId]?.code}:{" "}
+              {COURSE_CONFIG[selectedModuleId]?.title}
+            </h2>
+
+            <div className="space-y-4">
+              {lessons
+                ?.filter((lesson: any) => lesson.section === selectedModuleId)
+                .sort((a: any, b: any) => a.order - b.order)
+                .map((lesson: any) => {
+                  const status = getLessonStatus(lesson._id);
+                  const themeColor =
+                    COURSE_CONFIG[selectedModuleId]?.color || "indigo";
+                  const hoverColor = `hover:text-${themeColor}-700`;
+                  const borderHoverColor = `hover:border-${themeColor}-300`;
+                  const bgThemeLight = `bg-${themeColor}-100`;
+                  const textTheme = `text-${themeColor}-700`;
+
+                  return (
+                    <Card
+                      key={lesson._id}
+                      className={`cursor-pointer transition-all hover:shadow-lg group ${
+                        status === "completed"
+                          ? "border-green-200 bg-green-50"
+                          : borderHoverColor
+                      }`}
+                      onClick={() => startLesson(lesson)}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle
+                              className={`flex items-center gap-2 ${hoverColor} transition-colors`}
+                            >
+                              {lesson.title}
+                              {status === "completed" && (
+                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                              )}
+                            </CardTitle>
+                            <CardDescription>
+                              {lesson.description}
+                            </CardDescription>
+                          </div>
+                          <div className="text-right">
+                            <span
+                              className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${bgThemeLight} ${textTheme}`}
+                            >
+                              {lesson.difficulty}
+                            </span>
+                            <p className="text-sm text-gray-600 mt-2">
+                              +{lesson.xpReward} XP
+                            </p>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  );
+                })}
+            </div>
+
+            {/* Dynamic Empty State */}
+            {lessons?.filter((l: any) => l.section === selectedModuleId)
+              .length === 0 && (
+              <div className="text-center p-12 mt-8 border-2 border-dashed rounded-xl">
+                <p className="text-gray-500">
+                  No lessons found for {COURSE_CONFIG[selectedModuleId]?.code}.
+                </p>
+                <Button
+                  onClick={() => initializeDefaults({ forceReset: true })}
+                  variant="link"
+                >
+                  Force Refresh Data
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
