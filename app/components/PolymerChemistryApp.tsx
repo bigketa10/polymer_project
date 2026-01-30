@@ -48,7 +48,7 @@ const PolymerChemistryApp = () => {
       code: "QXU6033",
       title: "Advanced Chemistry",
       description: "CRP, Dendrimers & Self-Assembly",
-      color: "purple",
+      color: "pink",
       icon: Beaker,
     },
   };
@@ -318,6 +318,14 @@ const PolymerChemistryApp = () => {
       ? "completed"
       : "available";
   };
+
+  // Hidden div to ensure Tailwind v4 includes dynamic color classes
+  const TailwindSafelist = () => (
+    <div className="hidden">
+      <div className="bg-indigo-100 border-indigo-100 hover:border-indigo-500 text-indigo-600 text-indigo-900 group-hover:bg-indigo-600 hover:border-indigo-300 text-indigo-700" />
+      <div className="bg-pink-100 border-pink-100 hover:border-pink-500 text-pink-600 text-pink-900 group-hover:bg-pink-600 hover:border-pink-300 text-pink-700" />
+    </div>
+  );
 
   if (lessons === undefined || userProgress === undefined) {
     return (
@@ -758,6 +766,7 @@ const PolymerChemistryApp = () => {
   // MAIN DASHBOARD & LESSON LIST
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+      <TailwindSafelist />
       <div className="max-w-4xl mx-auto">
         {/* HEADER */}
         <div className="text-center mb-8">
