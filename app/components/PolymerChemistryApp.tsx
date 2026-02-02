@@ -31,9 +31,22 @@ import {
   Atom,
 } from "lucide-react";
 
+/**
+ * Main application component for the Polymer Chemistry Learning Platform
+ *
+ * Features:
+ * - Multi-course support with dynamic module loading
+ * - Interactive quizzes with text-to-speech
+ * - Progress tracking (XP, streaks, completed lessons)
+ * - Review system with explanations
+ * - Settings and data export functionality
+ */
 const PolymerChemistryApp = () => {
-  // 1. DEFINE YOUR COURSE METADATA HERE
-  // This is the ONLY place you need to touch when adding new modules.
+  // ========================================
+  // 1. COURSE CONFIGURATION
+  // ========================================
+  // Define course metadata here. This is the ONLY place you need to touch when adding new modules.
+  // Each course has: id, code, title, description, color theme, and icon
   const COURSE_CONFIG: Record<string, any> = {
     qxu5031: {
       id: "qxu5031",
@@ -53,71 +66,103 @@ const PolymerChemistryApp = () => {
     },
   };
 
-  // 2. DYNAMIC STATE
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
-  const [currentLesson, setCurrentLesson] = useState<any>(null);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  // ========================================
+  // 2. STATE MANAGEMENT
+  // ========================================
+  // Navigation state
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null); // Currently selected course module
+  const [currentLesson, setCurrentLesson] = useState<any>(null); // Active lesson being taken
+
+  // Quiz state
+  const [currentQuestion, setCurrentQuestion] = useState(0); // Current question index (0-based)
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null); // Currently selected answer for active question
   const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>(
-    [],
+    [], // Array storing all answers for the current quiz
   );
-  const [showResult, setShowResult] = useState(false);
-  const [score, setScore] = useState(0);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showReview, setShowReview] = useState(false);
-  const [reviewAnimate, setReviewAnimate] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const [showResult, setShowResult] = useState(false); // Whether to show answer feedback
+  const [score, setScore] = useState(0); // Running score for current quiz
 
-  // Convex queries and mutations
-  const userProgress = useQuery(api.userProgress.get);
-  const lessons = useQuery(api.lessons.getAll);
-  const updateProgress = useMutation(api.userProgress.update);
-  const resetProgress = useMutation(api.userProgress.reset);
-  const initializeDefaults = useMutation(api.lessons.initializeDefaults);
+  // UI state
+  const [showSettings, setShowSettings] = useState(false); // Toggle settings screen
+  const [showReview, setShowReview] = useState(false); // Toggle quiz review screen
+  const [reviewAnimate, setReviewAnimate] = useState(false); // Animation trigger for review screen
+  const [initialized, setInitialized] = useState(false); // Ensures default lessons load only once
 
-  // Create references for the audio players
-  const correctSound = useRef<HTMLAudioElement | null>(null);
-  const wrongSound = useRef<HTMLAudioElement | null>(null);
+  // ========================================
+  // 3. BACKEND INTEGRATION (Convex)
+  // ========================================
+  // Real-time queries - automatically re-render when data changes
+  const userProgress = useQuery(api.userProgress.get); // User's XP, streak, completed lessons
+  const lessons = useQuery(api.lessons.getAll); // All available lessons across all courses
 
-  // Initialize default lessons on first load
+  // Mutations - functions to modify backend data
+  const updateProgress = useMutation(api.userProgress.update); // Save progress after completing lessons
+  const resetProgress = useMutation(api.userProgress.reset); // Clear all user progress
+  const initializeDefaults = useMutation(api.lessons.initializeDefaults); // Load default lesson content
+
+  // ========================================
+  // 4. AUDIO REFERENCES
+  // ========================================
+  // Audio elements for answer feedback sounds
+  const correctSound = useRef<HTMLAudioElement | null>(null); // Plays when answer is correct
+  const wrongSound = useRef<HTMLAudioElement | null>(null); // Plays when answer is incorrect
+
+  // ========================================
+  // 5. EFFECTS & SIDE EFFECTS
+  // ========================================
+
+  /**
+   * Initialize default lessons on first load
+   * Only runs once when the component mounts and lessons are loaded
+   * If no lessons exist in the database, loads the default curriculum
+   */
   useEffect(() => {
     if (!initialized && lessons !== undefined) {
       if (lessons.length === 0) {
-        // FIX: Pass an empty object or explicit false to match the new signature
+        // Database is empty - load default course content
         initializeDefaults({ forceReset: false });
       }
-      setInitialized(true);
+      setInitialized(true); // Prevent re-initialization on subsequent renders
     }
   }, [lessons, initialized, initializeDefaults]);
 
-  // Trigger entrance animation for review
+  /**
+   * Trigger smooth entrance animation for review screen
+   * Uses a small delay to ensure CSS transition fires properly
+   */
   useEffect(() => {
     let t: number | undefined;
     if (showReview) {
+      // Small 20ms delay allows DOM to update before animation starts
       t = window.setTimeout(() => setReviewAnimate(true), 20);
     } else {
       setReviewAnimate(false);
     }
+    // Cleanup: clear timeout if component unmounts
     return () => {
       if (t) clearTimeout(t);
     };
   }, [showReview]);
 
-  // Automatically read the question when it loads
+  /**
+   * Automatic text-to-speech for questions
+   * Reads the question aloud whenever a new question is displayed
+   * Includes overlap prevention and cleanup for smooth UX
+   */
   useEffect(() => {
     if (currentLesson && currentLesson.questions) {
       // Get the text of the current question
       const questionText = currentLesson.questions[currentQuestion].question;
 
-      // Cancel any previous speech (like the previous question) so they don't overlap
+      // Cancel any previous speech to prevent overlapping audio
       window.speechSynthesis.cancel();
 
-      // Add a tiny delay (300ms) so it feels natural after the transition
+      // Add 300ms delay for natural pacing after page transition
       const timer = setTimeout(() => {
         speak(questionText);
       }, 300);
 
-      // Cleanup: If user clicks "Next" quickly, stop reading this one
+      // Cleanup function: stops speech if user navigates away quickly
       return () => {
         clearTimeout(timer);
         window.speechSynthesis.cancel();
@@ -125,61 +170,92 @@ const PolymerChemistryApp = () => {
     }
   }, [currentQuestion, currentLesson]);
 
-  const xp = userProgress?.xp || 0;
-  const streak = userProgress?.streak || 0;
-  const completedLessonIds = userProgress?.completedLessonIds || [];
+  // ========================================
+  // 6. DERIVED STATE
+  // ========================================
+  // Extract user progress data with safe defaults
+  const xp = userProgress?.xp || 0; // Total experience points
+  const streak = userProgress?.streak || 0; // Consecutive days of learning
+  const completedLessonIds = userProgress?.completedLessonIds || []; // Array of completed lesson IDs
 
+  // ========================================
+  // 7. EVENT HANDLERS & HELPER FUNCTIONS
+  // ========================================
+
+  /**
+   * Initialize a new lesson session
+   * Resets all quiz-related state to start fresh
+   */
   const startLesson = (lesson: any) => {
     setCurrentLesson(lesson);
-    setCurrentQuestion(0);
+    setCurrentQuestion(0); // Start at first question
     setSelectedAnswer(null);
     setShowResult(false);
     setScore(0);
     setShowReview(false);
     setReviewAnimate(false);
-    setSelectedAnswers(Array(lesson.questions.length).fill(null));
+    setSelectedAnswers(Array(lesson.questions.length).fill(null)); // Empty answer array
   };
 
-  // Text-to-Speech Helper
+  /**
+   * Text-to-Speech Helper
+   * Reads text aloud using the browser's speech synthesis API
+   */
   const speak = (text: string) => {
     // Cancel any current speech to prevent overlap
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
 
-    // Optional: Customize the voice
-    utterance.rate = 0.9; // Slightly slower for clarity
-    utterance.pitch = 1;
-    utterance.lang = "en-GB";
+    // Customize voice parameters for optimal learning experience
+    utterance.rate = 0.9; // 90% speed - slightly slower for clarity
+    utterance.pitch = 1; // Normal pitch
+    utterance.lang = "en-GB"; // British English accent
 
+    // Queue the speech
     window.speechSynthesis.speak(utterance);
   };
 
+  /**
+   * Handle user selecting an answer option
+   * Reads the option aloud and stores the selection
+   * Only works before the answer is checked (showResult is false)
+   */
   const handleAnswerSelect = (index: number) => {
     if (!showResult) {
+      // Get the text of the selected option
       const optionText =
         currentLesson.questions[currentQuestion].options[index];
-      speak(optionText);
-      setSelectedAnswer(index);
+      speak(optionText); // Read the selected option aloud
+
+      setSelectedAnswer(index); // Update current question's selection
+
+      // Update the answers array for the current question
       setSelectedAnswers((prev) => {
         const next = [...prev];
-        next[currentQuestion] = index;
+        next[currentQuestion] = index; // Store answer at current question index
         return next;
       });
     }
   };
 
+  /**
+   * Check the user's answer and provide feedback
+   * Plays appropriate sound, calculates interim score, and shows explanation
+   */
   const checkAnswer = () => {
-    setShowResult(true);
-    // --- NEW: Play Sound Logic ---
+    setShowResult(true); // Show the answer feedback UI
+
+    // Determine if answer is correct
     const question = currentLesson.questions[currentQuestion];
     const userAnswer = selectedAnswers[currentQuestion];
     const isCorrect = userAnswer === question.correct;
 
+    // Play feedback sound using audio refs
     if (isCorrect) {
       if (correctSound.current) {
         correctSound.current.currentTime = 0; // Reset to start
-        correctSound.current.volume = 0.5;
+        correctSound.current.volume = 0.5; // 50% volume
         correctSound.current
           .play()
           .catch((e) => console.error("Sound error:", e));
@@ -194,17 +270,16 @@ const PolymerChemistryApp = () => {
       }
     }
 
-    // Create audio objects
-    // Note: The path starts with '/' which points to the public folder
+    // Fallback audio playback (alternative approach)
+    // Note: Path starts with '/' which points to the public folder
     const audio = new Audio(
       isCorrect ? "/sounds/correct.mp3" : "/sounds/incorrect.mp3",
     );
-
-    // Lower volume slightly so it's not jarring
-    audio.volume = 0.2;
-
+    audio.volume = 0.2; // Lower volume to avoid being jarring
     // Play and catch errors (e.g., if user hasn't interacted with page yet)
     audio.play().catch((e) => console.log("Audio play failed:", e));
+
+    // Calculate interim score by counting correct answers so far
     const interimScore =
       selectedAnswers?.reduce((acc, ans, idx) => {
         const question = currentLesson?.questions?.[idx];
@@ -216,16 +291,25 @@ const PolymerChemistryApp = () => {
     setScore(interimScore);
   };
 
+  /**
+   * Navigate to next question or show review
+   * If last question, transitions to review screen
+   */
   const nextQuestion = () => {
     if (currentQuestion < currentLesson.questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-      setSelectedAnswer(selectedAnswers[currentQuestion + 1] ?? null);
-      setShowResult(false);
+      setCurrentQuestion(currentQuestion + 1); // Move to next question
+      setSelectedAnswer(selectedAnswers[currentQuestion + 1] ?? null); // Load saved answer if any
+      setShowResult(false); // Hide result for new question
     } else {
+      // Last question completed - show review screen
       setShowReview(true);
     }
   };
 
+  /**
+   * Calculate the final score for the completed quiz
+   * Counts how many answers match the correct answer index
+   */
   const computeFinalScore = () => {
     if (!currentLesson) return 0;
     return selectedAnswers.reduce((acc, ans, idx) => {
@@ -234,6 +318,10 @@ const PolymerChemistryApp = () => {
     }, 0);
   };
 
+  /**
+   * Hide review screen with animation
+   * Accepts optional callback to execute after animation completes
+   */
   const hideReview = (callback?: () => void) => {
     setReviewAnimate(false);
     window.setTimeout(() => {
@@ -242,32 +330,40 @@ const PolymerChemistryApp = () => {
     }, 220);
   };
 
+  /**
+   * Save progress and complete the lesson
+   * Calculates XP based on score percentage, updates streak, and marks lesson as completed
+   */
   const completeLesson = async () => {
     if (!currentLesson) return;
 
+    // Calculate performance metrics
     const finalScore = computeFinalScore();
     const earnedXP = Math.round(
       ((finalScore || 0) / currentLesson.questions.length) *
-        currentLesson.xpReward,
+        currentLesson.xpReward, // XP proportional to score percentage
     );
     const newXp = xp + earnedXP;
-    const newStreak = streak + 1;
+    const newStreak = streak + 1; // Increment streak
 
+    // Update completed lessons list
     let newCompletedLessons = [...completedLessonIds];
     const isAlreadyCompleted = newCompletedLessons.some(
       (id) => id === currentLesson._id,
     );
 
     if (!isAlreadyCompleted) {
-      newCompletedLessons.push(currentLesson._id);
+      newCompletedLessons.push(currentLesson._id); // Add to completed list
     }
 
+    // Save to backend
     await updateProgress({
       xp: newXp,
       streak: newStreak,
       completedLessonIds: newCompletedLessons,
     });
 
+    // Reset all quiz state and return to dashboard
     setShowReview(false);
     setReviewAnimate(false);
     setCurrentLesson(null);
@@ -277,6 +373,10 @@ const PolymerChemistryApp = () => {
     setShowResult(false);
   };
 
+  /**
+   * Reset all user progress after confirmation
+   * Clears XP, streak, and completed lessons (lessons themselves are preserved)
+   */
   const handleResetProgress = async () => {
     if (
       confirm(
@@ -287,6 +387,10 @@ const PolymerChemistryApp = () => {
     }
   };
 
+  /**
+   * Export all data as JSON backup file
+   * Includes progress, lessons, and export timestamp
+   */
   const exportData = () => {
     const data = {
       progress: { xp, streak, completedLessonIds },
@@ -313,13 +417,21 @@ const PolymerChemistryApp = () => {
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Get the completion status of a lesson
+   * Returns "completed" or "available" based on user progress
+   */
   const getLessonStatus = (lessonId: string) => {
     return completedLessonIds.some((id) => id === lessonId)
       ? "completed"
       : "available";
   };
 
-  // Hidden div to ensure Tailwind v4 includes dynamic color classes
+  /**
+   * Hidden component to ensure Tailwind includes dynamic color classes
+   * Tailwind v4 needs explicit class usage for JIT compilation
+   * Without this, dynamically generated color classes (indigo-100, pink-100, etc.) might be purged
+   */
   const TailwindSafelist = () => (
     <div className="hidden">
       <div className="bg-indigo-100 border-indigo-100 hover:border-indigo-500 text-indigo-600 text-indigo-900 group-hover:bg-indigo-600 hover:border-indigo-300 text-indigo-700" />
@@ -327,6 +439,11 @@ const PolymerChemistryApp = () => {
     </div>
   );
 
+  // ========================================
+  // 8. UI RENDERING
+  // ========================================
+
+  // Loading state: Show spinner while data is being fetched
   if (lessons === undefined || userProgress === undefined) {
     return (
       <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
@@ -338,7 +455,10 @@ const PolymerChemistryApp = () => {
     );
   }
 
+  // ========================================
   // SETTINGS SCREEN
+  // ========================================
+  // Shows data management options: export data, reset progress, force update curriculum
   if (showSettings) {
     return (
       <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
@@ -449,8 +569,14 @@ const PolymerChemistryApp = () => {
     );
   }
 
-  // LESSON RUNNING + REVIEW
+  // ========================================
+  // LESSON INTERFACE
+  // ========================================
+  // Handles both active quiz-taking and post-quiz review
   if (currentLesson) {
+    // ----------------------------------------
+    // REVIEW SCREEN: Shows all answers, explanations, and completion options
+    // ----------------------------------------
     if (showReview) {
       const finalScore = computeFinalScore();
       const earnedXPPreview = Math.round(
@@ -599,11 +725,13 @@ const PolymerChemistryApp = () => {
       );
     }
 
-    // Normal Quiz UI
+    // ----------------------------------------
+    // QUIZ INTERFACE: Active question-taking screen
+    // ----------------------------------------
     const question = currentLesson.questions[currentQuestion];
     const isCorrect = selectedAnswers[currentQuestion] === question.correct;
     const progress =
-      ((currentQuestion + 1) / currentLesson.questions.length) * 100;
+      ((currentQuestion + 1) / currentLesson.questions.length) * 100; // Progress percentage
 
     return (
       <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
@@ -763,7 +891,10 @@ const PolymerChemistryApp = () => {
     );
   }
 
-  // MAIN DASHBOARD & LESSON LIST
+  // ========================================
+  // MAIN DASHBOARD
+  // ========================================
+  // Shows course selection (if no module selected) or lesson list (if module selected)
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <TailwindSafelist />
