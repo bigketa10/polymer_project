@@ -10,6 +10,7 @@
 
 import type * as lessons from "../lessons.js";
 import type * as messages from "../messages.js";
+import type * as teachers from "../teachers.js";
 import type * as userProgress from "../userProgress.js";
 
 import type {
@@ -21,6 +22,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   lessons: typeof lessons;
   messages: typeof messages;
+  teachers: typeof teachers;
   userProgress: typeof userProgress;
 }>;
 

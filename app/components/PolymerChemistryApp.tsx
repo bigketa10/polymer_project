@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { TeacherDashboard } from "./Teacher";
 import {
   Card,
   CardContent,
@@ -29,6 +30,7 @@ import {
   BookOpen,
   PlayCircle,
   Atom,
+  LayoutDashboard,
 } from "lucide-react";
 
 /**
@@ -87,6 +89,7 @@ const PolymerChemistryApp = () => {
   const [showReview, setShowReview] = useState(false); // Toggle quiz review screen
   const [reviewAnimate, setReviewAnimate] = useState(false); // Animation trigger for review screen
   const [initialized, setInitialized] = useState(false); // Ensures default lessons load only once
+  const [showTeacherDashboard, setShowTeacherDashboard] = useState(false);
 
   // ========================================
   // 3. BACKEND INTEGRATION (Convex)
@@ -560,6 +563,33 @@ const PolymerChemistryApp = () => {
                   Force Update Course Content
                 </Button>
               </div>
+
+              {/* TEACHER ACCESS SECTION IN SETTINGS */}
+              <div className="pt-4 border-t mt-4">
+                <h3 className="font-semibold mb-2 text-slate-800">
+                  Instructor Access
+                </h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Access student analytics and course management tools.
+                </p>
+                <Button
+                  onClick={() => {
+                    // Simple password protection for prototype
+                    const password = prompt("Enter Instructor Password:");
+                    if (password === "admin123") {
+                      setShowSettings(false); // Close settings
+                      setShowTeacherDashboard(true); // Open Dashboard
+                    } else {
+                      alert("Incorrect password.");
+                    }
+                  }}
+                  variant="outline"
+                  className="w-full border-slate-300 hover:bg-slate-50"
+                >
+                  <LayoutDashboard className="w-4 h-4 mr-2" />
+                  Open Teacher Dashboard
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -895,6 +925,10 @@ const PolymerChemistryApp = () => {
   // MAIN DASHBOARD
   // ========================================
   // Shows course selection (if no module selected) or lesson list (if module selected)
+  if (showTeacherDashboard) {
+    return <TeacherDashboard onClose={() => setShowTeacherDashboard(false)} />;
+  }
+
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <TailwindSafelist />
