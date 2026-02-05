@@ -151,6 +151,14 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b">
                 <tr>
+                  {/* SPLIT HEADERS */}
+                  <th className="px-6 py-3 font-medium text-indigo-900">
+                    First Name
+                  </th>
+                  <th className="px-6 py-3 font-medium text-indigo-900">
+                    Last Name
+                  </th>
+
                   <th className="px-6 py-3 font-medium">Student ID</th>
                   <th className="px-6 py-3 font-medium">XP Earned</th>
                   <th className="px-6 py-3 font-medium">Streak</th>
@@ -160,64 +168,83 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 </tr>
               </thead>
               <tbody>
-                {stats.leaderboard.map((student: any) => (
-                  <tr
-                    key={student.id}
-                    className="bg-white border-b hover:bg-slate-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-medium text-slate-900">
-                      User_{student.userId.substring(0, 8)}
-                    </td>
-                    <td className="px-6 py-4 font-bold text-indigo-600">
-                      {student.xp} XP
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1">
-                        <Flame className="w-4 h-4 text-orange-500" />
-                        {student.streak}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="w-full bg-slate-100 rounded-full h-2.5 max-w-[140px]">
-                        <div
-                          className="bg-indigo-600 h-2.5 rounded-full"
-                          style={{ width: `${student.progressPercent}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-xs text-slate-500 mt-1 inline-block">
-                        {student.completedCount} / {stats.totalLessonsCount}{" "}
-                        Lessons
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {student.progressPercent > 70 ? (
-                        <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold">
-                          On Track
+                {stats.leaderboard.map((student: any) => {
+                  // LOGIC TO SPLIT NAME
+                  const fullName = student.userName || "Anonymous";
+                  // Split by the first space found
+                  const nameParts = fullName.split(" ");
+                  const firstName = nameParts[0];
+                  // Join the rest back together (handles names like "Von Neumann")
+                  const lastName = nameParts.slice(1).join(" ") || "-";
+
+                  return (
+                    <tr
+                      key={student.id}
+                      className="bg-white border-b hover:bg-slate-50 transition-colors"
+                    >
+                      {/* FIRST NAME COLUMN */}
+                      <td className="px-6 py-4 font-bold text-slate-800">
+                        {firstName}
+                      </td>
+
+                      {/* LAST NAME COLUMN */}
+                      <td className="px-6 py-4 font-semibold text-slate-600">
+                        {lastName}
+                      </td>
+
+                      <td className="px-6 py-4 font-medium text-slate-400 font-mono text-xs">
+                        {student.userId.substring(0, 8)}...
+                      </td>
+                      <td className="px-6 py-4 font-bold text-indigo-600">
+                        {student.xp} XP
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1">
+                          <Flame className="w-4 h-4 text-orange-500" />
+                          {student.streak}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="w-full bg-slate-100 rounded-full h-2.5 max-w-[140px]">
+                          <div
+                            className="bg-indigo-600 h-2.5 rounded-full"
+                            style={{ width: `${student.progressPercent}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-xs text-slate-500 mt-1 inline-block">
+                          {student.completedCount} / {stats.totalLessonsCount}{" "}
+                          Lessons
                         </span>
-                      ) : student.progressPercent < 20 ? (
-                        <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full font-bold">
-                          At Risk
-                        </span>
-                      ) : (
-                        <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-bold">
-                          Active
-                        </span>
-                      )}
-                    </td>
-                    {/* NEW DELETE BUTTON COLUMN */}
-                    <td className="px-6 py-4 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(student.id, student.userId)}
-                        className="text-gray-400 hover:text-red-600 hover:bg-red-50"
-                        title="Remove Student"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4">
+                        {student.progressPercent > 70 ? (
+                          <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold">
+                            On Track
+                          </span>
+                        ) : student.progressPercent < 20 ? (
+                          <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full font-bold">
+                            At Risk
+                          </span>
+                        ) : (
+                          <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-bold">
+                            Active
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(student.id, fullName)}
+                          className="text-gray-400 hover:text-red-600 hover:bg-red-50"
+                          title="Remove Student"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

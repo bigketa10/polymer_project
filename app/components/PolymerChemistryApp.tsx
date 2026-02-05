@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { TeacherDashboard } from "./Teacher";
+import { StudentLeaderboard } from "./StudentLeaderboard";
 import {
   Card,
   CardContent,
@@ -31,6 +33,9 @@ import {
   PlayCircle,
   Atom,
   LayoutDashboard,
+  Home,
+  Crown,
+  ArrowRight,
 } from "lucide-react";
 
 /**
@@ -90,6 +95,7 @@ const PolymerChemistryApp = () => {
   const [reviewAnimate, setReviewAnimate] = useState(false); // Animation trigger for review screen
   const [initialized, setInitialized] = useState(false); // Ensures default lessons load only once
   const [showTeacherDashboard, setShowTeacherDashboard] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // ========================================
   // 3. BACKEND INTEGRATION (Convex)
@@ -102,9 +108,15 @@ const PolymerChemistryApp = () => {
   const updateProgress = useMutation(api.userProgress.update); // Save progress after completing lessons
   const resetProgress = useMutation(api.userProgress.reset); // Clear all user progress
   const initializeDefaults = useMutation(api.lessons.initializeDefaults); // Load default lesson content
+  const initializeUser = useMutation(api.userProgress.initializeUser); // Initialize user with name
 
   // ========================================
-  // 4. AUDIO REFERENCES
+  // 4. CLERK HOOKS
+  // ========================================
+  const { user } = useUser();
+
+  // ========================================
+  // 4b. AUDIO REFERENCES
   // ========================================
   // Audio elements for answer feedback sounds
   const correctSound = useRef<HTMLAudioElement | null>(null); // Plays when answer is correct
@@ -113,6 +125,19 @@ const PolymerChemistryApp = () => {
   // ========================================
   // 5. EFFECTS & SIDE EFFECTS
   // ========================================
+
+  /**
+   * Initialize or update user with their name from Clerk
+   * Runs whenever the user object changes
+   */
+  useEffect(() => {
+    if (user) {
+      initializeUser({
+        userId: user.id,
+        userName: user.fullName || user.firstName || "Student",
+      });
+    }
+  }, [user, initializeUser]);
 
   /**
    * Initialize default lessons on first load
@@ -464,7 +489,7 @@ const PolymerChemistryApp = () => {
   // Shows data management options: export data, reset progress, force update curriculum
   if (showSettings) {
     return (
-      <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+      <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
         <div className="max-w-2xl mx-auto">
           <Button
             variant="outline"
@@ -615,7 +640,7 @@ const PolymerChemistryApp = () => {
       );
 
       return (
-        <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+        <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
           <div className="max-w-2xl mx-auto">
             <div className="mb-6 flex items-center justify-between">
               <Button variant="outline" onClick={() => hideReview()}>
@@ -764,7 +789,7 @@ const PolymerChemistryApp = () => {
       ((currentQuestion + 1) / currentLesson.questions.length) * 100; // Progress percentage
 
     return (
-      <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+      <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
         <div className="max-w-2xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
             <Button variant="outline" onClick={() => setCurrentLesson(null)}>
@@ -930,84 +955,102 @@ const PolymerChemistryApp = () => {
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+    <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
       <TailwindSafelist />
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto pb-20 md:pb-0">
         {/* HEADER */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div></div>
-            <h1 className="text-4xl font-bold text-indigo-900">PolymerLearn</h1>
-            <Button variant="ghost" onClick={() => setShowSettings(true)}>
+          <div className="relative flex items-center justify-center mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-indigo-900">
+              PolymerLearn
+            </h1>
+            <Button
+              variant="ghost"
+              onClick={() => setShowSettings(true)}
+              className="hidden md:block absolute right-0"
+            >
               <Settings className="w-6 h-6" />
             </Button>
           </div>
-          <p className="text-gray-600">Queen Mary University of London</p>
+          <p className="text-gray-600 text-sm md:text-base">
+            Queen Mary University of London
+          </p>
         </div>
 
-        {/* --- DYNAMIC DASHBOARD --- */}
+        {/* --- DASHBOARD VIEW --- */}
         {!selectedModuleId && !currentLesson && (
           <div className="space-y-8">
-            {/* Stats */}
-            {/* Mobile: 1 column (vertical stack). Tablet/Desktop: 3 columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
-              <Card>
-                <CardContent className="py-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-yellow-100 rounded-full">
-                      <Star className="w-6 h-6 text-yellow-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold leading-tight mb-0">
-                        {xp}
-                      </p>
-                      <p className="text-sm text-gray-600 mt-0">Total XP</p>
-                    </div>
+            {/* 1. STATS GRID (Restored to 3 columns always) */}
+            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+              {/* XP Card */}
+              <Card className="border-indigo-100 shadow-sm bg-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                  <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mb-2">
+                    <Star className="w-6 h-6 text-yellow-600" />
                   </div>
+                  <div className="text-2xl font-bold text-slate-800">
+                    {userProgress?.xp || 0}
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+                    Total XP
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="py-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-orange-100 rounded-full">
-                      <Flame className="w-6 h-6 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold leading-tight mb-0">
-                        {streak}
-                      </p>
-                      <p className="text-sm text-gray-600 mt-0">Day Streak</p>
-                    </div>
+              {/* Streak Card */}
+              <Card className="border-orange-100 shadow-sm bg-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mb-2">
+                    <Flame className="w-6 h-6 text-orange-600" />
                   </div>
+                  <div className="text-2xl font-bold text-slate-800">
+                    {userProgress?.streak || 1}
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+                    Day Streak
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="py-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-full">
-                      <Trophy className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold leading-tight mb-0">
-                        {completedLessonIds.length}
-                      </p>
-                      <p className="text-sm text-gray-600 mt-0">Completed</p>
-                    </div>
+              {/* Completed Card */}
+              <Card className="border-green-100 shadow-sm bg-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                    <Trophy className="w-6 h-6 text-green-600" />
                   </div>
+                  <div className="text-2xl font-bold text-slate-800">
+                    {userProgress?.completedLessonIds?.length || 0}
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+                    Completed
+                  </p>
                 </CardContent>
               </Card>
             </div>
 
+            {/* 2. RANKINGS BUTTON (Moved Here) */}
+            <div className="max-w-2xl mx-auto">
+              <Button
+                onClick={() => setShowLeaderboard(true)}
+                className="w-full bg-white border-2 border-indigo-100 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200 h-14 text-lg font-bold shadow-sm transition-all flex items-center justify-between px-6"
+              >
+                <div className="flex items-center gap-3">
+                  <Crown className="w-6 h-6 text-yellow-500" />
+                  <span>View Class Rankings</span>
+                </div>
+                <ArrowRight className="w-5 h-5 text-indigo-300" />
+              </Button>
+            </div>
+
+            {/* 3. COURSE SELECTION HEADER */}
             <div className="text-center mt-8">
               <h2 className="text-2xl font-bold text-indigo-900">
                 Select Your Course
               </h2>
             </div>
 
-            {/* DYNAMIC GRID: Renders a card for every course in COURSE_CONFIG */}
-            <div className="grid md:grid-cols-2 gap-6">
+            {/* 4. COURSE GRID */}
+            <div className="grid md:grid-cols-2 gap-6 pb-20">
               {Object.values(COURSE_CONFIG).map((course) => {
                 const Icon = course.icon;
                 const lessonCount =
@@ -1145,6 +1188,29 @@ const PolymerChemistryApp = () => {
             )}
           </div>
         )}
+
+        {showLeaderboard && (
+          <StudentLeaderboard onClose={() => setShowLeaderboard(false)} />
+        )}
+
+        {/* MOBILE BOTTOM NAV - Only visible on small screens (block md:hidden) */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex justify-around items-center md:hidden z-50 pb-safe">
+          <button
+            onClick={() => setSelectedModuleId(null)}
+            className="flex flex-col items-center text-indigo-600"
+          >
+            <Home className="w-6 h-6" />
+            <span className="text-xs font-medium">Home</span>
+          </button>
+
+          <button
+            onClick={() => setShowSettings(true)}
+            className="flex flex-col items-center text-gray-500 hover:text-indigo-600"
+          >
+            <Settings className="w-6 h-6" />
+            <span className="text-xs font-medium">Settings</span>
+          </button>
+        </div>
       </div>
     </div>
   );

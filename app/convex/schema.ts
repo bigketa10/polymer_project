@@ -31,6 +31,7 @@ export default defineSchema({
   // 2. USER PROGRESS TABLE (Fixed: Added 'lastUpdated')
   userProgress: defineTable({
     userId: v.string(),
+    userName: v.optional(v.string()),
     xp: v.number(),
     streak: v.number(),
     lastLoginDate: v.optional(v.string()),

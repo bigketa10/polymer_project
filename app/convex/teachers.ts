@@ -25,6 +25,7 @@ export const getClassStats = query({
       .map((student) => ({
         id: student._id, // We need this specific ID to delete them later
         userId: student.userId,
+        userName: student.userName || "Anonymous User",
         xp: student.xp,
         streak: student.streak,
         completedCount: student.completedLessonIds.length,

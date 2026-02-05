@@ -81,3 +81,56 @@ export const reset = mutation({
     }
   },
 });
+
+// Initialize or update user
+export const initializeUser = mutation({
+  args: {
+    userId: v.string(),
+    userName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userProgress = await ctx.db
+      .query("userProgress")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (userProgress) {
+      // IF USER EXISTS: Update their name if it's missing or changed
+      if (args.userName && userProgress.userName !== args.userName) {
+        await ctx.db.patch(userProgress._id, { userName: args.userName });
+      }
+      return userProgress;
+    }
+
+    // IF USER IS NEW: Create them with the name
+    return await ctx.db.insert("userProgress", {
+      userId: args.userId,
+      userName: args.userName || "Anonymous Student",
+      xp: 0,
+      streak: 1,
+      lastLoginDate: new Date().toISOString(),
+      completedLessonIds: [],
+      lastUpdated: new Date().toISOString(),
+    });
+  },
+});
+
+// NEW: Public Leaderboard Query
+export const getTopStudents = query({
+  args: {},
+  handler: async (ctx) => {
+    const allProgress = await ctx.db.query("userProgress").collect();
+
+    // 1. Sort by XP (Highest first)
+    // 2. Take top 10
+    // 3. Return only safe public data
+    return allProgress
+      .sort((a, b) => b.xp - a.xp)
+      .slice(0, 10)
+      .map((student) => ({
+        id: student._id,
+        name: student.userName || "Anonymous",
+        xp: student.xp,
+      }));
+  },
+});
