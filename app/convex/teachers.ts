@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const getClassStats = query({
@@ -16,23 +16,24 @@ export const getClassStats = query({
     const totalXP = allProgress.reduce((acc, curr) => acc + curr.xp, 0);
     const avgXP = totalStudents > 0 ? Math.round(totalXP / totalStudents) : 0;
 
-    // Calculate "At Risk" students (e.g., Low XP and haven't logged in recently)
-    // Note: In a real app, you'd check dates. Here we'll use low XP (< 100) as a proxy.
+    // Calculate "At Risk" students (< 100 XP)
     const strugglingStudents = allProgress.filter((p) => p.xp < 100).length;
 
     // 4. Sort students by XP (Leaderboard)
     const leaderboard = [...allProgress]
       .sort((a, b) => b.xp - a.xp)
-      .slice(0, 10) // Top 10
       .map((student) => ({
-        id: student._id,
-        userId: student.userId, // In a real app, you'd fetch their Name from Clerk
+        id: student._id, // We need this specific ID to delete them later
+        userId: student.userId,
         xp: student.xp,
         streak: student.streak,
         completedCount: student.completedLessonIds.length,
-        progressPercent: Math.round(
-          (student.completedLessonIds.length / totalLessonsCount) * 100,
-        ),
+        progressPercent:
+          totalLessonsCount > 0
+            ? Math.round(
+                (student.completedLessonIds.length / totalLessonsCount) * 100,
+              )
+            : 0,
       }));
 
     return {
@@ -42,5 +43,13 @@ export const getClassStats = query({
       leaderboard,
       totalLessonsCount,
     };
+  },
+});
+
+// --- NEW MUTATION: Remove a Student ---
+export const removeStudent = mutation({
+  args: { id: v.id("userProgress") }, // Requires the document ID
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
   },
 });

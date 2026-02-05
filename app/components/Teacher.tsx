@@ -1,5 +1,5 @@
 import React from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react"; // Added useMutation
 import { api } from "../convex/_generated/api";
 import {
   Users,
@@ -7,10 +7,9 @@ import {
   AlertTriangle,
   Search,
   LayoutDashboard,
-  Flame, // Added missing Flame import
+  Flame,
+  Trash2, // Added Trash Icon
 } from "lucide-react";
-
-// Import your UI components (adjust paths if yours are different)
 import {
   Card,
   CardContent,
@@ -20,14 +19,24 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-// --- FIX: Added 'export' keyword here ---
 export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
-  // Fetch data from our new backend endpoint
   const stats = useQuery(api.teachers.getClassStats);
+  const removeStudent = useMutation(api.teachers.removeStudent); // Hook up the mutation
+
+  // DELETE HANDLER
+  const handleDelete = async (studentId: any, userId: string) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to remove Student ${userId}? \n\nThis will permanently delete their progress and XP.`,
+    );
+
+    if (confirmDelete) {
+      await removeStudent({ id: studentId });
+    }
+  };
 
   if (!stats) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">
@@ -61,7 +70,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       </div>
 
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* 1. KEY METRICS CARDS */}
+        {/* METRICS CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-l-4 border-l-indigo-500 shadow-sm">
             <CardContent className="p-6">
@@ -109,9 +118,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   <h3 className="text-3xl font-bold text-slate-900 mt-1">
                     {stats.strugglingStudents}
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Students with low engagement
-                  </p>
                 </div>
                 <div className="p-3 bg-amber-50 rounded-lg">
                   <AlertTriangle className="w-6 h-6 text-amber-600" />
@@ -121,7 +127,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
           </Card>
         </div>
 
-        {/* 2. LEADERBOARD / STUDENT TABLE */}
+        {/* STUDENT TABLE */}
         <Card className="shadow-sm overflow-hidden">
           <CardHeader className="bg-white border-b border-slate-100 pb-4">
             <div className="flex items-center justify-between">
@@ -147,9 +153,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 <tr>
                   <th className="px-6 py-3 font-medium">Student ID</th>
                   <th className="px-6 py-3 font-medium">XP Earned</th>
-                  <th className="px-6 py-3 font-medium">Current Streak</th>
-                  <th className="px-6 py-3 font-medium">Course Progress</th>
+                  <th className="px-6 py-3 font-medium">Streak</th>
+                  <th className="px-6 py-3 font-medium">Progress</th>
                   <th className="px-6 py-3 font-medium">Status</th>
+                  <th className="px-6 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,7 +174,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">
                         <Flame className="w-4 h-4 text-orange-500" />
-                        {student.streak} days
+                        {student.streak}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -196,6 +203,18 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                           Active
                         </span>
                       )}
+                    </td>
+                    {/* NEW DELETE BUTTON COLUMN */}
+                    <td className="px-6 py-4 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(student.id, student.userId)}
+                        className="text-gray-400 hover:text-red-600 hover:bg-red-50"
+                        title="Remove Student"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}

@@ -949,7 +949,8 @@ const PolymerChemistryApp = () => {
         {!selectedModuleId && !currentLesson && (
           <div className="space-y-8">
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-2 max-w-2xl mx-auto">
+            {/* Mobile: 1 column (vertical stack). Tablet/Desktop: 3 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
               <Card>
                 <CardContent className="py-2">
                   <div className="flex items-center gap-3">
