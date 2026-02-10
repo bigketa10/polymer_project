@@ -50,28 +50,28 @@ import {
  */
 const PolymerChemistryApp = () => {
   // ========================================
-  // 1. COURSE CONFIGURATION
+  // 1. MODULE CONFIGURATION
   // ========================================
-  // Define course metadata here. This is the ONLY place you need to touch when adding new modules.
-  // Each course has: id, code, title, description, color theme, and icon
-  const COURSE_CONFIG: Record<string, any> = {
-    qxu5031: {
-      id: "qxu5031",
+  const DEFAULT_MODULES: Array<any> = [
+    {
+      moduleKey: "qxu5031",
       code: "QXU5031",
       title: "Polymer Chemistry",
       description: "Intro, MW, Step-Growth & Radical",
       color: "indigo",
-      icon: BookOpen,
+      iconKey: "bookOpen",
+      order: 1,
     },
-    qxu6033: {
-      id: "qxu6033",
+    {
+      moduleKey: "qxu6033",
       code: "QXU6033",
       title: "Advanced Chemistry",
       description: "CRP, Dendrimers & Self-Assembly",
       color: "pink",
-      icon: Beaker,
+      iconKey: "beaker",
+      order: 2,
     },
-  };
+  ];
 
   // ========================================
   // 2. STATE MANAGEMENT
@@ -103,6 +103,7 @@ const PolymerChemistryApp = () => {
   // Real-time queries - automatically re-render when data changes
   const userProgress = useQuery(api.userProgress.get); // User's XP, streak, completed lessons
   const lessons = useQuery(api.lessons.getAll); // All available lessons across all courses
+  const modules = useQuery(api.modules.getAll); // Course tiles shown on dashboard
 
   // Mutations - functions to modify backend data
   const updateProgress = useMutation(api.userProgress.update); // Save progress after completing lessons
@@ -464,15 +465,30 @@ const PolymerChemistryApp = () => {
     <div className="hidden">
       <div className="bg-indigo-100 border-indigo-100 hover:border-indigo-500 text-indigo-600 text-indigo-900 group-hover:bg-indigo-600 hover:border-indigo-300 text-indigo-700" />
       <div className="bg-pink-100 border-pink-100 hover:border-pink-500 text-pink-600 text-pink-900 group-hover:bg-pink-600 hover:border-pink-300 text-pink-700" />
+      <div className="bg-blue-100 border-blue-100 hover:border-blue-500 text-blue-600 text-blue-900 group-hover:bg-blue-600 hover:border-blue-300 text-blue-700" />
+      <div className="bg-emerald-100 border-emerald-100 hover:border-emerald-500 text-emerald-600 text-emerald-900 group-hover:bg-emerald-600 hover:border-emerald-300 text-emerald-700" />
+      <div className="bg-amber-100 border-amber-100 hover:border-amber-500 text-amber-600 text-amber-900 group-hover:bg-amber-600 hover:border-amber-300 text-amber-700" />
+      <div className="bg-violet-100 border-violet-100 hover:border-violet-500 text-violet-600 text-violet-900 group-hover:bg-violet-600 hover:border-violet-300 text-violet-700" />
+      <div className="bg-rose-100 border-rose-100 hover:border-rose-500 text-rose-600 text-rose-900 group-hover:bg-rose-600 hover:border-rose-300 text-rose-700" />
     </div>
   );
+
+  const allModules = (modules && modules.length > 0 ? modules : DEFAULT_MODULES)
+    .slice()
+    .sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+
+  const iconForModule = (iconKey?: string) => {
+    if (iconKey === "beaker") return Beaker;
+    if (iconKey === "bookOpen") return BookOpen;
+    return Atom;
+  };
 
   // ========================================
   // 8. UI RENDERING
   // ========================================
 
   // Loading state: Show spinner while data is being fetched
-  if (lessons === undefined || userProgress === undefined) {
+  if (lessons === undefined || userProgress === undefined || modules === undefined) {
     return (
       <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
@@ -1051,11 +1067,11 @@ const PolymerChemistryApp = () => {
 
             {/* 4. COURSE GRID */}
             <div className="grid md:grid-cols-2 gap-6 pb-20">
-              {Object.values(COURSE_CONFIG).map((course) => {
-                const Icon = course.icon;
+              {allModules.map((course: any) => {
+                const Icon = iconForModule(course.iconKey);
                 const lessonCount =
-                  lessons?.filter((l: any) => l.section === course.id).length ||
-                  0;
+                  lessons?.filter((l: any) => l.section === course.moduleKey)
+                    .length || 0;
                 const bgColor = `bg-${course.color}-100`;
                 const borderColor = `border-${course.color}-100`;
                 const hoverBorderColor = `hover:border-${course.color}-500`;
@@ -1065,8 +1081,8 @@ const PolymerChemistryApp = () => {
 
                 return (
                   <div
-                    key={course.id}
-                    onClick={() => setSelectedModuleId(course.id)}
+                    key={course.moduleKey}
+                    onClick={() => setSelectedModuleId(course.moduleKey)}
                     className={`cursor-pointer group bg-white p-8 rounded-2xl border-2 ${borderColor} ${hoverBorderColor} hover:shadow-xl transition-all duration-200`}
                   >
                     <div
@@ -1112,8 +1128,11 @@ const PolymerChemistryApp = () => {
 
             <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Book className="w-6 h-6" />
-              {COURSE_CONFIG[selectedModuleId]?.code}:{" "}
-              {COURSE_CONFIG[selectedModuleId]?.title}
+              {allModules.find((m: any) => m.moduleKey === selectedModuleId)
+                ?.code || selectedModuleId}
+              :{" "}
+              {allModules.find((m: any) => m.moduleKey === selectedModuleId)
+                ?.title || ""}
             </h2>
 
             <div className="space-y-4">
@@ -1123,7 +1142,8 @@ const PolymerChemistryApp = () => {
                 .map((lesson: any) => {
                   const status = getLessonStatus(lesson._id);
                   const themeColor =
-                    COURSE_CONFIG[selectedModuleId]?.color || "indigo";
+                    allModules.find((m: any) => m.moduleKey === selectedModuleId)
+                      ?.color || "indigo";
                   const hoverColor = `hover:text-${themeColor}-700`;
                   const borderHoverColor = `hover:border-${themeColor}-300`;
                   const bgThemeLight = `bg-${themeColor}-100`;
@@ -1176,7 +1196,10 @@ const PolymerChemistryApp = () => {
               .length === 0 && (
               <div className="text-center p-12 mt-8 border-2 border-dashed rounded-xl">
                 <p className="text-gray-500">
-                  No lessons found for {COURSE_CONFIG[selectedModuleId]?.code}.
+                  No lessons found for{" "}
+                  {allModules.find((m: any) => m.moduleKey === selectedModuleId)
+                    ?.code || selectedModuleId}
+                  .
                 </p>
                 <Button
                   onClick={() => initializeDefaults({ forceReset: true })}

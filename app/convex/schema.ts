@@ -2,6 +2,20 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // 0. MODULES TABLE (Courses / Modules shown on homepage)
+  modules: defineTable({
+    moduleKey: v.string(), // stable string id used by lessons.section (e.g. "qxu5031")
+    code: v.string(), // display code (e.g. "QXU5031")
+    title: v.string(),
+    description: v.string(),
+    color: v.string(), // tailwind color name (e.g. "indigo", "pink")
+    iconKey: v.string(), // "bookOpen" | "beaker" | "atom"
+    order: v.number(),
+    isDefault: v.boolean(),
+  })
+    .index("by_key", ["moduleKey"])
+    .index("by_default", ["isDefault"]),
+
   // 1. LESSONS TABLE (Fixed: Added 'section')
   lessons: defineTable({
     title: v.string(),

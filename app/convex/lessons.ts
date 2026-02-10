@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 
 // Get all lessons (both default and user custom ones)
@@ -8,19 +9,82 @@ export const getAll = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    // Get all lessons (both default and user custom ones)
-    const defaults = await ctx.db
-      .query("lessons")
-      .withIndex("by_default", (q) => q.eq("isDefault", true))
-      .collect();
-    const users = await ctx.db
-      .query("lessons")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
+    // We support 3 categories:
+    // - default (seeded): isDefault = true
+    // - public (teacher-created): isDefault = false, userId is not set
+    // - personal (user-created): isDefault = false, userId = current user
+    const all = await ctx.db.query("lessons").collect();
+    const defaults = all.filter((l) => l.isDefault === true);
+    const publicLessons = all.filter((l) => l.isDefault === false && !l.userId);
+    const users = all.filter((l) => l.userId === identity.subject);
 
-    return [...defaults, ...users].sort(
+    return [...defaults, ...publicLessons, ...users].sort(
       (a, b) => (a.order || 0) - (b.order || 0),
     );
+  },
+});
+
+// Create a new public lesson (visible to all users)
+export const createLesson = mutation({
+  args: {
+    title: v.string(),
+    description: v.string(),
+    difficulty: v.string(),
+    xpReward: v.number(),
+    section: v.optional(v.string()),
+    order: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const all = await ctx.db.query("lessons").collect();
+    const sameSection = all.filter((l) => (l.section || "") === (args.section || ""));
+    const maxOrder = sameSection.reduce((acc, l) => Math.max(acc, l.order || 0), 0);
+    const order = args.order ?? maxOrder + 1;
+
+    const id = await ctx.db.insert("lessons", {
+      title: args.title,
+      description: args.description,
+      difficulty: args.difficulty,
+      xpReward: args.xpReward,
+      isDefault: false, // public, instructor-created (NOT seeded)
+      order,
+      section: args.section,
+      questions: [],
+    });
+
+    return { id };
+  },
+});
+
+// Allow instructors to update the full question set for a lesson.
+// This powers the teacher UI for viewing, adding and editing questions.
+export const updateQuestions = mutation({
+  args: {
+    lessonId: v.id("lessons"),
+    questions: v.array(
+      v.object({
+        question: v.string(),
+        options: v.array(v.string()),
+        correct: v.number(),
+        explanation: v.string(),
+        imageUrl: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, { lessonId, questions }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const existing = await ctx.db.get(lessonId as Id<"lessons">);
+    if (!existing) {
+      throw new Error("Lesson not found");
+    }
+
+    await ctx.db.patch(lessonId as Id<"lessons">, {
+      questions,
+    });
   },
 });
 
