@@ -61,6 +61,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [correctOptionNumber, setCorrectOptionNumber] = useState("");
   const [explanation, setExplanation] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!lessons || lessons.length === 0) return;
@@ -381,6 +382,14 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     );
   }
 
+  const filteredStudents = stats.leaderboard.filter((student: any) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      student.userName?.toLowerCase().includes(query) ||
+      student.userId?.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="h-screen overflow-y-auto bg-slate-50 p-6 font-sans">
       {/* HEADER */}
@@ -476,6 +485,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 <input
                   placeholder="Search student..."
                   className="pl-9 h-9 w-full rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
             </div>
@@ -502,7 +513,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 </tr>
               </thead>
               <tbody>
-                {stats.leaderboard.map((student: any) => {
+                {filteredStudents.map((student: any) => {
                   // LOGIC TO SPLIT NAME
                   const fullName = student.userName || "Anonymous";
                   // Split by the first space found

@@ -1,5 +1,4 @@
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 
 // Get all lessons (both default and user custom ones)
@@ -39,8 +38,13 @@ export const createLesson = mutation({
     if (!identity) throw new Error("Not authenticated");
 
     const all = await ctx.db.query("lessons").collect();
-    const sameSection = all.filter((l) => (l.section || "") === (args.section || ""));
-    const maxOrder = sameSection.reduce((acc, l) => Math.max(acc, l.order || 0), 0);
+    const sameSection = all.filter(
+      (l) => (l.section || "") === (args.section || ""),
+    );
+    const maxOrder = sameSection.reduce(
+      (acc, l) => Math.max(acc, l.order || 0),
+      0,
+    );
     const order = args.order ?? maxOrder + 1;
 
     const id = await ctx.db.insert("lessons", {
@@ -63,28 +67,22 @@ export const createLesson = mutation({
 export const updateQuestions = mutation({
   args: {
     lessonId: v.id("lessons"),
-    questions: v.array(
-      v.object({
-        question: v.string(),
-        options: v.array(v.string()),
-        correct: v.number(),
-        explanation: v.string(),
-        imageUrl: v.optional(v.string()),
-      }),
-    ),
+    questions: v.array(v.any()),
   },
   handler: async (ctx, { lessonId, questions }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const existing = await ctx.db.get(lessonId as Id<"lessons">);
+    const existing = await ctx.db.get(lessonId);
     if (!existing) {
       throw new Error("Lesson not found");
     }
 
-    await ctx.db.patch(lessonId as Id<"lessons">, {
-      questions,
+    await ctx.db.patch(lessonId, {
+      questions: questions,
     });
+
+    return { success: true };
   },
 });
 

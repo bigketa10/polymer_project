@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { TeacherDashboard } from "./Teacher";
 import { StudentLeaderboard } from "./StudentLeaderboard";
 import {
   Card,
@@ -30,7 +30,6 @@ import {
   ArrowLeft,
   Beaker,
   BookOpen,
-  PlayCircle,
   Atom,
   LayoutDashboard,
   Home,
@@ -93,8 +92,6 @@ const PolymerChemistryApp = () => {
   const [showSettings, setShowSettings] = useState(false); // Toggle settings screen
   const [showReview, setShowReview] = useState(false); // Toggle quiz review screen
   const [reviewAnimate, setReviewAnimate] = useState(false); // Animation trigger for review screen
-  const [initialized, setInitialized] = useState(false); // Ensures default lessons load only once
-  const [showTeacherDashboard, setShowTeacherDashboard] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // ========================================
@@ -108,13 +105,14 @@ const PolymerChemistryApp = () => {
   // Mutations - functions to modify backend data
   const updateProgress = useMutation(api.userProgress.update); // Save progress after completing lessons
   const resetProgress = useMutation(api.userProgress.reset); // Clear all user progress
-  const initializeDefaults = useMutation(api.lessons.initializeDefaults); // Load default lesson content
   const initializeUser = useMutation(api.userProgress.initializeUser); // Initialize user with name
 
   // ========================================
   // 4. CLERK HOOKS
   // ========================================
   const { user } = useUser();
+  const router = useRouter();
+  const isAdmin = user?.publicMetadata?.role === "admin";
 
   // ========================================
   // 4b. AUDIO REFERENCES
@@ -139,21 +137,6 @@ const PolymerChemistryApp = () => {
       });
     }
   }, [user, initializeUser]);
-
-  /**
-   * Initialize default lessons on first load
-   * Only runs once when the component mounts and lessons are loaded
-   * If no lessons exist in the database, loads the default curriculum
-   */
-  useEffect(() => {
-    if (!initialized && lessons !== undefined) {
-      if (lessons.length === 0) {
-        // Database is empty - load default course content
-        initializeDefaults({ forceReset: false });
-      }
-      setInitialized(true); // Prevent re-initialization on subsequent renders
-    }
-  }, [lessons, initialized, initializeDefaults]);
 
   /**
    * Trigger smooth entrance animation for review screen
@@ -488,7 +471,11 @@ const PolymerChemistryApp = () => {
   // ========================================
 
   // Loading state: Show spinner while data is being fetched
-  if (lessons === undefined || userProgress === undefined || modules === undefined) {
+  if (
+    lessons === undefined ||
+    userProgress === undefined ||
+    modules === undefined
+  ) {
     return (
       <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
@@ -577,59 +564,30 @@ const PolymerChemistryApp = () => {
                 </div>
               </div>
 
-              {/* Developer Options */}
-              <div className="pt-4 border-t">
-                <h3 className="font-semibold mb-2 text-indigo-900">
-                  Developer Options
-                </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Database has old lessons? Click this to force-load the new
-                  QXU5031 curriculum.
-                </p>
-                <Button
-                  onClick={async () => {
-                    try {
-                      // Explicitly pass the object with the boolean
-                      await initializeDefaults({ forceReset: true });
-                      alert("Curriculum Updated!");
-                      window.location.reload();
-                    } catch (err) {
-                      console.error(err);
-                      alert("Check console for error details.");
-                    }
-                  }}
-                  className="w-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-200"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Force Update Course Content
-                </Button>
-              </div>
-
               {/* TEACHER ACCESS SECTION IN SETTINGS */}
               <div className="pt-4 border-t mt-4">
                 <h3 className="font-semibold mb-2 text-slate-800">
                   Instructor Access
                 </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Access student analytics and course management tools.
-                </p>
-                <Button
-                  onClick={() => {
-                    // Simple password protection for prototype
-                    const password = prompt("Enter Instructor Password:");
-                    if (password === "admin123") {
-                      setShowSettings(false); // Close settings
-                      setShowTeacherDashboard(true); // Open Dashboard
-                    } else {
-                      alert("Incorrect password.");
-                    }
-                  }}
-                  variant="outline"
-                  className="w-full border-slate-300 hover:bg-slate-50"
-                >
-                  <LayoutDashboard className="w-4 h-4 mr-2" />
-                  Open Teacher Dashboard
-                </Button>
+                {isAdmin ? (
+                  <>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Welcome back, Professor.
+                    </p>
+                    <Button
+                      onClick={() => router.push("/teacher")}
+                      className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
+                    >
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      Open Teacher Dashboard
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">
+                    Contact the department head for instructor access
+                    permissions.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -966,10 +924,6 @@ const PolymerChemistryApp = () => {
   // MAIN DASHBOARD
   // ========================================
   // Shows course selection (if no module selected) or lesson list (if module selected)
-  if (showTeacherDashboard) {
-    return <TeacherDashboard onClose={() => setShowTeacherDashboard(false)} />;
-  }
-
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
       <TailwindSafelist />
@@ -1142,8 +1096,9 @@ const PolymerChemistryApp = () => {
                 .map((lesson: any) => {
                   const status = getLessonStatus(lesson._id);
                   const themeColor =
-                    allModules.find((m: any) => m.moduleKey === selectedModuleId)
-                      ?.color || "indigo";
+                    allModules.find(
+                      (m: any) => m.moduleKey === selectedModuleId,
+                    )?.color || "indigo";
                   const hoverColor = `hover:text-${themeColor}-700`;
                   const borderHoverColor = `hover:border-${themeColor}-300`;
                   const bgThemeLight = `bg-${themeColor}-100`;
@@ -1201,11 +1156,8 @@ const PolymerChemistryApp = () => {
                     ?.code || selectedModuleId}
                   .
                 </p>
-                <Button
-                  onClick={() => initializeDefaults({ forceReset: true })}
-                  variant="link"
-                >
-                  Force Refresh Data
+                <Button onClick={() => window.location.reload()} variant="link">
+                  Reload Page
                 </Button>
               </div>
             )}
