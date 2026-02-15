@@ -8,10 +8,12 @@
  * @module
  */
 
+import type * as glossary from "../glossary.js";
 import type * as lessons from "../lessons.js";
 import type * as messages from "../messages.js";
 import type * as modules from "../modules.js";
 import type * as teachers from "../teachers.js";
+import type * as uploads from "../uploads.js";
 import type * as userProgress from "../userProgress.js";
 
 import type {
@@ -21,10 +23,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  glossary: typeof glossary;
   lessons: typeof lessons;
   messages: typeof messages;
   modules: typeof modules;
   teachers: typeof teachers;
+  uploads: typeof uploads;
   userProgress: typeof userProgress;
 }>;
 

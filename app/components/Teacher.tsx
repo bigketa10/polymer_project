@@ -30,6 +30,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const updateQuestions = useMutation(api.lessons.updateQuestions);
   const createLesson = useMutation(api.lessons.createLesson);
   const createModule = useMutation(api.modules.createModule);
+  const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [lessonDropdownOpen, setLessonDropdownOpen] = useState(false);
@@ -61,6 +62,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [correctOptionNumber, setCorrectOptionNumber] = useState("");
   const [explanation, setExplanation] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imageStorageId, setImageStorageId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -249,6 +251,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setCorrectOptionNumber("");
     setExplanation("");
     setImageUrl("");
+    setImageStorageId("");
   };
 
   const startAddNewQuestion = () => {
@@ -267,6 +270,29 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     );
     setExplanation(q.explanation || "");
     setImageUrl(q.imageUrl || "");
+    setImageStorageId(q.imageStorageId || "");
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const postUrl = await generateUploadUrl();
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      const { storageId } = await result.json();
+      setImageStorageId(storageId);
+      alert("Image uploaded successfully!");
+    } catch (error: any) {
+      alert(error?.message || "Image upload failed.");
+    } finally {
+      e.currentTarget.value = "";
+    }
   };
 
   const handleSaveQuestion = async () => {
@@ -308,6 +334,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     const trimmedImage = imageUrl.trim();
     if (trimmedImage) {
       newQuestion.imageUrl = trimmedImage;
+    }
+
+    const trimmedStorageId = imageStorageId.trim();
+    if (trimmedStorageId) {
+      newQuestion.imageStorageId = trimmedStorageId;
     }
 
     const existing = selectedLesson.questions || [];
@@ -1186,15 +1217,32 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
                       <div className="flex flex-col gap-1">
                         <label className="text-xs font-medium text-slate-700">
-                          Optional image URL
+                          Upload image
                         </label>
                         <input
-                          type="text"
-                          className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          value={imageUrl}
-                          onChange={(e) => setImageUrl(e.target.value)}
+                          type="file"
+                          accept="image/*"
+                          className="text-sm"
+                          onChange={handleImageUpload}
                         />
+                        {imageStorageId ? (
+                          <p className="text-[11px] text-slate-500">
+                            Uploaded: {imageStorageId}
+                          </p>
+                        ) : null}
                       </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-slate-700">
+                        Optional image URL
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                      />
                     </div>
 
                     <div className="flex flex-col gap-1">

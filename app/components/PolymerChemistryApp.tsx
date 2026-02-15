@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { StudentLeaderboard } from "./StudentLeaderboard";
+import { ExplainerText } from "./ExplainerText";
 import {
   Card,
   CardContent,
@@ -788,7 +789,7 @@ const PolymerChemistryApp = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl flex items-center gap-3">
-                {question.question}
+                <ExplainerText text={question.question} />
                 <div
                   onClick={() => speak(question.question)}
                   className="p-2 rounded-full hover:bg-indigo-100 text-indigo-400 transition-colors cursor-pointer"
@@ -1126,7 +1127,7 @@ const PolymerChemistryApp = () => {
                               )}
                             </CardTitle>
                             <CardDescription>
-                              {lesson.description}
+                              <ExplainerText text={lesson.description} />
                             </CardDescription>
                           </div>
                           <div className="text-right">

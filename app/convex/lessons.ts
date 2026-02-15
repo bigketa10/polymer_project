@@ -17,9 +17,21 @@ export const getAll = query({
     const publicLessons = all.filter((l) => l.isDefault === false && !l.userId);
     const users = all.filter((l) => l.userId === identity.subject);
 
-    return [...defaults, ...publicLessons, ...users].sort(
-      (a, b) => (a.order || 0) - (b.order || 0),
+    const lessonsWithImages = await Promise.all(
+      [...defaults, ...publicLessons, ...users].map(async (lesson) => ({
+        ...lesson,
+        questions: await Promise.all(
+          lesson.questions.map(async (q) => ({
+            ...q,
+            imageUrl: q.imageStorageId
+              ? await ctx.storage.getUrl(q.imageStorageId)
+              : q.imageUrl,
+          })),
+        ),
+      })),
     );
+
+    return lessonsWithImages.sort((a, b) => (a.order || 0) - (b.order || 0));
   },
 });
 
