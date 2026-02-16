@@ -35,9 +35,6 @@ function slugifyModuleKey(input: string) {
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
     const stored = await ctx.db.query("modules").collect();
     const merged = [
       ...DEFAULT_MODULES,

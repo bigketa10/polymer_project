@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
 import { StudentLeaderboard } from "./StudentLeaderboard";
 import { ExplainerText } from "./ExplainerText";
 import {
@@ -86,6 +87,7 @@ const PolymerChemistryApp = () => {
   const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>(
     [], // Array storing all answers for the current quiz
   );
+  const [activeAttemptId, setActiveAttemptId] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false); // Whether to show answer feedback
   const [score, setScore] = useState(0); // Running score for current quiz
 
@@ -107,6 +109,9 @@ const PolymerChemistryApp = () => {
   const updateProgress = useMutation(api.userProgress.update); // Save progress after completing lessons
   const resetProgress = useMutation(api.userProgress.reset); // Clear all user progress
   const initializeUser = useMutation(api.userProgress.initializeUser); // Initialize user with name
+  const startAttempt = useMutation(api.lessonAttempts.startAttempt);
+  const saveAnswer = useMutation(api.lessonAttempts.saveAnswer);
+  const finalizeAttempt = useMutation(api.lessonAttempts.finalizeAttempt);
 
   // ========================================
   // 4. CLERK HOOKS
@@ -199,7 +204,7 @@ const PolymerChemistryApp = () => {
    * Initialize a new lesson session
    * Resets all quiz-related state to start fresh
    */
-  const startLesson = (lesson: any) => {
+  const startLesson = async (lesson: any) => {
     setCurrentLesson(lesson);
     setCurrentQuestion(0); // Start at first question
     setSelectedAnswer(null);
@@ -208,6 +213,14 @@ const PolymerChemistryApp = () => {
     setShowReview(false);
     setReviewAnimate(false);
     setSelectedAnswers(Array(lesson.questions.length).fill(null)); // Empty answer array
+    setActiveAttemptId(null);
+
+    try {
+      const res: any = await startAttempt({ lessonId: lesson._id });
+      setActiveAttemptId(res?.id || null);
+    } catch (err) {
+      console.error("Attempt start failed:", err);
+    }
   };
 
   /**
@@ -241,6 +254,9 @@ const PolymerChemistryApp = () => {
         currentLesson.questions[currentQuestion].options[index];
       speak(optionText); // Read the selected option aloud
 
+      const question = currentLesson.questions[currentQuestion];
+      const isCorrect = index === question.correct;
+
       setSelectedAnswer(index); // Update current question's selection
 
       // Update the answers array for the current question
@@ -249,6 +265,17 @@ const PolymerChemistryApp = () => {
         next[currentQuestion] = index; // Store answer at current question index
         return next;
       });
+
+      if (activeAttemptId) {
+        saveAnswer({
+          attemptId: activeAttemptId as Id<"lessonAttempts">,
+          questionIndex: currentQuestion,
+          selectedOption: index,
+          isCorrect,
+        }).catch((err) => {
+          console.error("Answer save failed:", err);
+        });
+      }
     }
   };
 
@@ -376,6 +403,13 @@ const PolymerChemistryApp = () => {
       completedLessonIds: newCompletedLessons,
     });
 
+    if (activeAttemptId) {
+      await finalizeAttempt({
+        attemptId: activeAttemptId as Id<"lessonAttempts">,
+        score: finalScore || 0,
+      });
+    }
+
     // Reset all quiz state and return to dashboard
     setShowReview(false);
     setReviewAnimate(false);
@@ -384,6 +418,7 @@ const PolymerChemistryApp = () => {
     setSelectedAnswer(null);
     setScore(0);
     setShowResult(false);
+    setActiveAttemptId(null);
   };
 
   /**
@@ -1113,7 +1148,7 @@ const PolymerChemistryApp = () => {
                           ? "border-green-200 bg-green-50"
                           : borderHoverColor
                       }`}
-                      onClick={() => startLesson(lesson)}
+                      onClick={() => void startLesson(lesson)}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">

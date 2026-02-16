@@ -6,7 +6,6 @@ export const getAll = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
 
     // We support 3 categories:
     // - default (seeded): isDefault = true
@@ -15,13 +14,15 @@ export const getAll = query({
     const all = await ctx.db.query("lessons").collect();
     const defaults = all.filter((l) => l.isDefault === true);
     const publicLessons = all.filter((l) => l.isDefault === false && !l.userId);
-    const users = all.filter((l) => l.userId === identity.subject);
+    const users = identity
+      ? all.filter((l) => l.userId === identity.subject)
+      : [];
 
     const lessonsWithImages = await Promise.all(
       [...defaults, ...publicLessons, ...users].map(async (lesson) => ({
         ...lesson,
         questions: await Promise.all(
-          lesson.questions.map(async (q) => ({
+          (lesson.questions || []).map(async (q) => ({
             ...q,
             imageUrl: q.imageStorageId
               ? await ctx.storage.getUrl(q.imageStorageId)
@@ -90,11 +91,46 @@ export const updateQuestions = mutation({
       throw new Error("Lesson not found");
     }
 
+    const oldStorageIds = (existing.questions || [])
+      .map((q: any) => q.imageStorageId)
+      .filter((id: any) => id !== undefined);
+
+    const newStorageIds = (questions || [])
+      .map((q: any) => q.imageStorageId)
+      .filter((id: any) => id !== undefined);
+
+    const idsToDelete = oldStorageIds.filter(
+      (id: any) => !newStorageIds.includes(id),
+    );
+
+    for (const id of idsToDelete) {
+      await ctx.storage.delete(id);
+    }
+
     await ctx.db.patch(lessonId, {
       questions: questions,
     });
 
     return { success: true };
+  },
+});
+
+export const deleteLesson = mutation({
+  args: { id: v.id("lessons") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const lesson = await ctx.db.get(args.id);
+    if (!lesson) return;
+
+    for (const question of lesson.questions || []) {
+      if (question.imageStorageId) {
+        await ctx.storage.delete(question.imageStorageId);
+      }
+    }
+
+    await ctx.db.delete(args.id);
   },
 });
 
@@ -177,8 +213,7 @@ export const initializeDefaults = mutation({
           {
             question: "Which of these is a semi-crystalline polymer?",
             // Spherulite (Crystalline structure)
-            imageUrl:
-              "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Spherulite2.jpg/640px-Spherulite2.jpg",
+            imageUrl: "",
             options: [
               "Polystyrene (Atactic)",
               "PMMA",

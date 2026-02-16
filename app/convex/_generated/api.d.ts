@@ -9,6 +9,7 @@
  */
 
 import type * as glossary from "../glossary.js";
+import type * as lessonAttempts from "../lessonAttempts.js";
 import type * as lessons from "../lessons.js";
 import type * as messages from "../messages.js";
 import type * as modules from "../modules.js";
@@ -24,6 +25,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   glossary: typeof glossary;
+  lessonAttempts: typeof lessonAttempts;
   lessons: typeof lessons;
   messages: typeof messages;
   modules: typeof modules;

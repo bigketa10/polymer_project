@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
 import {
   Users,
   TrendingUp,
@@ -12,6 +13,7 @@ import {
   PlusCircle,
   Pencil,
   ChevronDown,
+  XCircle,
 } from "lucide-react";
 import {
   Card,
@@ -35,6 +37,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [lessonDropdownOpen, setLessonDropdownOpen] = useState(false);
   const lessonDropdownRef = useRef<HTMLDivElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const [showAddModule, setShowAddModule] = useState(false);
   const [newModuleCode, setNewModuleCode] = useState("");
@@ -63,7 +66,76 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [explanation, setExplanation] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageStorageId, setImageStorageId] = useState("");
+  const [imageFileName, setImageFileName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [brokenLinks, setBrokenLinks] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStudentUserId, setSelectedStudentUserId] = useState<
+    string | null
+  >(null);
+  const [selectedStudentName, setSelectedStudentName] = useState("");
+  const [expandedReportLessons, setExpandedReportLessons] = useState<
+    Set<string>
+  >(new Set());
+
+  const studentAttempts = useQuery(
+    api.lessonAttempts.getByUser,
+    selectedStudentUserId ? { userId: selectedStudentUserId } : "skip",
+  );
+
+  const storagePreviewUrl = useQuery(
+    api.uploads.getFileUrl,
+    imageStorageId ? { storageId: imageStorageId as Id<"_storage"> } : "skip",
+  );
+
+  const previewUrl = useMemo(() => {
+    if (storagePreviewUrl) return storagePreviewUrl;
+
+    const raw = imageUrl.trim();
+    if (!raw || brokenLinks.has(raw)) return "";
+
+    return raw;
+  }, [imageUrl, storagePreviewUrl, brokenLinks]);
+
+  const reportLessons = useMemo(() => {
+    if (!studentAttempts || !lessons) return [];
+
+    const attemptsByLesson = new Map<string, any[]>();
+    for (const attempt of studentAttempts) {
+      const lessonKey = String(attempt.lessonId);
+      const list = attemptsByLesson.get(lessonKey) || [];
+      list.push(attempt);
+      attemptsByLesson.set(lessonKey, list);
+    }
+
+    const lessonMap = new Map<string, any>();
+    for (const lesson of lessons) {
+      lessonMap.set(String(lesson._id), lesson);
+    }
+
+    const rows: Array<{
+      lesson: any;
+      latestAttempt: any;
+      attemptCount: number;
+    }> = [];
+
+    attemptsByLesson.forEach((attempts, lessonId) => {
+      const lesson = lessonMap.get(lessonId);
+      if (!lesson) return;
+      const sorted = attempts.slice().sort((a, b) => {
+        const aTime = a.updatedAt || a.startedAt || "";
+        const bTime = b.updatedAt || b.startedAt || "";
+        return bTime.localeCompare(aTime);
+      });
+      rows.push({
+        lesson,
+        latestAttempt: sorted[0],
+        attemptCount: sorted.length,
+      });
+    });
+
+    return rows.sort((a, b) => (a.lesson.order || 0) - (b.lesson.order || 0));
+  }, [studentAttempts, lessons]);
 
   useEffect(() => {
     if (!lessons || lessons.length === 0) return;
@@ -252,6 +324,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setExplanation("");
     setImageUrl("");
     setImageStorageId("");
+    setImageFileName("");
   };
 
   const startAddNewQuestion = () => {
@@ -271,27 +344,99 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setExplanation(q.explanation || "");
     setImageUrl(q.imageUrl || "");
     setImageStorageId(q.imageStorageId || "");
+    setImageFileName("");
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsUploading(true);
+    setImageFileName(file.name);
+    setImageUrl("");
+    setImageStorageId("");
+
+    const reader = new FileReader();
+    reader.onerror = () => {
+      setIsUploading(false);
+      alert("Could not read the file. Please try a different image.");
+    };
+    reader.onload = () => {
+      const imgElement = new Image();
+      imgElement.crossOrigin = "anonymous";
+      imgElement.onerror = () => {
+        setIsUploading(false);
+        alert("Could not load the image. Please try a different file.");
+      };
+      imgElement.onload = () => {
+        processAndUpload(imgElement, file.type).catch((err) => {
+          console.error("Upload error:", err);
+          setIsUploading(false);
+          alert(
+            "Could not process image. Try downloading the file and uploading it directly.",
+          );
+        });
+      };
+
+      const result = reader.result;
+      if (typeof result === "string") {
+        imgElement.src = result;
+      } else {
+        setIsUploading(false);
+        alert("Could not read the file. Please try a different image.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const processAndUpload = async (
+    image: HTMLImageElement,
+    _fileType: string,
+  ) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const targetSize = 400;
+    canvas.width = targetSize;
+    canvas.height = targetSize;
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, targetSize, targetSize);
+    const scale = Math.min(targetSize / image.width, targetSize / image.height);
+    const x = (targetSize - image.width * scale) / 2;
+    const y = (targetSize - image.height * scale) / 2;
+    ctx.drawImage(image, x, y, image.width * scale, image.height * scale);
+
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob(res, "image/jpeg", 0.9),
+    );
+    if (!blob) throw new Error("Blob generation failed");
+
     try {
       const postUrl = await generateUploadUrl();
+      if (!postUrl) throw new Error("Upload URL not available");
+
       const result = await fetch(postUrl, {
         method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+        headers: { "Content-Type": "image/jpeg" },
+        body: blob,
       });
 
+      if (!result.ok) {
+        const errorText = await result.text();
+        throw new Error(errorText || "Storage upload failed");
+      }
+
       const { storageId } = await result.json();
+      if (!storageId) throw new Error("Upload response missing storageId");
       setImageStorageId(storageId);
       alert("Image uploaded successfully!");
-    } catch (error: any) {
-      alert(error?.message || "Image upload failed.");
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Upload failed. Please try again.");
     } finally {
-      e.currentTarget.value = "";
+      setIsUploading(false);
     }
   };
 
@@ -552,11 +697,19 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   const firstName = nameParts[0];
                   // Join the rest back together (handles names like "Von Neumann")
                   const lastName = nameParts.slice(1).join(" ") || "-";
+                  const isSelectedStudent =
+                    selectedStudentUserId === student.userId;
 
                   return (
                     <tr
                       key={student.id}
-                      className="bg-white border-b hover:bg-slate-50 transition-colors"
+                      onClick={() => {
+                        setSelectedStudentUserId(student.userId);
+                        setSelectedStudentName(fullName);
+                      }}
+                      className={`bg-white border-b hover:bg-slate-50 transition-colors cursor-pointer ${
+                        isSelectedStudent ? "bg-indigo-50" : ""
+                      }`}
                     >
                       {/* FIRST NAME COLUMN */}
                       <td className="px-6 py-4 font-bold text-slate-800">
@@ -611,7 +764,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(student.id, fullName)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDelete(student.id, fullName);
+                          }}
                           className="text-gray-400 hover:text-red-600 hover:bg-red-50"
                           title="Remove Student"
                         >
@@ -625,6 +781,164 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
             </table>
           </div>
         </Card>
+
+        {selectedStudentUserId && (
+          <Card className="shadow-sm">
+            <CardHeader className="bg-white border-b border-slate-100 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Student Report</CardTitle>
+                  <CardDescription>
+                    {selectedStudentName
+                      ? `${selectedStudentName} · Latest attempt per lesson`
+                      : "Latest attempt per lesson"}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedStudentUserId(null);
+                    setSelectedStudentName("");
+                  }}
+                  className="bg-white"
+                >
+                  Clear selection
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {!studentAttempts && (
+                <p className="text-sm text-slate-500">Loading report...</p>
+              )}
+
+              {studentAttempts && reportLessons.length === 0 && (
+                <p className="text-sm text-slate-500">
+                  No attempted lessons yet.
+                </p>
+              )}
+
+              {studentAttempts && reportLessons.length > 0 && (
+                <div className="space-y-4">
+                  {reportLessons.map(
+                    ({ lesson, latestAttempt, attemptCount }) => {
+                      const answerMap = new Map<number, any>();
+                      for (const ans of latestAttempt.answers || []) {
+                        answerMap.set(ans.questionIndex, ans);
+                      }
+
+                      const lessonKey = String(lesson._id);
+                      const isExpanded = expandedReportLessons.has(lessonKey);
+                      const updatedAt =
+                        latestAttempt.updatedAt || latestAttempt.startedAt;
+
+                      return (
+                        <div
+                          key={lesson._id}
+                          className="border rounded-lg p-4 bg-white"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-800">
+                                {lesson.title}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                {lesson.description}
+                              </p>
+                            </div>
+                            <div className="text-xs text-slate-500 text-right">
+                              <div>Attempts: {attemptCount}</div>
+                              <div>
+                                Last updated: {updatedAt ? updatedAt : "-"}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setExpandedReportLessons((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(lessonKey)) {
+                                    next.delete(lessonKey);
+                                  } else {
+                                    next.add(lessonKey);
+                                  }
+                                  return next;
+                                });
+                              }}
+                            >
+                              {isExpanded ? "Hide questions" : "Show questions"}
+                            </Button>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="mt-3 space-y-3">
+                              {lesson.questions.map((q: any, idx: number) => {
+                                const ans = answerMap.get(idx);
+                                const selectedOption =
+                                  ans && ans.selectedOption !== null
+                                    ? q.options?.[ans.selectedOption]
+                                    : "No answer";
+                                const isCorrect = ans ? ans.isCorrect : false;
+
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="rounded-md border border-slate-100 bg-slate-50 p-3"
+                                  >
+                                    <p className="text-xs text-slate-500">
+                                      Q{idx + 1}
+                                    </p>
+                                    <p className="text-sm font-medium text-slate-800">
+                                      {q.question}
+                                    </p>
+                                    <div className="mt-2 text-xs text-slate-600">
+                                      <span className="font-semibold">
+                                        Student answer:
+                                      </span>{" "}
+                                      {selectedOption}
+                                    </div>
+                                    <div className="mt-1 text-xs text-slate-600">
+                                      <span className="font-semibold">
+                                        Correct:
+                                      </span>{" "}
+                                      {q.options?.[q.correct] ?? "-"}
+                                    </div>
+                                    <div className="mt-2">
+                                      {ans ? (
+                                        <span
+                                          className={`text-xs px-2 py-1 rounded-full font-bold ${
+                                            isCorrect
+                                              ? "bg-green-100 text-green-700"
+                                              : "bg-red-100 text-red-700"
+                                          }`}
+                                        >
+                                          {isCorrect ? "Correct" : "Incorrect"}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs px-2 py-1 rounded-full font-bold bg-slate-200 text-slate-600">
+                                          Not answered
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* LESSON / QUESTION SET MANAGEMENT */}
         <Card className="shadow-sm">
@@ -1111,8 +1425,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     </Button>
                   </div>
 
-                  {selectedLesson.questions &&
-                  selectedLesson.questions.length > 0 ? (
+                  {selectedLesson.questions?.length > 0 ? (
                     <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                       {selectedLesson.questions.map((q: any, idx: number) => (
                         <div
@@ -1220,16 +1533,81 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                           Upload image
                         </label>
                         <input
+                          id="question-image-upload"
                           type="file"
                           accept="image/*"
-                          className="text-sm"
+                          className="sr-only"
                           onChange={handleImageUpload}
+                          disabled={isUploading}
+                          ref={imageInputRef}
                         />
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            imageInputRef.current?.click();
+                          }}
+                          className={`inline-flex w-fit items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${
+                            isUploading
+                              ? "opacity-60 pointer-events-none"
+                              : "cursor-pointer"
+                          }`}
+                        >
+                          Choose image to upload
+                        </button>
+                        <p className="text-[11px] text-slate-500">
+                          {imageFileName || "No file selected"}
+                        </p>
                         {imageStorageId ? (
                           <p className="text-[11px] text-slate-500">
                             Uploaded: {imageStorageId}
                           </p>
                         ) : null}
+                        <div className="mt-2 w-full h-48 bg-slate-50 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden relative">
+                          {isUploading ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                              <p className="text-xs text-slate-500">
+                                Securely Processing Image...
+                              </p>
+                            </div>
+                          ) : previewUrl ? (
+                            <div className="relative w-full h-full">
+                              <img
+                                key={previewUrl}
+                                src={previewUrl}
+                                alt="Preview"
+                                className="w-full h-full object-contain p-2"
+                                onError={() => {
+                                  setBrokenLinks((prev) => {
+                                    const next = new Set(prev);
+                                    next.add(previewUrl);
+                                    return next;
+                                  });
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setImageUrl("");
+                                  setImageStorageId("");
+                                }}
+                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
+                                title="Remove image"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-center p-4">
+                              <p className="text-xs text-slate-400 font-medium italic">
+                                {brokenLinks.size > 0
+                                  ? "Blocked resource hidden"
+                                  : "Ready for diagram"}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -1268,10 +1646,16 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                       >
                         Clear
                       </Button>
-                      <Button size="sm" onClick={handleSaveQuestion}>
-                        {editingIndex === null
-                          ? "Add question to set"
-                          : "Save changes"}
+                      <Button
+                        size="sm"
+                        onClick={handleSaveQuestion}
+                        disabled={isUploading}
+                      >
+                        {isUploading
+                          ? "Uploading image..."
+                          : editingIndex === null
+                            ? "Add question to set"
+                            : "Save changes"}
                       </Button>
                     </div>
                   </div>
