@@ -28,10 +28,20 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const stats = useQuery(api.teachers.getClassStats);
   const lessons = useQuery(api.lessons.getAll);
   const modules = useQuery(api.modules.getAll);
+  const ensureDefaultModules = useMutation(api.modules.ensureDefaultModules);
   const removeStudent = useMutation(api.teachers.removeStudent);
+  const resetAllStudentProgress = useMutation(
+    api.teachers.resetAllStudentProgress,
+  );
   const updateQuestions = useMutation(api.lessons.updateQuestions);
   const createLesson = useMutation(api.lessons.createLesson);
+  const updateLesson = useMutation(api.lessons.updateLesson);
+  const deleteLesson = useMutation(api.lessons.deleteLesson);
+  const reorderLessons = useMutation(api.lessons.reorderLessons);
   const createModule = useMutation(api.modules.createModule);
+  const updateModule = useMutation(api.modules.updateModule);
+  const deleteModule = useMutation(api.modules.deleteModule);
+  const reorderModules = useMutation(api.modules.reorderModules);
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
@@ -40,6 +50,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const [showAddModule, setShowAddModule] = useState(false);
+  const [showManageModules, setShowManageModules] = useState(false);
   const [newModuleCode, setNewModuleCode] = useState("");
   const [newModuleTitle, setNewModuleTitle] = useState("");
   const [newModuleDescription, setNewModuleDescription] = useState("");
@@ -47,14 +58,18 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [newModuleIconKey, setNewModuleIconKey] = useState<
     "bookOpen" | "beaker" | "atom"
   >("atom");
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
 
   const [showAddLesson, setShowAddLesson] = useState(false);
+  const [showManageLessons, setShowManageLessons] = useState(false);
   const [newLessonTitle, setNewLessonTitle] = useState("");
   const [newLessonDescription, setNewLessonDescription] = useState("");
   const [newLessonSection, setNewLessonSection] = useState<string>("qxu5031");
+  const [lessonModuleFilter, setLessonModuleFilter] = useState<string>("all");
   const [newLessonDifficulty, setNewLessonDifficulty] = useState("Beginner");
   const [newLessonXpReward, setNewLessonXpReward] = useState("100");
   const [newLessonOrder, setNewLessonOrder] = useState("");
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
 
   const [moduleDropdownOpen, setModuleDropdownOpen] = useState(false);
   const moduleDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -80,6 +95,14 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [expandedQuestionResponses, setExpandedQuestionResponses] = useState<
     Set<string>
   >(new Set());
+  const [draggedModuleId, setDraggedModuleId] = useState<string | null>(null);
+  const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
+  const [moduleDropTargetId, setModuleDropTargetId] = useState<string | null>(
+    null,
+  );
+  const [lessonDropTargetId, setLessonDropTargetId] = useState<string | null>(
+    null,
+  );
 
   const studentAttempts = useQuery(
     api.lessonAttempts.getByUser,
@@ -88,9 +111,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   const selectedLessonAttempts = useQuery(
     api.lessonAttempts.getByLesson,
-    selectedLessonId
-      ? { lessonId: selectedLessonId as Id<"lessons"> }
-      : "skip",
+    selectedLessonId ? { lessonId: selectedLessonId as Id<"lessons"> } : "skip",
   );
 
   const storagePreviewUrl = useQuery(
@@ -168,13 +189,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
     if (!selectedLessonAttempts) return map;
 
-    const sortedAttempts = selectedLessonAttempts
-      .slice()
-      .sort((a, b) => {
-        const aTime = a.completedAt || a.updatedAt || a.startedAt || "";
-        const bTime = b.completedAt || b.updatedAt || b.startedAt || "";
-        return bTime.localeCompare(aTime);
-      });
+    const sortedAttempts = selectedLessonAttempts.slice().sort((a, b) => {
+      const aTime = a.completedAt || a.updatedAt || a.startedAt || "";
+      const bTime = b.completedAt || b.updatedAt || b.startedAt || "";
+      return bTime.localeCompare(aTime);
+    });
 
     for (const attempt of sortedAttempts) {
       const submittedAt =
@@ -194,6 +213,14 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     return map;
   }, [selectedLessonAttempts]);
 
+  const filteredLessons = useMemo(() => {
+    if (!lessons) return [];
+    if (lessonModuleFilter === "all") return lessons;
+    return lessons.filter(
+      (lesson: any) => (lesson.section || "") === lessonModuleFilter,
+    );
+  }, [lessons, lessonModuleFilter]);
+
   const formatResponseTimestamp = (timestamp: string) => {
     if (!timestamp) return "-";
     const date = new Date(timestamp);
@@ -209,17 +236,39 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   };
 
   const formatResponseName = (userId: string) => {
-    const baseName = (studentNameByUserId.get(userId) || "Anonymous User").trim();
+    const baseName = (
+      studentNameByUserId.get(userId) || "Anonymous User"
+    ).trim();
     const shortId = userId ? `${userId.slice(0, 8)}...` : "unknown";
     return `${baseName} (${shortId})`;
   };
 
   useEffect(() => {
+    void ensureDefaultModules().catch((err) => {
+      console.error("Failed to ensure default modules:", err);
+    });
+  }, [ensureDefaultModules]);
+
+  useEffect(() => {
     if (!lessons || lessons.length === 0) return;
-    if (!selectedLessonId) {
-      setSelectedLessonId(lessons[0]._id);
+
+    if (filteredLessons.length === 0) {
+      setSelectedLessonId(null);
+      return;
     }
-  }, [lessons, selectedLessonId]);
+
+    if (!selectedLessonId) {
+      setSelectedLessonId(filteredLessons[0]._id);
+      return;
+    }
+
+    const stillVisible = filteredLessons.some(
+      (lesson: any) => lesson._id === selectedLessonId,
+    );
+    if (!stillVisible) {
+      setSelectedLessonId(filteredLessons[0]._id);
+    }
+  }, [lessons, filteredLessons, selectedLessonId]);
 
   useEffect(() => {
     setExpandedQuestionResponses(new Set());
@@ -288,6 +337,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     modules?.find((m: any) => m.moduleKey === newLessonSection) ?? null;
 
   const resetNewModuleForm = () => {
+    setEditingModuleId(null);
     setNewModuleCode("");
     setNewModuleTitle("");
     setNewModuleDescription("");
@@ -296,6 +346,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   };
 
   const resetNewLessonForm = () => {
+    setEditingLessonId(null);
     setNewLessonTitle("");
     setNewLessonDescription("");
     setNewLessonSection(modules?.[0]?.moduleKey || "qxu5031");
@@ -304,7 +355,23 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setNewLessonOrder("");
   };
 
-  const handleCreateModule = async () => {
+  const startEditModule = (module: any) => {
+    if (!module?._id) return;
+
+    setEditingModuleId(module._id);
+    setShowAddModule(true);
+    setShowAddLesson(false);
+    setLessonDropdownOpen(false);
+    setModuleDropdownOpen(false);
+
+    setNewModuleCode(module.code || "");
+    setNewModuleTitle(module.title || "");
+    setNewModuleDescription(module.description || "");
+    setNewModuleColor(module.color || "indigo");
+    setNewModuleIconKey(module.iconKey || "atom");
+  };
+
+  const handleSaveModule = async () => {
     const code = newModuleCode.trim();
     const title = newModuleTitle.trim();
     const description = newModuleDescription.trim();
@@ -323,27 +390,78 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     }
 
     try {
-      const res: any = await createModule({
-        code,
-        title,
-        description,
-        color: newModuleColor,
-        iconKey: newModuleIconKey,
-      });
+      if (editingModuleId) {
+        const res: any = await updateModule({
+          id: editingModuleId as Id<"modules">,
+          code,
+          title,
+          description,
+          color: newModuleColor,
+          iconKey: newModuleIconKey,
+        });
 
-      const moduleKey = res?.moduleKey;
-      if (moduleKey) {
-        setNewLessonSection(moduleKey);
+        const updatedModuleKey = res?.moduleKey;
+        if (updatedModuleKey) {
+          setNewLessonSection(updatedModuleKey);
+        }
+      } else {
+        const res: any = await createModule({
+          code,
+          title,
+          description,
+          color: newModuleColor,
+          iconKey: newModuleIconKey,
+        });
+
+        const moduleKey = res?.moduleKey;
+        if (moduleKey) {
+          setNewLessonSection(moduleKey);
+        }
       }
+
       setShowAddModule(false);
       resetNewModuleForm();
-      alert("Module created.");
+      alert(editingModuleId ? "Module updated." : "Module created.");
     } catch (e: any) {
-      alert(e?.message || "Failed to create module.");
+      alert(e?.message || "Failed to save module.");
     }
   };
 
-  const handleCreateLesson = async () => {
+  const handleDeleteModule = async (module: any) => {
+    if (!module?._id) return;
+
+    const confirmDelete = window.confirm(
+      `Delete module "${module.code} — ${module.title}"?`,
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await deleteModule({ id: module._id });
+      if (editingModuleId === module._id) {
+        resetNewModuleForm();
+      }
+      alert("Module deleted.");
+    } catch (e: any) {
+      alert(e?.message || "Failed to delete module.");
+    }
+  };
+
+  const startEditLesson = (lesson: any) => {
+    setEditingLessonId(lesson._id);
+    setShowAddLesson(true);
+    setShowAddModule(false);
+    setLessonDropdownOpen(false);
+    setModuleDropdownOpen(false);
+
+    setNewLessonTitle(lesson.title || "");
+    setNewLessonDescription(lesson.description || "");
+    setNewLessonSection(lesson.section || modules?.[0]?.moduleKey || "qxu5031");
+    setNewLessonDifficulty(lesson.difficulty || "Beginner");
+    setNewLessonXpReward(String(lesson.xpReward || 100));
+    setNewLessonOrder(String(lesson.order || ""));
+  };
+
+  const handleSaveLesson = async () => {
     const title = newLessonTitle.trim();
     const description = newLessonDescription.trim();
     const difficulty = newLessonDifficulty.trim();
@@ -377,25 +495,102 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       return;
     }
 
-    const res: any = await createLesson({
-      title,
-      description,
-      difficulty,
-      xpReward,
-      section: newLessonSection || undefined,
-      order,
-    });
+    if (editingLessonId) {
+      await updateLesson({
+        id: editingLessonId as Id<"lessons">,
+        title,
+        description,
+        difficulty,
+        xpReward,
+        section: newLessonSection || undefined,
+        order,
+      });
+      setSelectedLessonId(editingLessonId);
+    } else {
+      const res: any = await createLesson({
+        title,
+        description,
+        difficulty,
+        xpReward,
+        section: newLessonSection || undefined,
+        order,
+      });
 
-    const createdId = res?.id;
-    if (createdId) {
-      setSelectedLessonId(createdId);
+      const createdId = res?.id;
+      if (createdId) {
+        setSelectedLessonId(createdId);
+      }
     }
+
     setLessonDropdownOpen(false);
     setShowAddLesson(false);
     setEditingIndex(null);
     resetForm();
     resetNewLessonForm();
-    alert("Lesson created.");
+    alert(editingLessonId ? "Lesson updated." : "Lesson created.");
+  };
+
+  const handleDeleteLesson = async (lesson: any) => {
+    const confirmDelete = window.confirm(
+      `Delete lesson "${lesson.title}"? This also deletes its question images.`,
+    );
+    if (!confirmDelete) return;
+
+    await deleteLesson({ id: lesson._id });
+
+    if (selectedLessonId === lesson._id) {
+      const nextLesson = (lessons || []).find((l: any) => l._id !== lesson._id);
+      setSelectedLessonId(nextLesson?._id || null);
+      setEditingIndex(null);
+      resetForm();
+    }
+
+    if (editingLessonId === lesson._id) {
+      resetNewLessonForm();
+      setShowAddLesson(false);
+    }
+
+    alert("Lesson deleted.");
+  };
+
+  const reorderById = <T extends { _id: string }>(
+    list: T[],
+    draggedId: string,
+    targetId: string,
+  ) => {
+    if (draggedId === targetId) return list;
+    const draggedIndex = list.findIndex((item) => item._id === draggedId);
+    const targetIndex = list.findIndex((item) => item._id === targetId);
+    if (draggedIndex < 0 || targetIndex < 0) return list;
+
+    const next = [...list];
+    const [moved] = next.splice(draggedIndex, 1);
+    next.splice(targetIndex, 0, moved);
+    return next;
+  };
+
+  const handleDropModule = async (targetModuleId: string) => {
+    if (!draggedModuleId || !modules) return;
+
+    const reordered = reorderById(modules as any[], draggedModuleId, targetModuleId);
+    const reorderedIds = reordered
+      .map((item) => item._id)
+      .filter(Boolean) as Id<"modules">[];
+
+    if (reorderedIds.length === 0) return;
+    await reorderModules({ moduleIds: reorderedIds });
+  };
+
+  const handleDropLesson = async (targetLessonId: string) => {
+    if (!draggedLessonId || !lessons) return;
+
+    const reordered = reorderById(lessons as any[], draggedLessonId, targetLessonId);
+    const reorderedIds = reordered
+      .map((item) => item._id)
+      .filter(Boolean) as Id<"lessons">[];
+
+    if (reorderedIds.length === 0) return;
+    await reorderLessons({ lessonIds: reorderedIds });
   };
 
   const resetForm = () => {
@@ -626,6 +821,28 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     }
   };
 
+  const handleResetAllStudentProgress = async () => {
+    const confirmDelete = window.confirm(
+      "Reset all student progress for everyone? This will permanently remove XP, streaks, completion progress, and lesson attempts.",
+    );
+
+    if (!confirmDelete) return;
+
+    const confirmationText = window.prompt(
+      'Type RESET to confirm deleting all student progress:',
+      "",
+    );
+    if ((confirmationText || "").trim().toUpperCase() !== "RESET") {
+      alert("Reset cancelled. Confirmation text did not match.");
+      return;
+    }
+
+    await resetAllStudentProgress({});
+    setSelectedStudentUserId(null);
+    setSelectedStudentName("");
+    alert("All student progress has been reset.");
+  };
+
   if (!stats) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50">
@@ -648,7 +865,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   });
 
   return (
-    <div className="h-screen overflow-y-auto bg-slate-50 p-6 font-sans">
+    <div className="h-screen overflow-y-auto overflow-x-hidden bg-slate-50 p-6 font-sans">
       {/* HEADER */}
       <div className="max-w-6xl mx-auto mb-8 flex items-center justify-between">
         <div>
@@ -737,14 +954,24 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   Real-time tracking of completion rates
                 </CardDescription>
               </div>
-              <div className="relative w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                <input
-                  placeholder="Search student..."
-                  className="pl-9 h-9 w-full rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="flex items-center gap-2">
+                <div className="relative w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                  <input
+                    placeholder="Search student..."
+                    className="pl-9 h-9 w-full rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetAllStudentProgress}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  Reset all progress
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -1031,12 +1258,30 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   View, add, edit, and inspect responses for each question.
                 </CardDescription>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+              <div className="flex flex-wrap items-end gap-2 w-full lg:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowAddModule((v) => !v);
+                    setEditingModuleId(null);
+                    resetNewModuleForm();
+                    setLessonDropdownOpen(false);
+                    setModuleDropdownOpen(false);
+                    setShowAddLesson(false);
+                  }}
+                  className="bg-white"
+                >
+                  <PlusCircle className="w-4 h-4 mr-1" />
+                  Add module
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     setShowAddLesson((v) => !v);
+                    setEditingLessonId(null);
+                    resetNewLessonForm();
                     setLessonDropdownOpen(false);
                     setModuleDropdownOpen(false);
                     setShowAddModule(false);
@@ -1050,25 +1295,54 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setShowAddModule((v) => !v);
-                    setLessonDropdownOpen(false);
-                    setModuleDropdownOpen(false);
-                    setShowAddLesson(false);
+                    setShowManageModules((v) => {
+                      const next = !v;
+                      if (next) setShowManageLessons(false);
+                      return next;
+                    });
                   }}
                   className="bg-white"
                 >
-                  <PlusCircle className="w-4 h-4 mr-1" />
-                  Add module
+                  {showManageModules ? "Hide modules" : "Manage modules"}
                 </Button>
-                <label className="text-sm text-slate-600 flex flex-col sm:flex-row sm:items-center gap-1">
-                  <span className="font-medium mr-2">Select lesson:</span>
-                  <div
-                    ref={lessonDropdownRef}
-                    className="relative min-w-[260px]"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowManageLessons((v) => {
+                      const next = !v;
+                      if (next) setShowManageModules(false);
+                      return next;
+                    });
+                  }}
+                  className="bg-white"
+                >
+                  {showManageLessons ? "Hide lessons" : "Manage lessons"}
+                </Button>
+                <label className="text-sm text-slate-600 flex flex-col gap-1 w-full sm:w-auto sm:min-w-[210px]">
+                  <span className="font-medium">Module:</span>
+                  <select
+                    value={lessonModuleFilter}
+                    onChange={(e) => {
+                      setLessonModuleFilter(e.target.value);
+                      setLessonDropdownOpen(false);
+                    }}
+                    className="h-9 w-full sm:w-[240px] rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
+                    <option value="all">All modules</option>
+                    {(modules || []).map((module: any) => (
+                      <option key={module.moduleKey} value={module.moduleKey}>
+                        {module.code} — {module.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-sm text-slate-600 flex flex-col gap-1 w-full sm:w-auto sm:min-w-[240px]">
+                  <span className="font-medium">Select lesson:</span>
+                  <div ref={lessonDropdownRef} className="relative w-full sm:w-[280px]">
                     <button
                       type="button"
-                      disabled={!lessons || lessons.length === 0}
+                      disabled={!filteredLessons || filteredLessons.length === 0}
                       onClick={() => setLessonDropdownOpen((v) => !v)}
                       className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left"
                       aria-haspopup="listbox"
@@ -1077,20 +1351,22 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                       <span className="truncate text-slate-800">
                         {!lessons
                           ? "Loading lessons..."
-                          : lessons.length === 0
-                            ? "No lessons available"
+                          : filteredLessons.length === 0
+                            ? "No lessons for this module"
                             : selectedLesson?.title || "Select a lesson"}
                       </span>
                       <ChevronDown className="ml-2 h-4 w-4 text-slate-400 flex-shrink-0" />
                     </button>
 
-                    {lessonDropdownOpen && lessons && lessons.length > 0 && (
+                    {lessonDropdownOpen &&
+                      filteredLessons &&
+                      filteredLessons.length > 0 && (
                       <div
                         role="listbox"
                         className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden"
                       >
                         <div className="max-h-64 overflow-y-auto py-1">
-                          {lessons.map((lesson: any) => {
+                          {filteredLessons.map((lesson: any) => {
                             const isSelected = lesson._id === selectedLessonId;
                             return (
                               <button
@@ -1126,15 +1402,183 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {(showManageModules || showManageLessons) && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {showManageModules && (
+                  <div className="border rounded-lg p-4 bg-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-slate-800">
+                        Manage modules
+                      </h3>
+                    </div>
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {(modules || []).map((module: any) => (
+                        <div
+                          key={module.moduleKey}
+                          draggable
+                          onDragStart={(event) => {
+                            setDraggedModuleId(module._id);
+                            event.dataTransfer.effectAllowed = "move";
+                          }}
+                          onDragOver={(event) => {
+                            event.preventDefault();
+                            setModuleDropTargetId(module._id);
+                          }}
+                          onDragLeave={() => {
+                            if (moduleDropTargetId === module._id) {
+                              setModuleDropTargetId(null);
+                            }
+                          }}
+                          onDrop={async (event) => {
+                            event.preventDefault();
+                            try {
+                              await handleDropModule(module._id);
+                            } catch (e: any) {
+                              alert(e?.message || "Failed to reorder modules.");
+                            } finally {
+                              setDraggedModuleId(null);
+                              setModuleDropTargetId(null);
+                            }
+                          }}
+                          onDragEnd={() => {
+                            setDraggedModuleId(null);
+                            setModuleDropTargetId(null);
+                          }}
+                          className={`border rounded-md px-3 py-2 flex items-center justify-between gap-3 cursor-move transition-colors ${
+                            moduleDropTargetId === module._id
+                              ? "border-indigo-300 bg-indigo-50"
+                              : ""
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-800 truncate">
+                              {module.code} — {module.title}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {module.description}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-slate-600 hover:bg-slate-100"
+                              onClick={() => startEditModule(module)}
+                              title="Edit module"
+                            >
+                              <Pencil className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteModule(module)}
+                              title="Delete module"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {showManageLessons && (
+                  <div className="border rounded-lg p-4 bg-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-slate-800">
+                        Manage lessons
+                      </h3>
+                    </div>
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {filteredLessons.map((lesson: any) => (
+                        <div
+                          key={lesson._id}
+                          draggable
+                          onDragStart={(event) => {
+                            setDraggedLessonId(lesson._id);
+                            event.dataTransfer.effectAllowed = "move";
+                          }}
+                          onDragOver={(event) => {
+                            event.preventDefault();
+                            setLessonDropTargetId(lesson._id);
+                          }}
+                          onDragLeave={() => {
+                            if (lessonDropTargetId === lesson._id) {
+                              setLessonDropTargetId(null);
+                            }
+                          }}
+                          onDrop={async (event) => {
+                            event.preventDefault();
+                            try {
+                              await handleDropLesson(lesson._id);
+                            } catch (e: any) {
+                              alert(e?.message || "Failed to reorder lessons.");
+                            } finally {
+                              setDraggedLessonId(null);
+                              setLessonDropTargetId(null);
+                            }
+                          }}
+                          onDragEnd={() => {
+                            setDraggedLessonId(null);
+                            setLessonDropTargetId(null);
+                          }}
+                          className={`border rounded-md px-3 py-2 flex items-center justify-between gap-3 cursor-move transition-colors ${
+                            lessonDropTargetId === lesson._id
+                              ? "border-indigo-300 bg-indigo-50"
+                              : ""
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-800 truncate">
+                              {lesson.title}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {lesson.description}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-slate-600 hover:bg-slate-100"
+                              onClick={() => startEditLesson(lesson)}
+                            >
+                              <Pencil className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteLesson(lesson)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {showAddModule && (
               <div className="border rounded-lg p-4 bg-white">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-slate-800">
-                      Create a new module
+                      {editingModuleId ? "Edit module" : "Create a new module"}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      Modules show up as course tiles on the student dashboard.
+                      {editingModuleId
+                        ? "Update module details."
+                        : "Modules show up as course tiles on the student dashboard."}
                     </p>
                   </div>
                   <Button
@@ -1256,8 +1700,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     >
                       Clear
                     </Button>
-                    <Button size="sm" onClick={handleCreateModule}>
-                      Create module
+                    <Button size="sm" onClick={handleSaveModule}>
+                      {editingModuleId ? "Save module" : "Create module"}
                     </Button>
                   </div>
                 </div>
@@ -1269,10 +1713,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-slate-800">
-                      Create a new lesson
+                      {editingLessonId ? "Edit lesson" : "Create a new lesson"}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      This lesson will be visible to all students.
+                      {editingLessonId
+                        ? "Update lesson details, difficulty, and ordering."
+                        : "This lesson will be visible to all students."}
                     </p>
                   </div>
                   <Button
@@ -1439,8 +1885,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     >
                       Clear
                     </Button>
-                    <Button size="sm" onClick={handleCreateLesson}>
-                      Create lesson
+                    <Button size="sm" onClick={handleSaveLesson}>
+                      {editingLessonId ? "Save lesson" : "Create lesson"}
                     </Button>
                   </div>
                 </div>
@@ -1509,7 +1955,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   {selectedLesson.questions?.length > 0 ? (
                     <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                       {selectedLesson.questions.map((q: any, idx: number) => (
-                        <div key={idx} className="border rounded-md p-3 bg-white">
+                        <div
+                          key={idx}
+                          className="border rounded-md p-3 bg-white"
+                        >
                           <div className="flex justify-between gap-3">
                             <div className="flex-1">
                               <p className="text-xs text-slate-500 mb-1">
@@ -1677,7 +2126,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                             </div>
                                             <div className="mt-1 text-slate-600">
                                               Answer: {selectedOptionLabel}
-                                              {selectedOptionLabel !== "No answer"
+                                              {selectedOptionLabel !==
+                                              "No answer"
                                                 ? ` - ${selectedOptionText}`
                                                 : ""}
                                             </div>

@@ -54,3 +54,27 @@ export const removeStudent = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+export const resetAllStudentProgress = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const allProgress = await ctx.db.query("userProgress").collect();
+    for (const progress of allProgress) {
+      await ctx.db.delete(progress._id);
+    }
+
+    const allAttempts = await ctx.db.query("lessonAttempts").collect();
+    for (const attempt of allAttempts) {
+      await ctx.db.delete(attempt._id);
+    }
+
+    return {
+      success: true,
+      removedProgressCount: allProgress.length,
+      removedAttemptsCount: allAttempts.length,
+    };
+  },
+});

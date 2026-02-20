@@ -75,6 +75,36 @@ export const createLesson = mutation({
   },
 });
 
+export const updateLesson = mutation({
+  args: {
+    id: v.id("lessons"),
+    title: v.string(),
+    description: v.string(),
+    difficulty: v.string(),
+    xpReward: v.number(),
+    section: v.optional(v.string()),
+    order: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Lesson not found");
+
+    await ctx.db.patch(args.id, {
+      title: args.title,
+      description: args.description,
+      difficulty: args.difficulty,
+      xpReward: args.xpReward,
+      section: args.section,
+      order: args.order ?? existing.order,
+    });
+
+    return { success: true };
+  },
+});
+
 // Allow instructors to update the full question set for a lesson.
 // This powers the teacher UI for viewing, adding and editing questions.
 export const updateQuestions = mutation({
@@ -131,6 +161,21 @@ export const deleteLesson = mutation({
     }
 
     await ctx.db.delete(args.id);
+  },
+});
+
+export const reorderLessons = mutation({
+  args: { lessonIds: v.array(v.id("lessons")) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    for (let index = 0; index < args.lessonIds.length; index += 1) {
+      const lessonId = args.lessonIds[index];
+      await ctx.db.patch(lessonId, { order: index + 1 });
+    }
+
+    return { success: true };
   },
 });
 
