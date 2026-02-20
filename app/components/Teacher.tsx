@@ -77,10 +77,20 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [expandedReportLessons, setExpandedReportLessons] = useState<
     Set<string>
   >(new Set());
+  const [expandedQuestionResponses, setExpandedQuestionResponses] = useState<
+    Set<string>
+  >(new Set());
 
   const studentAttempts = useQuery(
     api.lessonAttempts.getByUser,
     selectedStudentUserId ? { userId: selectedStudentUserId } : "skip",
+  );
+
+  const selectedLessonAttempts = useQuery(
+    api.lessonAttempts.getByLesson,
+    selectedLessonId
+      ? { lessonId: selectedLessonId as Id<"lessons"> }
+      : "skip",
   );
 
   const storagePreviewUrl = useQuery(
@@ -137,12 +147,83 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     return rows.sort((a, b) => (a.lesson.order || 0) - (b.lesson.order || 0));
   }, [studentAttempts, lessons]);
 
+  const studentNameByUserId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const student of stats?.leaderboard || []) {
+      map.set(student.userId, student.userName || "Anonymous User");
+    }
+    return map;
+  }, [stats]);
+
+  const lessonResponsesByQuestion = useMemo(() => {
+    const map = new Map<
+      number,
+      Array<{
+        userId: string;
+        selectedOption: number | null;
+        isCorrect: boolean;
+        submittedAt: string;
+      }>
+    >();
+
+    if (!selectedLessonAttempts) return map;
+
+    const sortedAttempts = selectedLessonAttempts
+      .slice()
+      .sort((a, b) => {
+        const aTime = a.completedAt || a.updatedAt || a.startedAt || "";
+        const bTime = b.completedAt || b.updatedAt || b.startedAt || "";
+        return bTime.localeCompare(aTime);
+      });
+
+    for (const attempt of sortedAttempts) {
+      const submittedAt =
+        attempt.completedAt || attempt.updatedAt || attempt.startedAt || "";
+      for (const ans of attempt.answers || []) {
+        const list = map.get(ans.questionIndex) || [];
+        list.push({
+          userId: attempt.userId,
+          selectedOption: ans.selectedOption,
+          isCorrect: ans.isCorrect,
+          submittedAt,
+        });
+        map.set(ans.questionIndex, list);
+      }
+    }
+
+    return map;
+  }, [selectedLessonAttempts]);
+
+  const formatResponseTimestamp = (timestamp: string) => {
+    if (!timestamp) return "-";
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return timestamp;
+
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  };
+
+  const formatResponseName = (userId: string) => {
+    const baseName = (studentNameByUserId.get(userId) || "Anonymous User").trim();
+    const shortId = userId ? `${userId.slice(0, 8)}...` : "unknown";
+    return `${baseName} (${shortId})`;
+  };
+
   useEffect(() => {
     if (!lessons || lessons.length === 0) return;
     if (!selectedLessonId) {
       setSelectedLessonId(lessons[0]._id);
     }
   }, [lessons, selectedLessonId]);
+
+  useEffect(() => {
+    setExpandedQuestionResponses(new Set());
+  }, [selectedLessonId]);
 
   useEffect(() => {
     if (!modules || modules.length === 0) return;
@@ -947,7 +1028,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
               <div>
                 <CardTitle>Lesson Question Sets</CardTitle>
                 <CardDescription>
-                  View, add, and edit questions for each lesson.
+                  View, add, edit, and inspect responses for each question.
                 </CardDescription>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
@@ -1428,44 +1509,199 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   {selectedLesson.questions?.length > 0 ? (
                     <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                       {selectedLesson.questions.map((q: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className="border rounded-md p-3 bg-white flex justify-between gap-3"
-                        >
-                          <div className="flex-1">
-                            <p className="text-xs text-slate-500 mb-1">
-                              Q{idx + 1}
-                            </p>
-                            <p className="text-sm font-medium text-slate-800">
-                              {q.question}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-1">
-                              Correct answer:{" "}
-                              <span className="font-semibold">
-                                {q.options?.[q.correct] ?? "Not set"}
-                              </span>
-                            </p>
+                        <div key={idx} className="border rounded-md p-3 bg-white">
+                          <div className="flex justify-between gap-3">
+                            <div className="flex-1">
+                              <p className="text-xs text-slate-500 mb-1">
+                                Q{idx + 1}
+                              </p>
+                              <p className="text-sm font-medium text-slate-800">
+                                {q.question}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                Correct answer:{" "}
+                                <span className="font-semibold">
+                                  {q.options?.[q.correct] ?? "Not set"}
+                                </span>
+                              </p>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-slate-600 hover:bg-slate-100"
+                                onClick={() => startEditQuestion(idx)}
+                              >
+                                <Pencil className="w-4 h-4 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDeleteQuestion(idx)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-start gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-slate-600 hover:bg-slate-100"
-                              onClick={() => startEditQuestion(idx)}
-                            >
-                              <Pencil className="w-4 h-4 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleDeleteQuestion(idx)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Delete
-                            </Button>
-                          </div>
+
+                          {(() => {
+                            const questionKey = `${selectedLesson._id}:${idx}`;
+                            const isResponsesExpanded =
+                              expandedQuestionResponses.has(questionKey);
+                            const responses =
+                              lessonResponsesByQuestion.get(idx) || [];
+                            const uniquePickersByOption = (q.options || []).map(
+                              (_option: string, optionIdx: number) => {
+                                const users = new Set<string>();
+                                for (const response of responses) {
+                                  if (response.selectedOption === optionIdx) {
+                                    users.add(response.userId);
+                                  }
+                                }
+                                return users.size;
+                              },
+                            );
+                            const uniqueNoAnswerUsers = new Set<string>();
+                            for (const response of responses) {
+                              if (response.selectedOption === null) {
+                                uniqueNoAnswerUsers.add(response.userId);
+                              }
+                            }
+
+                            return (
+                              <div className="mt-3 border-t pt-3">
+                                <div className="mb-2 space-y-1">
+                                  {(q.options || []).map(
+                                    (option: string, optionIdx: number) => (
+                                      <p
+                                        key={`${questionKey}:count:${optionIdx}`}
+                                        className="text-xs text-slate-600"
+                                      >
+                                        <span className="font-semibold">
+                                          Option {optionIdx + 1}:
+                                        </span>{" "}
+                                        {uniquePickersByOption[optionIdx]}{" "}
+                                        {uniquePickersByOption[optionIdx] === 1
+                                          ? "person"
+                                          : "people"}
+                                        <span className="text-slate-500">
+                                          {` (${option})`}
+                                        </span>
+                                      </p>
+                                    ),
+                                  )}
+                                  {uniqueNoAnswerUsers.size > 0 && (
+                                    <p className="text-xs text-slate-600">
+                                      <span className="font-semibold">
+                                        No answer:
+                                      </span>{" "}
+                                      {uniqueNoAnswerUsers.size}{" "}
+                                      {uniqueNoAnswerUsers.size === 1
+                                        ? "person"
+                                        : "people"}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setExpandedQuestionResponses((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(questionKey)) {
+                                        next.delete(questionKey);
+                                      } else {
+                                        next.add(questionKey);
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  {isResponsesExpanded
+                                    ? "Hide responses"
+                                    : `View responses (${responses.length})`}
+                                </Button>
+
+                                {isResponsesExpanded && (
+                                  <div className="mt-2 space-y-2">
+                                    {!selectedLessonAttempts && (
+                                      <p className="text-xs text-slate-500">
+                                        Loading responses...
+                                      </p>
+                                    )}
+
+                                    {selectedLessonAttempts &&
+                                      responses.length === 0 && (
+                                        <p className="text-xs text-slate-500 italic">
+                                          No responses yet for this question.
+                                        </p>
+                                      )}
+
+                                    {selectedLessonAttempts &&
+                                      responses.length > 0 &&
+                                      responses.map((response, responseIdx) => {
+                                        const selectedOptionLabel =
+                                          response.selectedOption !== null
+                                            ? `Option ${response.selectedOption + 1}`
+                                            : "No answer";
+                                        const selectedOptionText =
+                                          response.selectedOption !== null
+                                            ? q.options?.[
+                                                response.selectedOption
+                                              ] || "Option text unavailable"
+                                            : "No answer";
+                                        const displayName = formatResponseName(
+                                          response.userId,
+                                        );
+                                        const submittedAt =
+                                          formatResponseTimestamp(
+                                            response.submittedAt,
+                                          );
+
+                                        return (
+                                          <div
+                                            key={`${questionKey}:${responseIdx}`}
+                                            className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-xs"
+                                          >
+                                            <div className="flex items-center justify-between gap-2">
+                                              <span className="font-semibold text-slate-700">
+                                                {displayName}
+                                              </span>
+                                              <span className="text-slate-500">
+                                                Submitted: {submittedAt}
+                                              </span>
+                                            </div>
+                                            <div className="mt-1 text-slate-600">
+                                              Answer: {selectedOptionLabel}
+                                              {selectedOptionLabel !== "No answer"
+                                                ? ` - ${selectedOptionText}`
+                                                : ""}
+                                            </div>
+                                            <div className="mt-1">
+                                              <span
+                                                className={`px-2 py-0.5 rounded-full font-semibold ${
+                                                  response.isCorrect
+                                                    ? "bg-green-100 text-green-700"
+                                                    : "bg-red-100 text-red-700"
+                                                }`}
+                                              >
+                                                {response.isCorrect
+                                                  ? "Correct"
+                                                  : "Incorrect"}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>

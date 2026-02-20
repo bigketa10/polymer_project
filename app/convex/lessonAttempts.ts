@@ -93,3 +93,18 @@ export const getByUser = query({
     return attempts;
   },
 });
+
+export const getByLesson = query({
+  args: { lessonId: v.id("lessons") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const attempts = await ctx.db
+      .query("lessonAttempts")
+      .withIndex("by_lesson", (q) => q.eq("lessonId", args.lessonId))
+      .collect();
+
+    return attempts;
+  },
+});
