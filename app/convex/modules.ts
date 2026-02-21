@@ -37,9 +37,7 @@ export const getAll = query({
   handler: async (ctx) => {
     const stored = await ctx.db.query("modules").collect();
 
-    return stored.sort(
-      (a, b) => (a.order || 0) - (b.order || 0),
-    );
+    return stored.sort((a, b) => (a.order || 0) - (b.order || 0));
   },
 });
 
@@ -141,9 +139,7 @@ export const updateModule = mutation({
 
     const allModules = await ctx.db.query("modules").collect();
     if (
-      allModules.some(
-        (m) => m._id !== args.id && m.moduleKey === desiredKey,
-      )
+      allModules.some((m) => m._id !== args.id && m.moduleKey === desiredKey)
     ) {
       throw new Error("A module with that key already exists");
     }

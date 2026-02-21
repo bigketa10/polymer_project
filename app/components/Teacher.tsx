@@ -572,7 +572,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const handleDropModule = async (targetModuleId: string) => {
     if (!draggedModuleId || !modules) return;
 
-    const reordered = reorderById(modules as any[], draggedModuleId, targetModuleId);
+    const reordered = reorderById(
+      modules as any[],
+      draggedModuleId,
+      targetModuleId,
+    );
     const reorderedIds = reordered
       .map((item) => item._id)
       .filter(Boolean) as Id<"modules">[];
@@ -584,7 +588,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const handleDropLesson = async (targetLessonId: string) => {
     if (!draggedLessonId || !lessons) return;
 
-    const reordered = reorderById(lessons as any[], draggedLessonId, targetLessonId);
+    const reordered = reorderById(
+      lessons as any[],
+      draggedLessonId,
+      targetLessonId,
+    );
     const reorderedIds = reordered
       .map((item) => item._id)
       .filter(Boolean) as Id<"lessons">[];
@@ -829,7 +837,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     if (!confirmDelete) return;
 
     const confirmationText = window.prompt(
-      'Type RESET to confirm deleting all student progress:',
+      "Type RESET to confirm deleting all student progress:",
       "",
     );
     if ((confirmationText || "").trim().toUpperCase() !== "RESET") {
@@ -1339,10 +1347,15 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 </label>
                 <label className="text-sm text-slate-600 flex flex-col gap-1 w-full sm:w-auto sm:min-w-[240px]">
                   <span className="font-medium">Select lesson:</span>
-                  <div ref={lessonDropdownRef} className="relative w-full sm:w-[280px]">
+                  <div
+                    ref={lessonDropdownRef}
+                    className="relative w-full sm:w-[280px]"
+                  >
                     <button
                       type="button"
-                      disabled={!filteredLessons || filteredLessons.length === 0}
+                      disabled={
+                        !filteredLessons || filteredLessons.length === 0
+                      }
                       onClick={() => setLessonDropdownOpen((v) => !v)}
                       className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left"
                       aria-haspopup="listbox"
@@ -1361,40 +1374,41 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     {lessonDropdownOpen &&
                       filteredLessons &&
                       filteredLessons.length > 0 && (
-                      <div
-                        role="listbox"
-                        className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden"
-                      >
-                        <div className="max-h-64 overflow-y-auto py-1">
-                          {filteredLessons.map((lesson: any) => {
-                            const isSelected = lesson._id === selectedLessonId;
-                            return (
-                              <button
-                                key={lesson._id}
-                                type="button"
-                                role="option"
-                                aria-selected={isSelected}
-                                onClick={() => {
-                                  setSelectedLessonId(lesson._id);
-                                  setLessonDropdownOpen(false);
-                                  setEditingIndex(null);
-                                  resetForm();
-                                }}
-                                className={`w-full px-3 py-2 text-sm text-left transition-colors ${
-                                  isSelected
-                                    ? "bg-indigo-50 text-indigo-900"
-                                    : "text-slate-700 hover:bg-slate-50"
-                                }`}
-                              >
-                                <div className="font-medium truncate">
-                                  {lesson.title}
-                                </div>
-                              </button>
-                            );
-                          })}
+                        <div
+                          role="listbox"
+                          className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden"
+                        >
+                          <div className="max-h-64 overflow-y-auto py-1">
+                            {filteredLessons.map((lesson: any) => {
+                              const isSelected =
+                                lesson._id === selectedLessonId;
+                              return (
+                                <button
+                                  key={lesson._id}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={isSelected}
+                                  onClick={() => {
+                                    setSelectedLessonId(lesson._id);
+                                    setLessonDropdownOpen(false);
+                                    setEditingIndex(null);
+                                    resetForm();
+                                  }}
+                                  className={`w-full px-3 py-2 text-sm text-left transition-colors ${
+                                    isSelected
+                                      ? "bg-indigo-50 text-indigo-900"
+                                      : "text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  <div className="font-medium truncate">
+                                    {lesson.title}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 </label>
               </div>
