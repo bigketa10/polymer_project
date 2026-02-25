@@ -7,10 +7,10 @@ export const ExplainerText = ({ text }: { text: string }) => {
   return (
     <p className="leading-7">
       {words.map((word, index) => {
-        // Remove punctuation so "polymer." matches "polymer"
+        // Remove punctuation so "polymer." / "polymer?" matches "polymer"
         const cleanKey = word
           .toLowerCase()
-          .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "");
+          .replace(/[.,/#!$%^&*;:{}=\-_`~()?'"[\]]/g, "");
         const entry = glossary[cleanKey];
 
         return (
