@@ -2023,330 +2023,356 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 document.body,
               )}
 
-            {showAddModule && (
-              <div className="border rounded-lg p-4 bg-white">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {editingModuleId ? "Edit module" : "Create a new module"}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {editingModuleId
-                        ? "Update module details."
-                        : "Modules show up as course tiles on the student dashboard."}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
+            {showAddModule &&
+              createPortal(
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                  onPointerDown={(e) => {
+                    if (e.target === e.currentTarget) {
                       setShowAddModule(false);
                       resetNewModuleForm();
-                    }}
-                  >
-                    Close
-                  </Button>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Module code
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={newModuleCode}
-                        onChange={(e) => setNewModuleCode(e.target.value)}
-                        placeholder="e.g., QXU7044"
-                      />
+                    }
+                  }}
+                >
+                  <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                      <h2 className="text-sm font-semibold text-slate-800">
+                        Create a new module
+                      </h2>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddModule(false);
+                          resetNewModuleForm();
+                        }}
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Module title
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={newModuleTitle}
-                        onChange={(e) => setNewModuleTitle(e.target.value)}
-                        placeholder="e.g., Polymer Processing"
-                      />
-                    </div>
-                  </div>
+                    <div className="overflow-y-auto p-4">
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-slate-700">
+                              Module code
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              value={newModuleCode}
+                              onChange={(e) => setNewModuleCode(e.target.value)}
+                              placeholder="e.g., QXU7044"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-slate-700">
+                              Module title
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              value={newModuleTitle}
+                              onChange={(e) =>
+                                setNewModuleTitle(e.target.value)
+                              }
+                              placeholder="e.g., Polymer Processing"
+                            />
+                          </div>
+                        </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">
-                      Description
-                    </label>
-                    <textarea
-                      rows={3}
-                      className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newModuleDescription}
-                      onChange={(e) => setNewModuleDescription(e.target.value)}
-                      placeholder="Short description shown on the course tile."
-                    />
-                  </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-slate-700">
+                            Description
+                          </label>
+                          <textarea
+                            rows={3}
+                            className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={newModuleDescription}
+                            onChange={(e) =>
+                              setNewModuleDescription(e.target.value)
+                            }
+                            placeholder="Short description shown on the course tile."
+                          />
+                        </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Color theme
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          "indigo",
-                          "pink",
-                          "blue",
-                          "emerald",
-                          "amber",
-                          "violet",
-                          "rose",
-                        ].map((c) => (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() => setNewModuleColor(c)}
-                            className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${
-                              newModuleColor === c
-                                ? "border-indigo-300 bg-indigo-50 text-indigo-900"
-                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                            }`}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-slate-700">
+                              Color theme
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                "indigo",
+                                "pink",
+                                "blue",
+                                "emerald",
+                                "amber",
+                                "violet",
+                                "rose",
+                              ].map((c) => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => setNewModuleColor(c)}
+                                  className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${
+                                    newModuleColor === c
+                                      ? "border-indigo-300 bg-indigo-50 text-indigo-900"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {c}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-slate-700">
+                              Icon
+                            </label>
+                            <div className="flex gap-2">
+                              {[
+                                { key: "bookOpen", label: "Book" },
+                                { key: "beaker", label: "Beaker" },
+                                { key: "atom", label: "Atom" },
+                              ].map((opt) => (
+                                <button
+                                  key={opt.key}
+                                  type="button"
+                                  onClick={() =>
+                                    setNewModuleIconKey(opt.key as any)
+                                  }
+                                  className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${
+                                    newModuleIconKey === opt.key
+                                      ? "border-indigo-300 bg-indigo-50 text-indigo-900"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={resetNewModuleForm}
                           >
-                            {c}
-                          </button>
-                        ))}
+                            Clear
+                          </Button>
+                          <Button size="sm" onClick={handleSaveModule}>
+                            {editingModuleId ? "Save module" : "Create module"}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Icon
-                      </label>
-                      <div className="flex gap-2">
-                        {[
-                          { key: "bookOpen", label: "Book" },
-                          { key: "beaker", label: "Beaker" },
-                          { key: "atom", label: "Atom" },
-                        ].map((opt) => (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            onClick={() => setNewModuleIconKey(opt.key as any)}
-                            className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${
-                              newModuleIconKey === opt.key
-                                ? "border-indigo-300 bg-indigo-50 text-indigo-900"
-                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                   </div>
+                </div>,
+                document.body,
+              )}
 
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={resetNewModuleForm}
-                    >
-                      Clear
-                    </Button>
-                    <Button size="sm" onClick={handleSaveModule}>
-                      {editingModuleId ? "Save module" : "Create module"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {showAddLesson && (
-              <div className="border rounded-lg p-4 bg-white">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {editingLessonId ? "Edit lesson" : "Create a new lesson"}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {editingLessonId
-                        ? "Update lesson details, difficulty, and ordering."
-                        : "This lesson will be visible to all students."}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
+            {showAddLesson &&
+              createPortal(
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                  onPointerDown={(e) => {
+                    if (e.target === e.currentTarget) {
                       setShowAddLesson(false);
                       resetNewLessonForm();
-                    }}
-                  >
-                    Close
-                  </Button>
-                </div>
+                    }
+                  }}
+                >
+                  <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                      <h2 className="text-sm font-semibold text-slate-800">
+                        Create a new lesson
+                      </h2>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddLesson(false);
+                          resetNewLessonForm();
+                        }}
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="overflow-y-auto p-4">
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-slate-700">
+                              Course
+                            </label>
+                            <div ref={moduleDropdownRef} className="relative">
+                              <button
+                                type="button"
+                                disabled={!modules || modules.length === 0}
+                                onClick={() => setModuleDropdownOpen((v) => !v)}
+                                className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left"
+                                aria-haspopup="listbox"
+                                aria-expanded={moduleDropdownOpen}
+                              >
+                                <span className="truncate text-slate-800">
+                                  {!modules
+                                    ? "Loading modules..."
+                                    : modules.length === 0
+                                      ? "No modules"
+                                      : selectedModuleForNewLesson
+                                        ? `${selectedModuleForNewLesson.code} — ${selectedModuleForNewLesson.title}`
+                                        : "Select a module"}
+                                </span>
+                                <ChevronDown className="ml-2 h-4 w-4 text-slate-400 flex-shrink-0" />
+                              </button>
 
-                <div className="mt-4 space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Course
-                      </label>
-                      <div ref={moduleDropdownRef} className="relative">
-                        <button
-                          type="button"
-                          disabled={!modules || modules.length === 0}
-                          onClick={() => setModuleDropdownOpen((v) => !v)}
-                          className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left"
-                          aria-haspopup="listbox"
-                          aria-expanded={moduleDropdownOpen}
-                        >
-                          <span className="truncate text-slate-800">
-                            {!modules
-                              ? "Loading modules..."
-                              : modules.length === 0
-                                ? "No modules"
-                                : selectedModuleForNewLesson
-                                  ? `${selectedModuleForNewLesson.code} — ${selectedModuleForNewLesson.title}`
-                                  : "Select a module"}
-                          </span>
-                          <ChevronDown className="ml-2 h-4 w-4 text-slate-400 flex-shrink-0" />
-                        </button>
-
-                        {moduleDropdownOpen &&
-                          modules &&
-                          modules.length > 0 && (
-                            <div
-                              role="listbox"
-                              className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden"
-                            >
-                              <div className="max-h-64 overflow-y-auto py-1">
-                                {modules.map((m: any) => {
-                                  const isSelected =
-                                    m.moduleKey === newLessonSection;
-                                  return (
-                                    <button
-                                      key={m.moduleKey}
-                                      type="button"
-                                      role="option"
-                                      aria-selected={isSelected}
-                                      onClick={() => {
-                                        setNewLessonSection(m.moduleKey);
-                                        setModuleDropdownOpen(false);
-                                      }}
-                                      className={`w-full px-3 py-2 text-sm text-left transition-colors ${
-                                        isSelected
-                                          ? "bg-indigo-50 text-indigo-900"
-                                          : "text-slate-700 hover:bg-slate-50"
-                                      }`}
-                                    >
-                                      <div className="font-medium truncate">
-                                        {m.code} — {m.title}
-                                      </div>
-                                      <div className="text-xs text-slate-500 truncate mt-0.5">
-                                        {m.description}
-                                      </div>
-                                    </button>
-                                  );
-                                })}
-                              </div>
+                              {moduleDropdownOpen &&
+                                modules &&
+                                modules.length > 0 && (
+                                  <div
+                                    role="listbox"
+                                    className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden"
+                                  >
+                                    <div className="max-h-64 overflow-y-auto py-1">
+                                      {modules.map((m: any) => {
+                                        const isSelected =
+                                          m.moduleKey === newLessonSection;
+                                        return (
+                                          <button
+                                            key={m.moduleKey}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={isSelected}
+                                            onClick={() => {
+                                              setNewLessonSection(m.moduleKey);
+                                              setModuleDropdownOpen(false);
+                                            }}
+                                            className={`w-full px-3 py-2 text-sm text-left transition-colors ${
+                                              isSelected
+                                                ? "bg-indigo-50 text-indigo-900"
+                                                : "text-slate-700 hover:bg-slate-50"
+                                            }`}
+                                          >
+                                            <div className="font-medium truncate">
+                                              {m.code} — {m.title}
+                                            </div>
+                                            <div className="text-xs text-slate-500 truncate mt-0.5">
+                                              {m.description}
+                                            </div>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                             </div>
-                          )}
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-slate-700">
+                              Difficulty
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              value={newLessonDifficulty}
+                              onChange={(e) =>
+                                setNewLessonDifficulty(e.target.value)
+                              }
+                              placeholder="Beginner / Intermediate / Advanced / Expert"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-slate-700">
+                            Lesson title
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={newLessonTitle}
+                            onChange={(e) => setNewLessonTitle(e.target.value)}
+                            placeholder="e.g., 9. Polymer Characterisation"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-slate-700">
+                            Description
+                          </label>
+                          <textarea
+                            rows={3}
+                            className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={newLessonDescription}
+                            onChange={(e) =>
+                              setNewLessonDescription(e.target.value)
+                            }
+                            placeholder="Short description shown to students."
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-slate-700">
+                              XP reward
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              value={newLessonXpReward}
+                              onChange={(e) =>
+                                setNewLessonXpReward(e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-slate-700">
+                              Order
+                              <span className="font-normal text-slate-500">
+                                {" "}
+                                (optional)
+                              </span>
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              value={newLessonOrder}
+                              onChange={(e) =>
+                                setNewLessonOrder(e.target.value)
+                              }
+                              placeholder="Auto"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              resetNewLessonForm();
+                            }}
+                          >
+                            Clear
+                          </Button>
+                          <Button size="sm" onClick={handleSaveLesson}>
+                            {editingLessonId ? "Save lesson" : "Create lesson"}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Difficulty
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={newLessonDifficulty}
-                        onChange={(e) => setNewLessonDifficulty(e.target.value)}
-                        placeholder="Beginner / Intermediate / Advanced / Expert"
-                      />
-                    </div>
                   </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">
-                      Lesson title
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newLessonTitle}
-                      onChange={(e) => setNewLessonTitle(e.target.value)}
-                      placeholder="e.g., 9. Polymer Characterisation"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">
-                      Description
-                    </label>
-                    <textarea
-                      rows={3}
-                      className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newLessonDescription}
-                      onChange={(e) => setNewLessonDescription(e.target.value)}
-                      placeholder="Short description shown to students."
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        XP reward
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={newLessonXpReward}
-                        onChange={(e) => setNewLessonXpReward(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Order
-                        <span className="font-normal text-slate-500">
-                          {" "}
-                          (optional)
-                        </span>
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={newLessonOrder}
-                        onChange={(e) => setNewLessonOrder(e.target.value)}
-                        placeholder="Auto"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        resetNewLessonForm();
-                      }}
-                    >
-                      Clear
-                    </Button>
-                    <Button size="sm" onClick={handleSaveLesson}>
-                      {editingLessonId ? "Save lesson" : "Create lesson"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
+                </div>,
+                document.body,
+              )}
 
             {!selectedLesson && (
               <p className="text-sm text-slate-500">
