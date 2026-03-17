@@ -1,5 +1,15 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./auth";
+
+const lessonQuestionValidator = v.object({
+  question: v.string(),
+  options: v.array(v.string()),
+  correct: v.number(),
+  explanation: v.string(),
+  imageStorageId: v.optional(v.id("_storage")),
+  imageUrl: v.optional(v.string()),
+});
 
 // Get all lessons (both default and user custom ones)
 export const getAll = query({
@@ -47,8 +57,7 @@ export const createLesson = mutation({
     order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    await requireAdmin(ctx);
 
     const all = await ctx.db.query("lessons").collect();
     const sameSection = all.filter(
@@ -86,8 +95,7 @@ export const updateLesson = mutation({
     order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    await requireAdmin(ctx);
 
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Lesson not found");
@@ -110,31 +118,30 @@ export const updateLesson = mutation({
 export const updateQuestions = mutation({
   args: {
     lessonId: v.id("lessons"),
-    questions: v.array(v.any()),
+    questions: v.array(lessonQuestionValidator),
   },
   handler: async (ctx, { lessonId, questions }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    await requireAdmin(ctx);
 
     const existing = await ctx.db.get(lessonId);
     if (!existing) {
       throw new Error("Lesson not found");
     }
 
-    const oldStorageIds = (existing.questions || [])
-      .map((q: any) => q.imageStorageId)
-      .filter((id: any) => id !== undefined);
-
-    const newStorageIds = (questions || [])
-      .map((q: any) => q.imageStorageId)
-      .filter((id: any) => id !== undefined);
-
-    const idsToDelete = oldStorageIds.filter(
-      (id: any) => !newStorageIds.includes(id),
+    const oldStorageIds = new Set(
+      (existing.questions || []).flatMap((q) =>
+        q.imageStorageId ? [q.imageStorageId] : [],
+      ),
     );
 
-    for (const id of idsToDelete) {
-      await ctx.storage.delete(id);
+    const newStorageIds = new Set(
+      (questions || []).flatMap((q) => (q.imageStorageId ? [q.imageStorageId] : [])),
+    );
+
+    for (const id of oldStorageIds) {
+      if (!newStorageIds.has(id)) {
+        await ctx.storage.delete(id);
+      }
     }
 
     await ctx.db.patch(lessonId, {
@@ -148,8 +155,7 @@ export const updateQuestions = mutation({
 export const deleteLesson = mutation({
   args: { id: v.id("lessons") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    await requireAdmin(ctx);
 
     const lesson = await ctx.db.get(args.id);
     if (!lesson) return;
@@ -167,8 +173,7 @@ export const deleteLesson = mutation({
 export const reorderLessons = mutation({
   args: { lessonIds: v.array(v.id("lessons")) },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    await requireAdmin(ctx);
 
     for (let index = 0; index < args.lessonIds.length; index += 1) {
       const lessonId = args.lessonIds[index];
@@ -180,8 +185,14 @@ export const reorderLessons = mutation({
 });
 
 export const initializeDefaults = mutation({
-  args: { forceReset: v.any() }, // Keep this loose to prevent errors
-  handler: async (ctx) => {
+  args: { forceReset: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    if (args.forceReset === false) {
+      return { success: false, skipped: true };
+    }
+
     // 1. DELETE EVERYTHING that is a default lesson
     // We do this unconditionally so there is NO chance of old data surviving
     const existing = await ctx.db

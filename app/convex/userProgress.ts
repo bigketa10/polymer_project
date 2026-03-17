@@ -1,14 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { isAdminIdentity, requireAuthenticated } from "./auth";
 
 // Get user progress
 export const get = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await requireAuthenticated(ctx);
 
     const progress = await ctx.db
       .query("userProgress")
@@ -28,10 +26,7 @@ export const update = mutation({
     completedLessonIds: v.array(v.id("lessons")),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await requireAuthenticated(ctx);
 
     const existing = await ctx.db
       .query("userProgress")
@@ -60,10 +55,7 @@ export const update = mutation({
 export const reset = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await requireAuthenticated(ctx);
 
     const existing = await ctx.db
       .query("userProgress")
@@ -89,6 +81,13 @@ export const initializeUser = mutation({
     userName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await requireAuthenticated(ctx);
+    const canInitialize =
+      identity.subject === args.userId || isAdminIdentity(identity);
+    if (!canInitialize) {
+      throw new Error("Not authorized");
+    }
+
     const userProgress = await ctx.db
       .query("userProgress")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))

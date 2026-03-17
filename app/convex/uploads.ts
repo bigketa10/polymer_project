@@ -1,7 +1,10 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./auth";
 
 export const generateUploadUrl = mutation(async (ctx) => {
+  await requireAdmin(ctx);
+
   // This gives the frontend a temporary "key" to upload directly to Convex
   return await ctx.storage.generateUploadUrl();
 });
