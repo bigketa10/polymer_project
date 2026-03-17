@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAdmin } from "./auth";
+import { requireAdmin, requireAuthenticated } from "./auth";
 
 const DEFAULT_MODULES = [
   {
@@ -45,7 +45,7 @@ export const getAll = query({
 export const ensureDefaultModules = mutation({
   args: {},
   handler: async (ctx) => {
-    await requireAdmin(ctx);
+    await requireAuthenticated(ctx);
 
     const stored = await ctx.db.query("modules").collect();
     const existingByKey = new Map(stored.map((m) => [m.moduleKey, m]));
