@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAdmin, requireAuthenticated } from "./auth";
 
 const DEFAULT_MODULES = [
   {
@@ -45,7 +44,8 @@ export const getAll = query({
 export const ensureDefaultModules = mutation({
   args: {},
   handler: async (ctx) => {
-    await requireAuthenticated(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     const stored = await ctx.db.query("modules").collect();
     const existingByKey = new Map(stored.map((m) => [m.moduleKey, m]));
@@ -80,7 +80,8 @@ export const createModule = mutation({
     order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     const desiredKey =
       (args.moduleKey && slugifyModuleKey(args.moduleKey)) ||
@@ -125,7 +126,8 @@ export const updateModule = mutation({
     order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Module not found");
@@ -168,7 +170,8 @@ export const updateModule = mutation({
 export const deleteModule = mutation({
   args: { id: v.id("modules") },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     const moduleDoc = await ctx.db.get(args.id);
     if (!moduleDoc) return;
@@ -192,7 +195,8 @@ export const deleteModule = mutation({
 export const reorderModules = mutation({
   args: { moduleIds: v.array(v.id("modules")) },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     for (let index = 0; index < args.moduleIds.length; index += 1) {
       const moduleId = args.moduleIds[index];

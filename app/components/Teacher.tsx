@@ -753,25 +753,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const handleSaveQuestion = async () => {
     if (!selectedLesson) return;
 
-    const normalizeQuestionForMutation = (q: any) => {
-      const normalized: any = {
-        question: q.question,
-        options: q.options,
-        correct: q.correct,
-        explanation: q.explanation,
-      };
-
-      if (typeof q.imageStorageId === "string" && q.imageStorageId.trim()) {
-        normalized.imageStorageId = q.imageStorageId;
-      }
-
-      if (typeof q.imageUrl === "string" && q.imageUrl.trim()) {
-        normalized.imageUrl = q.imageUrl;
-      }
-
-      return normalized;
-    };
-
     const trimmedQuestion = questionText.trim();
     if (!trimmedQuestion) {
       alert("Question text is required.");
@@ -818,10 +799,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     const existing = selectedLesson.questions || [];
     const updatedQuestions =
       editingIndex === null
-        ? [...existing, newQuestion].map(normalizeQuestionForMutation)
+        ? [...existing, newQuestion]
         : existing.map((q: any, idx: number) =>
             idx === editingIndex ? newQuestion : q,
-          ).map(normalizeQuestionForMutation);
+          );
 
     await updateQuestions({
       lessonId: selectedLesson._id,
@@ -844,24 +825,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     const existing = selectedLesson.questions || [];
     const updatedQuestions = existing.filter(
       (_q: any, idx: number) => idx !== index,
-    ).map((q: any) => {
-      const normalized: any = {
-        question: q.question,
-        options: q.options,
-        correct: q.correct,
-        explanation: q.explanation,
-      };
-
-      if (typeof q.imageStorageId === "string" && q.imageStorageId.trim()) {
-        normalized.imageStorageId = q.imageStorageId;
-      }
-
-      if (typeof q.imageUrl === "string" && q.imageUrl.trim()) {
-        normalized.imageUrl = q.imageUrl;
-      }
-
-      return normalized;
-    });
+    );
 
     await updateQuestions({
       lessonId: selectedLesson._id,

@@ -32,7 +32,7 @@ export default function Homepage() {
             About
           </a>
         </div>
-        <SignInButton mode="redirect" forceRedirectUrl="/">
+        <SignInButton mode="modal">
           <Button
             variant="outline"
             className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-bold"
@@ -63,7 +63,7 @@ export default function Homepage() {
           </p>
 
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <SignInButton mode="redirect" forceRedirectUrl="/">
+            <SignInButton mode="modal">
               <Button
                 size="lg"
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-6 text-lg rounded-xl font-bold shadow-xl shadow-indigo-200 hover:shadow-2xl hover:scale-105 transition-all w-full sm:w-auto"
@@ -103,7 +103,7 @@ export default function Homepage() {
               Why learn with PolymerLingo?
             </h2>
             <p className="text-slate-500 mt-2">
-              Science doesn&apos;t have to be boring.
+              Science doesn't have to be boring.
             </p>
           </div>
 

@@ -1,12 +1,9 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAdmin } from "./auth";
 
 export const getClassStats = query({
   args: {},
   handler: async (ctx) => {
-    await requireAdmin(ctx);
-
     // 1. Get all student progress records
     const allProgress = await ctx.db.query("userProgress").collect();
 
@@ -54,8 +51,6 @@ export const getClassStats = query({
 export const removeStudent = mutation({
   args: { id: v.id("userProgress") }, // Requires the document ID
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-
     await ctx.db.delete(args.id);
   },
 });
@@ -63,7 +58,8 @@ export const removeStudent = mutation({
 export const resetAllStudentProgress = mutation({
   args: {},
   handler: async (ctx) => {
-    await requireAdmin(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     const allProgress = await ctx.db.query("userProgress").collect();
     for (const progress of allProgress) {

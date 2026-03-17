@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as auth from "../auth.js";
 import type * as glossary from "../glossary.js";
 import type * as lessonAttempts from "../lessonAttempts.js";
 import type * as lessons from "../lessons.js";
@@ -25,7 +24,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  auth: typeof auth;
   glossary: typeof glossary;
   lessonAttempts: typeof lessonAttempts;
   lessons: typeof lessons;

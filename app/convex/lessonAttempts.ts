@@ -1,11 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { isAdminIdentity, requireAdmin, requireAuthenticated } from "./auth";
 
 export const startAttempt = mutation({
   args: { lessonId: v.id("lessons") },
   handler: async (ctx, args) => {
-    const identity = await requireAuthenticated(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     const now = new Date().toISOString();
     const id = await ctx.db.insert("lessonAttempts", {
@@ -28,7 +28,8 @@ export const saveAnswer = mutation({
     isCorrect: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const identity = await requireAuthenticated(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     const attempt = await ctx.db.get(args.attemptId);
     if (!attempt) throw new Error("Attempt not found");
@@ -36,7 +37,7 @@ export const saveAnswer = mutation({
 
     const existing = attempt.answers || [];
     const nextAnswers = existing.filter(
-      (a) => a.questionIndex !== args.questionIndex,
+      (a: any) => a.questionIndex !== args.questionIndex,
     );
     nextAnswers.push({
       questionIndex: args.questionIndex,
@@ -60,7 +61,8 @@ export const finalizeAttempt = mutation({
     score: v.number(),
   },
   handler: async (ctx, args) => {
-    const identity = await requireAuthenticated(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     const attempt = await ctx.db.get(args.attemptId);
     if (!attempt) throw new Error("Attempt not found");
@@ -80,10 +82,8 @@ export const finalizeAttempt = mutation({
 export const getByUser = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    const identity = await requireAuthenticated(ctx);
-
-    const canView = identity.subject === args.userId || isAdminIdentity(identity);
-    if (!canView) throw new Error("Not authorized");
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     const attempts = await ctx.db
       .query("lessonAttempts")
@@ -97,7 +97,8 @@ export const getByUser = query({
 export const getByLesson = query({
   args: { lessonId: v.id("lessons") },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
     const attempts = await ctx.db
       .query("lessonAttempts")
