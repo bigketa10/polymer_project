@@ -29,7 +29,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ClerkProvider fallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
+        <ClerkProvider signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </ClerkProvider>
       </body>
