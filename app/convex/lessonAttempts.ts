@@ -7,10 +7,17 @@ export const startAttempt = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
+    const lesson = await ctx.db.get(args.lessonId);
+    const totalQuestions = lesson?.questions?.length || 0;
+
     const now = new Date().toISOString();
     const id = await ctx.db.insert("lessonAttempts", {
       userId: identity.subject,
       lessonId: args.lessonId,
+      totalQuestions,
+      answeredCount: 0,
+      completionPercent: 0,
+      totalTimeMs: 0,
       startedAt: now,
       updatedAt: now,
       answers: [],
@@ -20,12 +27,65 @@ export const startAttempt = mutation({
   },
 });
 
+export const startOrResumeAttempt = mutation({
+  args: { lessonId: v.id("lessons") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const attempts = await ctx.db
+      .query("lessonAttempts")
+      .withIndex("by_user_lesson", (q) =>
+        q.eq("userId", identity.subject).eq("lessonId", args.lessonId),
+      )
+      .collect();
+
+    const latest = attempts
+      .slice()
+      .sort((a, b) => {
+        const aTime = a.updatedAt || a.startedAt || "";
+        const bTime = b.updatedAt || b.startedAt || "";
+        return bTime.localeCompare(aTime);
+      })[0];
+
+    if (latest && !latest.completedAt) {
+      return {
+        id: latest._id,
+        resumed: true,
+        answers: latest.answers || [],
+      };
+    }
+
+    const lesson = await ctx.db.get(args.lessonId);
+    const totalQuestions = lesson?.questions?.length || 0;
+    const now = new Date().toISOString();
+    const id = await ctx.db.insert("lessonAttempts", {
+      userId: identity.subject,
+      lessonId: args.lessonId,
+      totalQuestions,
+      answeredCount: 0,
+      completionPercent: 0,
+      totalTimeMs: 0,
+      startedAt: now,
+      updatedAt: now,
+      answers: [],
+    });
+
+    return {
+      id,
+      resumed: false,
+      answers: [],
+    };
+  },
+});
+
 export const saveAnswer = mutation({
   args: {
     attemptId: v.id("lessonAttempts"),
     questionIndex: v.number(),
     selectedOption: v.union(v.number(), v.null()),
     isCorrect: v.boolean(),
+    timeSpentMs: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -43,11 +103,37 @@ export const saveAnswer = mutation({
       questionIndex: args.questionIndex,
       selectedOption: args.selectedOption,
       isCorrect: args.isCorrect,
+      answeredAt: new Date().toISOString(),
+      timeSpentMs:
+        typeof args.timeSpentMs === "number"
+          ? Math.max(0, Math.round(args.timeSpentMs))
+          : undefined,
     });
+
+    const totalTimeMs = nextAnswers.reduce(
+      (acc: number, answer: any) => acc + (answer.timeSpentMs || 0),
+      0,
+    );
+    const answeredCount = nextAnswers.length;
+
+    let totalQuestions =
+      typeof attempt.totalQuestions === "number" ? attempt.totalQuestions : 0;
+    if (totalQuestions <= 0) {
+      const lesson = await ctx.db.get(attempt.lessonId);
+      totalQuestions = lesson?.questions?.length || 0;
+    }
+    const completionPercent =
+      totalQuestions > 0
+        ? Math.round((answeredCount / totalQuestions) * 100)
+        : 0;
 
     const now = new Date().toISOString();
     await ctx.db.patch(args.attemptId, {
       answers: nextAnswers,
+      totalQuestions,
+      answeredCount,
+      completionPercent,
+      totalTimeMs,
       updatedAt: now,
     });
 
@@ -69,8 +155,29 @@ export const finalizeAttempt = mutation({
     if (attempt.userId !== identity.subject) throw new Error("Not authorized");
 
     const now = new Date().toISOString();
+    const answers = attempt.answers || [];
+    const totalTimeMs = answers.reduce(
+      (acc: number, answer: any) => acc + (answer.timeSpentMs || 0),
+      0,
+    );
+    const answeredCount = answers.length;
+    let totalQuestions =
+      typeof attempt.totalQuestions === "number" ? attempt.totalQuestions : 0;
+    if (totalQuestions <= 0) {
+      const lesson = await ctx.db.get(attempt.lessonId);
+      totalQuestions = lesson?.questions?.length || 0;
+    }
+    const completionPercent =
+      totalQuestions > 0
+        ? Math.round((answeredCount / totalQuestions) * 100)
+        : 0;
+
     await ctx.db.patch(args.attemptId, {
       score: args.score,
+      totalQuestions,
+      answeredCount,
+      completionPercent,
+      totalTimeMs,
       completedAt: now,
       updatedAt: now,
     });

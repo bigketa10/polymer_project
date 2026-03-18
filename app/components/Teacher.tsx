@@ -96,9 +96,9 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [expandedReportLessons, setExpandedReportLessons] = useState<
     Set<string>
   >(new Set());
-  const [expandedQuestionResponses, setExpandedQuestionResponses] = useState<
-    Set<string>
-  >(new Set());
+  const [responseModalQuestionIndex, setResponseModalQuestionIndex] = useState<
+    number | null
+  >(null);
   const [draggedModuleId, setDraggedModuleId] = useState<string | null>(null);
   const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
   const [moduleDropTargetId, setModuleDropTargetId] = useState<string | null>(
@@ -188,6 +188,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
         selectedOption: number | null;
         isCorrect: boolean;
         submittedAt: string;
+        timeSpentMs?: number;
       }>
     >();
 
@@ -209,6 +210,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
           selectedOption: ans.selectedOption,
           isCorrect: ans.isCorrect,
           submittedAt,
+          timeSpentMs: ans.timeSpentMs,
         });
         map.set(ans.questionIndex, list);
       }
@@ -247,6 +249,19 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     return `${baseName} (${shortId})`;
   };
 
+  const formatDurationMs = (value?: number) => {
+    if (typeof value !== "number" || Number.isNaN(value) || value < 0) {
+      return "-";
+    }
+
+    const totalSeconds = Math.round(value / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    if (minutes <= 0) return `${seconds}s`;
+    return `${minutes}m ${seconds}s`;
+  };
+
   useEffect(() => {
     void ensureDefaultModules().catch((err) => {
       console.error("Failed to ensure default modules:", err);
@@ -275,7 +290,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   }, [lessons, filteredLessons, selectedLessonId]);
 
   useEffect(() => {
-    setExpandedQuestionResponses(new Set());
+    setResponseModalQuestionIndex(null);
   }, [selectedLessonId]);
 
   useEffect(() => {
@@ -1122,163 +1137,207 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
           </div>
         </Card>
 
-        {selectedStudentUserId && (
-          <Card className="shadow-sm">
-            <CardHeader className="bg-white border-b border-slate-100 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Student Report</CardTitle>
-                  <CardDescription>
-                    {selectedStudentName
-                      ? `${selectedStudentName} · Latest attempt per lesson`
-                      : "Latest attempt per lesson"}
-                  </CardDescription>
+        {selectedStudentUserId &&
+          createPortal(
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+              onPointerDown={(e) => {
+                if (e.target === e.currentTarget) {
+                  setSelectedStudentUserId(null);
+                  setSelectedStudentName("");
+                }
+              }}
+            >
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-800">
+                      Student Report
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {selectedStudentName
+                        ? `${selectedStudentName} · Latest attempt per lesson`
+                        : "Latest attempt per lesson"}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedStudentUserId(null);
+                      setSelectedStudentName("");
+                    }}
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedStudentUserId(null);
-                    setSelectedStudentName("");
-                  }}
-                  className="bg-white"
-                >
-                  Clear selection
-                </Button>
-              </div>
-            </CardHeader>
 
-            <CardContent className="space-y-4">
-              {!studentAttempts && (
-                <p className="text-sm text-slate-500">Loading report...</p>
-              )}
+                <div className="overflow-y-auto p-4 space-y-4">
+                  {!studentAttempts && (
+                    <p className="text-sm text-slate-500">Loading report...</p>
+                  )}
 
-              {studentAttempts && reportLessons.length === 0 && (
-                <p className="text-sm text-slate-500">
-                  No attempted lessons yet.
-                </p>
-              )}
+                  {studentAttempts && reportLessons.length === 0 && (
+                    <p className="text-sm text-slate-500">
+                      No attempted lessons yet.
+                    </p>
+                  )}
 
-              {studentAttempts && reportLessons.length > 0 && (
-                <div className="space-y-4">
-                  {reportLessons.map(
-                    ({ lesson, latestAttempt, attemptCount }) => {
-                      const answerMap = new Map<number, any>();
-                      for (const ans of latestAttempt.answers || []) {
-                        answerMap.set(ans.questionIndex, ans);
-                      }
+                  {studentAttempts && reportLessons.length > 0 && (
+                    <div className="space-y-4">
+                      {reportLessons.map(
+                        ({ lesson, latestAttempt, attemptCount }) => {
+                          const answerMap = new Map<number, any>();
+                          for (const ans of latestAttempt.answers || []) {
+                            answerMap.set(ans.questionIndex, ans);
+                          }
 
-                      const lessonKey = String(lesson._id);
-                      const isExpanded = expandedReportLessons.has(lessonKey);
-                      const updatedAt =
-                        latestAttempt.updatedAt || latestAttempt.startedAt;
-
-                      return (
-                        <div
-                          key={lesson._id}
-                          className="border rounded-lg p-4 bg-white"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-semibold text-slate-800">
-                                {lesson.title}
-                              </p>
-                              <p className="text-xs text-slate-500 mt-1">
-                                {lesson.description}
-                              </p>
-                            </div>
-                            <div className="text-xs text-slate-500 text-right">
-                              <div>Attempts: {attemptCount}</div>
-                              <div>
-                                Last updated: {updatedAt ? updatedAt : "-"}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 flex items-center justify-between">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setExpandedReportLessons((prev) => {
-                                  const next = new Set(prev);
-                                  if (next.has(lessonKey)) {
-                                    next.delete(lessonKey);
-                                  } else {
-                                    next.add(lessonKey);
-                                  }
-                                  return next;
-                                });
-                              }}
-                            >
-                              {isExpanded ? "Hide questions" : "Show questions"}
-                            </Button>
-                          </div>
-
-                          {isExpanded && (
-                            <div className="mt-3 space-y-3">
-                              {lesson.questions.map((q: any, idx: number) => {
-                                const ans = answerMap.get(idx);
-                                const selectedOption =
-                                  ans && ans.selectedOption !== null
-                                    ? q.options?.[ans.selectedOption]
-                                    : "No answer";
-                                const isCorrect = ans ? ans.isCorrect : false;
-
-                                return (
-                                  <div
-                                    key={idx}
-                                    className="rounded-md border border-slate-100 bg-slate-50 p-3"
-                                  >
-                                    <p className="text-xs text-slate-500">
-                                      Q{idx + 1}
-                                    </p>
-                                    <p className="text-sm font-medium text-slate-800">
-                                      {q.question}
-                                    </p>
-                                    <div className="mt-2 text-xs text-slate-600">
-                                      <span className="font-semibold">
-                                        Student answer:
-                                      </span>{" "}
-                                      {selectedOption}
-                                    </div>
-                                    <div className="mt-1 text-xs text-slate-600">
-                                      <span className="font-semibold">
-                                        Correct:
-                                      </span>{" "}
-                                      {q.options?.[q.correct] ?? "-"}
-                                    </div>
-                                    <div className="mt-2">
-                                      {ans ? (
-                                        <span
-                                          className={`text-xs px-2 py-1 rounded-full font-bold ${
-                                            isCorrect
-                                              ? "bg-green-100 text-green-700"
-                                              : "bg-red-100 text-red-700"
-                                          }`}
-                                        >
-                                          {isCorrect ? "Correct" : "Incorrect"}
-                                        </span>
-                                      ) : (
-                                        <span className="text-xs px-2 py-1 rounded-full font-bold bg-slate-200 text-slate-600">
-                                          Not answered
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
+                          const totalQuestions =
+                            typeof latestAttempt.totalQuestions === "number"
+                              ? latestAttempt.totalQuestions
+                              : lesson.questions?.length || 0;
+                          const answeredCount =
+                            typeof latestAttempt.answeredCount === "number"
+                              ? latestAttempt.answeredCount
+                              : (latestAttempt.answers || []).length;
+                          const completionPercent =
+                            typeof latestAttempt.completionPercent === "number"
+                              ? latestAttempt.completionPercent
+                              : totalQuestions > 0
+                                ? Math.round((answeredCount / totalQuestions) * 100)
+                                : 0;
+                          const totalTimeMs =
+                            typeof latestAttempt.totalTimeMs === "number"
+                              ? latestAttempt.totalTimeMs
+                              : (latestAttempt.answers || []).reduce(
+                                  (acc: number, ans: any) =>
+                                    acc + (ans.timeSpentMs || 0),
+                                  0,
                                 );
-                              })}
+
+                          const lessonKey = String(lesson._id);
+                          const isExpanded = expandedReportLessons.has(lessonKey);
+                          const updatedAt =
+                            latestAttempt.updatedAt || latestAttempt.startedAt;
+
+                          return (
+                            <div
+                              key={lesson._id}
+                              className="border rounded-lg p-4 bg-white"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-800">
+                                    {lesson.title}
+                                  </p>
+                                  <p className="text-xs text-slate-500 mt-1">
+                                    {lesson.description}
+                                  </p>
+                                </div>
+                                <div className="text-xs text-slate-500 text-right">
+                                  <div>Attempts: {attemptCount}</div>
+                                  <div>
+                                    Progress: {answeredCount}/{totalQuestions} ({completionPercent}%)
+                                  </div>
+                                  <div>Total time: {formatDurationMs(totalTimeMs)}</div>
+                                  <div>
+                                    Last updated: {updatedAt ? updatedAt : "-"}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-3 flex items-center justify-between">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setExpandedReportLessons((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(lessonKey)) {
+                                        next.delete(lessonKey);
+                                      } else {
+                                        next.add(lessonKey);
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  {isExpanded ? "Hide questions" : "Show questions"}
+                                </Button>
+                              </div>
+
+                              {isExpanded && (
+                                <div className="mt-3 space-y-3">
+                                  {lesson.questions.map((q: any, idx: number) => {
+                                    const ans = answerMap.get(idx);
+                                    const selectedOption =
+                                      ans && ans.selectedOption !== null
+                                        ? q.options?.[ans.selectedOption]
+                                        : "No answer";
+                                    const isCorrect = ans ? ans.isCorrect : false;
+
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="rounded-md border border-slate-100 bg-slate-50 p-3"
+                                      >
+                                        <p className="text-xs text-slate-500">
+                                          Q{idx + 1}
+                                        </p>
+                                        <p className="text-sm font-medium text-slate-800">
+                                          {q.question}
+                                        </p>
+                                        <div className="mt-2 text-xs text-slate-600">
+                                          <span className="font-semibold">
+                                            Student answer:
+                                          </span>{" "}
+                                          {selectedOption}
+                                        </div>
+                                        <div className="mt-1 text-xs text-slate-600">
+                                          <span className="font-semibold">
+                                            Correct:
+                                          </span>{" "}
+                                          {q.options?.[q.correct] ?? "-"}
+                                        </div>
+                                        <div className="mt-1 text-xs text-slate-600">
+                                          <span className="font-semibold">
+                                            Time spent:
+                                          </span>{" "}
+                                          {formatDurationMs(ans?.timeSpentMs)}
+                                        </div>
+                                        <div className="mt-2">
+                                          {ans ? (
+                                            <span
+                                              className={`text-xs px-2 py-1 rounded-full font-bold ${
+                                                isCorrect
+                                                  ? "bg-green-100 text-green-700"
+                                                  : "bg-red-100 text-red-700"
+                                              }`}
+                                            >
+                                              {isCorrect ? "Correct" : "Incorrect"}
+                                            </span>
+                                          ) : (
+                                            <span className="text-xs px-2 py-1 rounded-full font-bold bg-slate-200 text-slate-600">
+                                              Not answered
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    },
+                          );
+                        },
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+              </div>
+            </div>,
+            document.body,
+          )}
 
         {/* LESSON / QUESTION SET MANAGEMENT */}
         <Card className="shadow-sm">
@@ -2479,8 +2538,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
                           {(() => {
                             const questionKey = `${selectedLesson._id}:${idx}`;
-                            const isResponsesExpanded =
-                              expandedQuestionResponses.has(questionKey);
                             const responses =
                               lessonResponsesByQuestion.get(idx) || [];
                             const uniquePickersByOption = (q.options || []).map(
@@ -2539,97 +2596,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => {
-                                    setExpandedQuestionResponses((prev) => {
-                                      const next = new Set(prev);
-                                      if (next.has(questionKey)) {
-                                        next.delete(questionKey);
-                                      } else {
-                                        next.add(questionKey);
-                                      }
-                                      return next;
-                                    });
-                                  }}
+                                  onClick={() => setResponseModalQuestionIndex(idx)}
                                 >
-                                  {isResponsesExpanded
-                                    ? "Hide responses"
-                                    : `View responses (${responses.length})`}
+                                  {`View responses (${responses.length})`}
                                 </Button>
-
-                                {isResponsesExpanded && (
-                                  <div className="mt-2 space-y-2">
-                                    {!selectedLessonAttempts && (
-                                      <p className="text-xs text-slate-500">
-                                        Loading responses...
-                                      </p>
-                                    )}
-
-                                    {selectedLessonAttempts &&
-                                      responses.length === 0 && (
-                                        <p className="text-xs text-slate-500 italic">
-                                          No responses yet for this question.
-                                        </p>
-                                      )}
-
-                                    {selectedLessonAttempts &&
-                                      responses.length > 0 &&
-                                      responses.map((response, responseIdx) => {
-                                        const selectedOptionLabel =
-                                          response.selectedOption !== null
-                                            ? `Option ${response.selectedOption + 1}`
-                                            : "No answer";
-                                        const selectedOptionText =
-                                          response.selectedOption !== null
-                                            ? q.options?.[
-                                                response.selectedOption
-                                              ] || "Option text unavailable"
-                                            : "No answer";
-                                        const displayName = formatResponseName(
-                                          response.userId,
-                                        );
-                                        const submittedAt =
-                                          formatResponseTimestamp(
-                                            response.submittedAt,
-                                          );
-
-                                        return (
-                                          <div
-                                            key={`${questionKey}:${responseIdx}`}
-                                            className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-xs"
-                                          >
-                                            <div className="flex items-center justify-between gap-2">
-                                              <span className="font-semibold text-slate-700">
-                                                {displayName}
-                                              </span>
-                                              <span className="text-slate-500">
-                                                Submitted: {submittedAt}
-                                              </span>
-                                            </div>
-                                            <div className="mt-1 text-slate-600">
-                                              Answer: {selectedOptionLabel}
-                                              {selectedOptionLabel !==
-                                              "No answer"
-                                                ? ` - ${selectedOptionText}`
-                                                : ""}
-                                            </div>
-                                            <div className="mt-1">
-                                              <span
-                                                className={`px-2 py-0.5 rounded-full font-semibold ${
-                                                  response.isCorrect
-                                                    ? "bg-green-100 text-green-700"
-                                                    : "bg-red-100 text-red-700"
-                                                }`}
-                                              >
-                                                {response.isCorrect
-                                                  ? "Correct"
-                                                  : "Incorrect"}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                  </div>
-                                )}
                               </div>
                             );
                           })()}
@@ -2642,6 +2612,141 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     </p>
                   )}
                 </div>
+
+                {responseModalQuestionIndex !== null &&
+                  createPortal(
+                    <div
+                      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                      onPointerDown={(e) => {
+                        if (e.target === e.currentTarget) {
+                          setResponseModalQuestionIndex(null);
+                        }
+                      }}
+                    >
+                      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                          <div>
+                            <h2 className="text-sm font-semibold text-slate-800">
+                              Question Responses
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {selectedLesson.questions?.[
+                                responseModalQuestionIndex
+                              ]
+                                ? `Q${responseModalQuestionIndex + 1}: ${selectedLesson.questions[responseModalQuestionIndex].question}`
+                                : "Question not found"}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setResponseModalQuestionIndex(null)}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        <div className="overflow-y-auto p-4">
+                          {(() => {
+                            const activeQuestion = selectedLesson.questions?.[
+                              responseModalQuestionIndex
+                            ];
+                            const responses =
+                              lessonResponsesByQuestion.get(
+                                responseModalQuestionIndex,
+                              ) || [];
+                            const modalKey = `${selectedLesson._id}:${responseModalQuestionIndex}`;
+
+                            if (!activeQuestion) {
+                              return (
+                                <p className="text-xs text-slate-500 italic">
+                                  This question is no longer available.
+                                </p>
+                              );
+                            }
+
+                            if (!selectedLessonAttempts) {
+                              return (
+                                <p className="text-xs text-slate-500">
+                                  Loading responses...
+                                </p>
+                              );
+                            }
+
+                            if (responses.length === 0) {
+                              return (
+                                <p className="text-xs text-slate-500 italic">
+                                  No responses yet for this question.
+                                </p>
+                              );
+                            }
+
+                            return (
+                              <div className="space-y-2">
+                                {responses.map((response, responseIdx) => {
+                                  const selectedOptionLabel =
+                                    response.selectedOption !== null
+                                      ? `Option ${response.selectedOption + 1}`
+                                      : "No answer";
+                                  const selectedOptionText =
+                                    response.selectedOption !== null
+                                      ? activeQuestion.options?.[
+                                          response.selectedOption
+                                        ] || "Option text unavailable"
+                                      : "No answer";
+                                  const displayName = formatResponseName(
+                                    response.userId,
+                                  );
+                                  const submittedAt = formatResponseTimestamp(
+                                    response.submittedAt,
+                                  );
+
+                                  return (
+                                    <div
+                                      key={`${modalKey}:${responseIdx}`}
+                                      className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-xs"
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="font-semibold text-slate-700">
+                                          {displayName}
+                                        </span>
+                                        <span className="text-slate-500">
+                                          Submitted: {submittedAt}
+                                        </span>
+                                      </div>
+                                      <div className="mt-1 text-slate-600">
+                                        Answer: {selectedOptionLabel}
+                                        {selectedOptionLabel !== "No answer"
+                                          ? ` - ${selectedOptionText}`
+                                          : ""}
+                                      </div>
+                                      <div className="mt-1 text-slate-600">
+                                        Time spent: {formatDurationMs(response.timeSpentMs)}
+                                      </div>
+                                      <div className="mt-1">
+                                        <span
+                                          className={`px-2 py-0.5 rounded-full font-semibold ${
+                                            response.isCorrect
+                                              ? "bg-green-100 text-green-700"
+                                              : "bg-red-100 text-red-700"
+                                          }`}
+                                        >
+                                          {response.isCorrect
+                                            ? "Correct"
+                                            : "Incorrect"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>,
+                    document.body,
+                  )}
 
                 {/* Edit / add form */}
                 <div className="border-t pt-4 mt-2">

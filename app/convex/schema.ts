@@ -60,6 +60,10 @@ export default defineSchema({
   lessonAttempts: defineTable({
     userId: v.string(),
     lessonId: v.id("lessons"),
+    totalQuestions: v.optional(v.number()),
+    answeredCount: v.optional(v.number()),
+    completionPercent: v.optional(v.number()),
+    totalTimeMs: v.optional(v.number()),
     startedAt: v.string(),
     updatedAt: v.string(),
     completedAt: v.optional(v.string()),
@@ -69,11 +73,14 @@ export default defineSchema({
         questionIndex: v.number(),
         selectedOption: v.union(v.number(), v.null()),
         isCorrect: v.boolean(),
+        answeredAt: v.optional(v.string()),
+        timeSpentMs: v.optional(v.number()),
       }),
     ),
   })
     .index("by_user", ["userId"])
-    .index("by_lesson", ["lessonId"]),
+    .index("by_lesson", ["lessonId"])
+    .index("by_user_lesson", ["userId", "lessonId"]),
 
   // 3. MESSAGES TABLE (Fixed: Added missing table)
   // This fixes the 'Argument "messages" is not assignable' error

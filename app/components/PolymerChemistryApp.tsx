@@ -87,6 +87,10 @@ const PolymerChemistryApp = () => {
   const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>(
     [], // Array storing all answers for the current quiz
   );
+  const [failedQuestionImages, setFailedQuestionImages] = useState<Set<string>>(
+    new Set(),
+  );
+  const [questionStartedAt, setQuestionStartedAt] = useState<number>(Date.now());
   const [activeAttemptId, setActiveAttemptId] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false); // Whether to show answer feedback
   const [score, setScore] = useState(0); // Running score for current quiz
@@ -109,7 +113,7 @@ const PolymerChemistryApp = () => {
   const updateProgress = useMutation(api.userProgress.update); // Save progress after completing lessons
   const resetProgress = useMutation(api.userProgress.reset); // Clear all user progress
   const initializeUser = useMutation(api.userProgress.initializeUser); // Initialize user with name
-  const startAttempt = useMutation(api.lessonAttempts.startAttempt);
+  const startOrResumeAttempt = useMutation(api.lessonAttempts.startOrResumeAttempt);
   const saveAnswer = useMutation(api.lessonAttempts.saveAnswer);
   const finalizeAttempt = useMutation(api.lessonAttempts.finalizeAttempt);
 
@@ -213,11 +217,60 @@ const PolymerChemistryApp = () => {
     setShowReview(false);
     setReviewAnimate(false);
     setSelectedAnswers(Array(lesson.questions.length).fill(null)); // Empty answer array
+    setQuestionStartedAt(Date.now());
     setActiveAttemptId(null);
 
     try {
-      const res: any = await startAttempt({ lessonId: lesson._id });
+      const res: any = await startOrResumeAttempt({ lessonId: lesson._id });
       setActiveAttemptId(res?.id || null);
+
+      const restoredAnswers = Array(lesson.questions.length).fill(null);
+      for (const answer of res?.answers || []) {
+        const index = answer?.questionIndex;
+        if (
+          typeof index === "number" &&
+          index >= 0 &&
+          index < restoredAnswers.length
+        ) {
+          restoredAnswers[index] =
+            typeof answer.selectedOption === "number"
+              ? answer.selectedOption
+              : null;
+        }
+      }
+
+      setSelectedAnswers(restoredAnswers);
+
+      const nextQuestionIndex = restoredAnswers.findIndex(
+        (answer: number | null) => answer === null,
+      );
+
+      if (nextQuestionIndex === -1 && restoredAnswers.length > 0) {
+        const lastIndex = restoredAnswers.length - 1;
+        setCurrentQuestion(lastIndex);
+        setSelectedAnswer(restoredAnswers[lastIndex]);
+        setShowReview(true);
+
+        const restoredScore = restoredAnswers.reduce(
+          (acc: number, selected: number | null, idx: number) => {
+            const question = lesson.questions?.[idx];
+            if (question && selected === question.correct) {
+              return acc + 1;
+            }
+            return acc;
+          },
+          0,
+        );
+        setScore(restoredScore);
+      } else {
+        const resumeIndex = nextQuestionIndex >= 0 ? nextQuestionIndex : 0;
+        setCurrentQuestion(resumeIndex);
+        setSelectedAnswer(restoredAnswers[resumeIndex] ?? null);
+        setShowReview(false);
+      }
+
+      setShowResult(false);
+      setQuestionStartedAt(Date.now());
     } catch (err) {
       console.error("Attempt start failed:", err);
     }
@@ -265,17 +318,6 @@ const PolymerChemistryApp = () => {
         next[currentQuestion] = index; // Store answer at current question index
         return next;
       });
-
-      if (activeAttemptId) {
-        saveAnswer({
-          attemptId: activeAttemptId as Id<"lessonAttempts">,
-          questionIndex: currentQuestion,
-          selectedOption: index,
-          isCorrect,
-        }).catch((err) => {
-          console.error("Answer save failed:", err);
-        });
-      }
     }
   };
 
@@ -284,12 +326,27 @@ const PolymerChemistryApp = () => {
    * Plays appropriate sound, calculates interim score, and shows explanation
    */
   const checkAnswer = () => {
+    if (showResult) return;
+
     setShowResult(true); // Show the answer feedback UI
 
     // Determine if answer is correct
     const question = currentLesson.questions[currentQuestion];
     const userAnswer = selectedAnswers[currentQuestion];
     const isCorrect = userAnswer === question.correct;
+    const elapsedMs = Math.max(0, Date.now() - questionStartedAt);
+
+    if (activeAttemptId) {
+      saveAnswer({
+        attemptId: activeAttemptId as Id<"lessonAttempts">,
+        questionIndex: currentQuestion,
+        selectedOption: userAnswer ?? null,
+        isCorrect,
+        timeSpentMs: elapsedMs,
+      }).catch((err) => {
+        console.error("Answer save failed:", err);
+      });
+    }
 
     // Play feedback sound using audio refs
     if (isCorrect) {
@@ -340,6 +397,7 @@ const PolymerChemistryApp = () => {
       setCurrentQuestion(currentQuestion + 1); // Move to next question
       setSelectedAnswer(selectedAnswers[currentQuestion + 1] ?? null); // Load saved answer if any
       setShowResult(false); // Hide result for new question
+      setQuestionStartedAt(Date.now());
     } else {
       // Last question completed - show review screen
       setShowReview(true);
@@ -418,6 +476,7 @@ const PolymerChemistryApp = () => {
     setSelectedAnswer(null);
     setScore(0);
     setShowResult(false);
+    setQuestionStartedAt(Date.now());
     setActiveAttemptId(null);
   };
 
@@ -797,6 +856,9 @@ const PolymerChemistryApp = () => {
     const isCorrect = selectedAnswers[currentQuestion] === question.correct;
     const progress =
       ((currentQuestion + 1) / currentLesson.questions.length) * 100; // Progress percentage
+    const hasQuestionImage = !!question.imageUrl;
+    const showQuestionImage =
+      hasQuestionImage && !failedQuestionImages.has(question.imageUrl);
 
     return (
       <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
@@ -840,7 +902,7 @@ const PolymerChemistryApp = () => {
             </CardHeader>
             <CardContent>
               {/* -------------------- IMAGE SECTION -------------------- */}
-              {question.imageUrl && (
+              {showQuestionImage && (
                 <div className="mb-6 flex justify-center bg-white rounded-xl border border-indigo-50 overflow-hidden shadow-sm p-4">
                   <img
                     src={question.imageUrl}
@@ -856,15 +918,18 @@ const PolymerChemistryApp = () => {
                         "❌ Image failed to load:",
                         question.imageUrl,
                       );
-                      console.error("Error:", e);
-                    }}
-                    onLoad={() => {
-                      console.log(
-                        "✅ Image loaded successfully:",
-                        question.imageUrl,
-                      );
+                      setFailedQuestionImages((prev) => {
+                        const next = new Set(prev);
+                        if (question.imageUrl) next.add(question.imageUrl);
+                        return next;
+                      });
                     }}
                   />
+                </div>
+              )}
+              {hasQuestionImage && !showQuestionImage && (
+                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  The diagram for this question could not be loaded. You can still answer the question.
                 </div>
               )}
               {/* ----------------------------------------------------------- */}

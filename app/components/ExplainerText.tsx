@@ -5,7 +5,7 @@ export const ExplainerText = ({ text }: { text: string }) => {
   const words = text.split(" ");
 
   return (
-    <p className="leading-7">
+    <span className="leading-7">
       {words.map((word, index) => {
         // Remove punctuation so "polymer." / "polymer?" matches "polymer"
         const cleanKey = word
@@ -22,15 +22,15 @@ export const ExplainerText = ({ text }: { text: string }) => {
                   {word}
                 </span>
                 {/* The Tooltip (Duo Style) */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 z-50">
-                  <div className="bg-white border-2 border-slate-200 p-3 rounded-xl shadow-xl text-sm">
-                    <p className="text-slate-800 leading-tight">
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 z-50">
+                  <span className="block bg-white border-2 border-slate-200 p-3 rounded-xl shadow-xl text-sm">
+                    <span className="text-slate-800 leading-tight">
                       {entry.definition}
-                    </p>
+                    </span>
                     {/* Decorative triangle arrow */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b-2 border-r-2 border-slate-200 rotate-45 -mt-1.5" />
-                  </div>
-                </div>
+                    <span className="absolute top-full left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b-2 border-r-2 border-slate-200 rotate-45 -mt-1.5" />
+                  </span>
+                </span>
               </span>
             ) : (
               <span>{word}</span>
@@ -38,6 +38,6 @@ export const ExplainerText = ({ text }: { text: string }) => {
           </React.Fragment>
         );
       })}
-    </p>
+    </span>
   );
 };
