@@ -2777,7 +2777,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             const activeQuestion =
                               selectedLesson.questions?.[
                                 responseModalQuestionIndex
-                              ];
+                              ] as any;
                             const responses =
                               lessonResponsesByQuestion.get(
                                 responseModalQuestionIndex,
