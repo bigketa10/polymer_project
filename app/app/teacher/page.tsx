@@ -1,18 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { TeacherDashboard } from "@/components/Teacher";
-// Note: Double check the path above!
-// If your Teacher.tsx is in 'components/', use '@/components/Teacher'
-// If it is in 'app/', use '@/app/Teacher'
+
+// This is the magic fix
+const TeacherDashboard = dynamic(
+  () => import("@/components/Teacher").then((mod) => mod.TeacherDashboard),
+  { ssr: false }
+);
 
 export default function TeacherPage() {
   const router = useRouter();
-
-  // This handles what happens when you click 'Exit' in the dashboard
-  const handleClose = () => {
-    router.push("/");
-  };
+  const handleClose = () => router.push("/");
 
   return (
     <main className="min-h-screen bg-slate-50">
