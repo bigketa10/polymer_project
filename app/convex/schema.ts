@@ -30,14 +30,33 @@ export default defineSchema({
     section: v.optional(v.string()),
 
     questions: v.array(
-      v.object({
-        question: v.string(),
-        options: v.array(v.string()),
-        correct: v.number(),
-        explanation: v.string(),
-        imageStorageId: v.optional(v.id("_storage")),
-        imageUrl: v.optional(v.string()),
-      }),
+      v.union(
+        // 1. The Multiple Choice Format (existing)
+        v.object({
+          type: v.optional(v.union(v.literal("mcq"), v.string())), // Optional so old questions don't break
+          question: v.string(),
+          options: v.array(v.string()),
+          correct: v.float64(), // or v.number()
+          explanation: v.string(),
+          imageUrl: v.optional(v.string()),
+          imageStorageId: v.optional(v.id("_storage")),
+        }),
+        // 2. The NEW Drag & Drop Format
+        v.object({
+          type: v.literal("dragdrop"),
+          question: v.string(),
+          answerBank: v.array(v.string()),
+          sections: v.array(
+            v.object({
+              name: v.string(),
+              answers: v.array(v.string()),
+            }),
+          ),
+          explanation: v.string(),
+          imageUrl: v.optional(v.string()),
+          imageStorageId: v.optional(v.id("_storage")),
+        }),
+      ),
     ),
   })
     .index("by_user", ["userId"])
@@ -71,10 +90,21 @@ export default defineSchema({
     answers: v.array(
       v.object({
         questionIndex: v.number(),
-        selectedOption: v.union(v.number(), v.null()),
         isCorrect: v.boolean(),
-        answeredAt: v.optional(v.string()),
         timeSpentMs: v.optional(v.number()),
+        // MCQ answers use this:
+        selectedOption: v.optional(v.union(v.number(), v.null())),
+        // Drag & Drop answers use this:
+        placedSections: v.optional(
+          v.array(
+            v.object({
+              name: v.string(),
+              answers: v.array(v.string()),
+            }),
+          ),
+        ),
+        // ✅ ADD THIS LINE:
+        answeredAt: v.optional(v.string()),
       }),
     ),
   })

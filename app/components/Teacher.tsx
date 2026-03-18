@@ -1,19 +1,6 @@
+"use client";
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
-// Helper to format ISO date strings or timestamps in a friendly way
-function formatDateTime(dt: string | number | undefined | null): string {
-  if (!dt) return "-";
-  const date =
-    typeof dt === "string" || typeof dt === "number" ? new Date(dt) : null;
-  if (!date || isNaN(date.getTime())) return "-";
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
@@ -39,6 +26,25 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
+// Helper to format ISO date strings or timestamps in a friendly way
+function formatDateTime(dt: string | number | undefined | null): string {
+  if (!dt) return "-";
+  const date =
+    typeof dt === "string" || typeof dt === "number" ? new Date(dt) : null;
+  if (!date || isNaN(date.getTime())) return "-";
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+// Type for Drag & Drop items
+type DragDropItem = { id: string; text: string };
 
 export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const stats = useQuery(api.teachers.getClassStats);
@@ -93,7 +99,9 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     useState(false);
   const moduleFilterDropdownRef = useRef<HTMLDivElement | null>(null);
 
+  // --- Question Editing State ---
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [questionType, setQuestionType] = useState<"mcq" | "dragdrop">("mcq");
   const [questionText, setQuestionText] = useState("");
   const [optionsText, setOptionsText] = useState("");
   const [correctOptionNumber, setCorrectOptionNumber] = useState("");
@@ -103,6 +111,17 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [imageFileName, setImageFileName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [brokenLinks, setBrokenLinks] = useState<Set<string>>(new Set());
+
+  // --- Drag & Drop Specific State ---
+  const [ddAnswerBank, setDdAnswerBank] = useState<DragDropItem[]>([]);
+  const [ddSections, setDdSections] = useState<
+    Array<{ name: string; answers: DragDropItem[] }>
+  >([
+    { name: "Section 1", answers: [] },
+    { name: "Section 2", answers: [] },
+  ]);
+  const [ddBankInput, setDdBankInput] = useState("");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudentUserId, setSelectedStudentUserId] = useState<
     string | null
@@ -116,6 +135,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [responseModalQuestionIndex, setResponseModalQuestionIndex] = useState<
     number | null
   >(null);
+
   const [draggedModuleId, setDraggedModuleId] = useState<string | null>(null);
   const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
   const [moduleDropTargetId, setModuleDropTargetId] = useState<string | null>(
@@ -125,6 +145,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     null,
   );
 
+  // --- Queries & Memos ---
   const studentAttempts = useQuery(
     api.lessonAttempts.getByUser,
     selectedStudentUserId ? { userId: selectedStudentUserId } : "skip",
@@ -142,10 +163,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   const previewUrl = useMemo(() => {
     if (storagePreviewUrl) return storagePreviewUrl;
-
     const raw = imageUrl.trim();
     if (!raw || brokenLinks.has(raw)) return "";
-
     return raw;
   }, [imageUrl, storagePreviewUrl, brokenLinks]);
 
@@ -254,6 +273,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       Array<{
         userId: string;
         selectedOption: number | null;
+        placedSections?: any;
         isCorrect: boolean;
         submittedAt: string;
         timeSpentMs?: number;
@@ -275,7 +295,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
         const list = map.get(ans.questionIndex) || [];
         list.push({
           userId: attempt.userId,
-          selectedOption: ans.selectedOption,
+          selectedOption: ans.selectedOption ?? null,
+          placedSections: ans.placedSections,
           isCorrect: ans.isCorrect,
           submittedAt,
           timeSpentMs: ans.timeSpentMs,
@@ -295,6 +316,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     );
   }, [lessons, lessonModuleFilter]);
 
+  // --- Utility Functions ---
   const formatResponseTimestamp = (timestamp: string) => {
     if (!timestamp) return "-";
     const date = new Date(timestamp);
@@ -321,15 +343,14 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     if (typeof value !== "number" || Number.isNaN(value) || value < 0) {
       return "-";
     }
-
     const totalSeconds = Math.round(value / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-
     if (minutes <= 0) return `${seconds}s`;
     return `${minutes}m ${seconds}s`;
   };
 
+  // --- Effects ---
   useEffect(() => {
     void ensureDefaultModules().catch((err) => {
       console.error("Failed to ensure default modules:", err);
@@ -338,17 +359,14 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   useEffect(() => {
     if (!lessons || lessons.length === 0) return;
-
     if (filteredLessons.length === 0) {
       setSelectedLessonId(null);
       return;
     }
-
     if (!selectedLessonId) {
       setSelectedLessonId(filteredLessons[0]._id);
       return;
     }
-
     const stillVisible = filteredLessons.some(
       (lesson: any) => lesson._id === selectedLessonId,
     );
@@ -368,28 +386,23 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   useEffect(() => {
     if (!modules || modules.length === 0) return;
-    // Keep lesson creation course selection in sync with available modules
     if (!newLessonSection) {
       setNewLessonSection(modules[0].moduleKey);
     }
   }, [modules, newLessonSection]);
 
+  // Click outside handlers for dropdowns
   useEffect(() => {
     if (!lessonDropdownOpen) return;
-
     const handlePointerDown = (e: MouseEvent | PointerEvent) => {
       const target = e.target as Node | null;
       if (!target) return;
       if (lessonDropdownRef.current?.contains(target)) return;
       setLessonDropdownOpen(false);
     };
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setLessonDropdownOpen(false);
-      }
+      if (e.key === "Escape") setLessonDropdownOpen(false);
     };
-
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
@@ -400,20 +413,15 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   useEffect(() => {
     if (!moduleDropdownOpen) return;
-
     const handlePointerDown = (e: MouseEvent | PointerEvent) => {
       const target = e.target as Node | null;
       if (!target) return;
       if (moduleDropdownRef.current?.contains(target)) return;
       setModuleDropdownOpen(false);
     };
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setModuleDropdownOpen(false);
-      }
+      if (e.key === "Escape") setModuleDropdownOpen(false);
     };
-
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
@@ -424,20 +432,15 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   useEffect(() => {
     if (!moduleFilterDropdownOpen) return;
-
     const handlePointerDown = (e: MouseEvent | PointerEvent) => {
       const target = e.target as Node | null;
       if (!target) return;
       if (moduleFilterDropdownRef.current?.contains(target)) return;
       setModuleFilterDropdownOpen(false);
     };
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setModuleFilterDropdownOpen(false);
-      }
+      if (e.key === "Escape") setModuleFilterDropdownOpen(false);
     };
-
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
@@ -446,9 +449,9 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     };
   }, [moduleFilterDropdownOpen]);
 
+  // --- Handlers ---
   const selectedLesson =
     lessons?.find((lesson: any) => lesson._id === selectedLessonId) ?? null;
-
   const selectedModuleForNewLesson =
     modules?.find((m: any) => m.moduleKey === newLessonSection) ?? null;
 
@@ -473,12 +476,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   const startEditModule = (module: any) => {
     if (!module?._id) return;
-
     setEditingModuleId(module._id);
     setLessonDropdownOpen(false);
     setModuleDropdownOpen(false);
     setModuleFilterDropdownOpen(false);
-
     setNewModuleCode(module.code || "");
     setNewModuleTitle(module.title || "");
     setNewModuleDescription(module.description || "");
@@ -514,11 +515,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
           color: newModuleColor,
           iconKey: newModuleIconKey,
         });
-
-        const updatedModuleKey = res?.moduleKey;
-        if (updatedModuleKey) {
-          setNewLessonSection(updatedModuleKey);
-        }
+        if (res?.moduleKey) setNewLessonSection(res.moduleKey);
       } else {
         const res: any = await createModule({
           code,
@@ -527,13 +524,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
           color: newModuleColor,
           iconKey: newModuleIconKey,
         });
-
-        const moduleKey = res?.moduleKey;
-        if (moduleKey) {
-          setNewLessonSection(moduleKey);
-        }
+        if (res?.moduleKey) setNewLessonSection(res.moduleKey);
       }
-
       setShowAddModule(false);
       resetNewModuleForm();
       alert(editingModuleId ? "Module updated." : "Module created.");
@@ -544,17 +536,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   const handleDeleteModule = async (module: any) => {
     if (!module?._id) return;
-
-    const confirmDelete = window.confirm(
-      `Delete module "${module.code} — ${module.title}"?`,
-    );
-    if (!confirmDelete) return;
-
+    if (!window.confirm(`Delete module "${module.code} — ${module.title}"?`))
+      return;
     try {
       await deleteModule({ id: module._id });
-      if (editingModuleId === module._id) {
-        resetNewModuleForm();
-      }
+      if (editingModuleId === module._id) resetNewModuleForm();
       alert("Module deleted.");
     } catch (e: any) {
       alert(e?.message || "Failed to delete module.");
@@ -566,7 +552,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setLessonDropdownOpen(false);
     setModuleDropdownOpen(false);
     setModuleFilterDropdownOpen(false);
-
     setNewLessonTitle(lesson.title || "");
     setNewLessonDescription(lesson.description || "");
     setNewLessonSection(lesson.section || modules?.[0]?.moduleKey || "qxu5031");
@@ -629,11 +614,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
         section: newLessonSection || undefined,
         order,
       });
-
-      const createdId = res?.id;
-      if (createdId) {
-        setSelectedLessonId(createdId);
-      }
+      if (res?.id) setSelectedLessonId(res.id);
     }
 
     setLessonDropdownOpen(false);
@@ -645,11 +626,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   };
 
   const handleDeleteLesson = async (lesson: any) => {
-    const confirmDelete = window.confirm(
-      `Delete lesson "${lesson.title}"? This also deletes its question images.`,
-    );
-    if (!confirmDelete) return;
-
+    if (
+      !window.confirm(
+        `Delete lesson "${lesson.title}"? This also deletes its question images.`,
+      )
+    )
+      return;
     await deleteLesson({ id: lesson._id });
 
     if (selectedLessonId === lesson._id) {
@@ -658,12 +640,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       setEditingIndex(null);
       resetForm();
     }
-
     if (editingLessonId === lesson._id) {
       resetNewLessonForm();
       setShowAddLesson(false);
     }
-
     alert("Lesson deleted.");
   };
 
@@ -685,7 +665,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   const handleDropModule = async (targetModuleId: string) => {
     if (!draggedModuleId || !modules) return;
-
     const reordered = reorderById(
       modules as any[],
       draggedModuleId,
@@ -694,14 +673,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     const reorderedIds = reordered
       .map((item) => item._id)
       .filter(Boolean) as Id<"modules">[];
-
     if (reorderedIds.length === 0) return;
     await reorderModules({ moduleIds: reorderedIds });
   };
 
   const handleDropLesson = async (targetLessonId: string) => {
     if (!draggedLessonId || !lessons) return;
-
     const reordered = reorderById(
       lessons as any[],
       draggedLessonId,
@@ -710,12 +687,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     const reorderedIds = reordered
       .map((item) => item._id)
       .filter(Boolean) as Id<"lessons">[];
-
     if (reorderedIds.length === 0) return;
     await reorderLessons({ lessonIds: reorderedIds });
   };
 
   const resetForm = () => {
+    setQuestionType("mcq");
     setQuestionText("");
     setOptionsText("");
     setCorrectOptionNumber("");
@@ -723,6 +700,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setImageUrl("");
     setImageStorageId("");
     setImageFileName("");
+    setDdAnswerBank([]);
+    setDdSections([
+      { name: "Section 1", answers: [] },
+      { name: "Section 2", answers: [] },
+    ]);
   };
 
   const startAddNewQuestion = () => {
@@ -734,6 +716,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     if (!selectedLesson) return;
     const q = selectedLesson.questions[index];
     setEditingIndex(index);
+    setQuestionType(q.type || "mcq");
     setQuestionText(q.question || "");
     setOptionsText((q.options || []).join("\n"));
     setCorrectOptionNumber(
@@ -743,6 +726,33 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setImageUrl(q.imageUrl || "");
     setImageStorageId(q.imageStorageId || "");
     setImageFileName("");
+
+    if (q.type === "dragdrop") {
+      const ensureId = (text: string): DragDropItem => ({
+        id: crypto.randomUUID(),
+        text,
+      });
+      setDdAnswerBank((q.answerBank || []).map(ensureId));
+      if (q.sections && q.sections.length > 0) {
+        setDdSections(
+          q.sections.map((s: any) => ({
+            name: s.name,
+            answers: (s.answers || []).map(ensureId),
+          })),
+        );
+      } else {
+        setDdSections([
+          { name: "Section 1", answers: [] },
+          { name: "Section 2", answers: [] },
+        ]);
+      }
+    } else {
+      setDdAnswerBank([]);
+      setDdSections([
+        { name: "Section 1", answers: [] },
+        { name: "Section 2", answers: [] },
+      ]);
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -775,7 +785,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
           );
         });
       };
-
       const result = reader.result;
       if (typeof result === "string") {
         imgElement.src = result;
@@ -847,42 +856,60 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       return;
     }
 
-    const options = optionsText
-      .split("\n")
-      .map((o) => o.trim())
-      .filter((o) => o.length > 0);
+    let newQuestion: any = { type: questionType, question: trimmedQuestion };
+    if (questionType === "mcq") {
+      const options = optionsText
+        .split("\n")
+        .map((o) => o.trim())
+        .filter((o) => o.length > 0);
+      if (options.length < 2) {
+        alert("Please provide at least two answer options.");
+        return;
+      }
 
-    if (options.length < 2) {
-      alert("Please provide at least two answer options.");
-      return;
+      const correctNum = parseInt(correctOptionNumber, 10);
+      if (
+        Number.isNaN(correctNum) ||
+        correctNum < 1 ||
+        correctNum > options.length
+      ) {
+        alert(`Correct option number must be between 1 and ${options.length}.`);
+        return;
+      }
+      newQuestion = {
+        ...newQuestion,
+        options,
+        correct: correctNum - 1,
+        explanation: explanation.trim() || "No explanation provided.",
+      };
+    } else if (questionType === "dragdrop") {
+      if (
+        ddAnswerBank.length === 0 &&
+        ddSections.every((s) => s.answers.length === 0)
+      ) {
+        alert("Please add at least one answer to the bank or a section.");
+        return;
+      }
+      if (ddSections.length < 2) {
+        alert("Please provide at least two sections.");
+        return;
+      }
+      newQuestion = {
+        ...newQuestion,
+        answerBank: ddAnswerBank.map((a) => a.text),
+        sections: ddSections.map((s) => ({
+          name: s.name,
+          answers: s.answers.map((a) => a.text),
+        })),
+        explanation: explanation.trim() || "No explanation provided.",
+      };
     }
-
-    const correctNum = parseInt(correctOptionNumber, 10);
-    if (
-      Number.isNaN(correctNum) ||
-      correctNum < 1 ||
-      correctNum > options.length
-    ) {
-      alert(`Correct option number must be between 1 and ${options.length}.`);
-      return;
-    }
-
-    const newQuestion: any = {
-      question: trimmedQuestion,
-      options,
-      correct: correctNum - 1,
-      explanation: explanation.trim() || "No explanation provided.",
-    };
 
     const trimmedImage = imageUrl.trim();
-    if (trimmedImage) {
-      newQuestion.imageUrl = trimmedImage;
-    }
+    if (trimmedImage) newQuestion.imageUrl = trimmedImage;
 
     const trimmedStorageId = imageStorageId.trim();
-    if (trimmedStorageId) {
-      newQuestion.imageStorageId = trimmedStorageId;
-    }
+    if (trimmedStorageId) newQuestion.imageStorageId = trimmedStorageId;
 
     const existing = selectedLesson.questions || [];
     const updatedQuestions =
@@ -904,11 +931,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   const handleDeleteQuestion = async (index: number) => {
     if (!selectedLesson) return;
-
-    const confirmDelete = window.confirm(
-      `Delete question ${index + 1} from "${selectedLesson.title}"?`,
-    );
-    if (!confirmDelete) return;
+    if (
+      !window.confirm(
+        `Delete question ${index + 1} from "${selectedLesson.title}"?`,
+      )
+    )
+      return;
 
     const existing = selectedLesson.questions || [];
     const updatedQuestions = existing.filter(
@@ -920,7 +948,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       questions: updatedQuestions,
     });
 
-    // Adjust editing state if needed
     setEditingIndex((current) => {
       if (current === null) return current;
       if (current === index) {
@@ -932,24 +959,23 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     });
   };
 
-  // DELETE HANDLER
   const handleDelete = async (studentId: any, userId: string) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to remove Student ${userId}? \n\nThis will permanently delete their progress and XP.`,
-    );
-
-    if (confirmDelete) {
+    if (
+      window.confirm(
+        `Are you sure you want to remove Student ${userId}? \n\nThis will permanently delete their progress and XP.`,
+      )
+    ) {
       await removeStudent({ id: studentId });
     }
   };
 
   const handleResetAllStudentProgress = async () => {
-    const confirmDelete = window.confirm(
-      "Reset all student progress for everyone? This will permanently remove XP, streaks, completion progress, and lesson attempts.",
-    );
-
-    if (!confirmDelete) return;
-
+    if (
+      !window.confirm(
+        "Reset all student progress for everyone? This will permanently remove XP, streaks, completion progress, and lesson attempts.",
+      )
+    )
+      return;
     const confirmationText = window.prompt(
       "Type RESET to confirm deleting all student progress:",
       "",
@@ -958,7 +984,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       alert("Reset cancelled. Confirmation text did not match.");
       return;
     }
-
     await resetAllStudentProgress({});
     setSelectedStudentUserId(null);
     setSelectedStudentName("");
@@ -988,7 +1013,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <div className="h-screen overflow-y-auto overflow-x-hidden bg-slate-50 p-6 font-sans">
-      {/* HEADER */}
       <div className="max-w-6xl mx-auto mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
@@ -1100,14 +1124,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b">
                 <tr>
-                  {/* SPLIT HEADERS */}
                   <th className="px-6 py-3 font-medium text-indigo-900">
                     First Name
                   </th>
                   <th className="px-6 py-3 font-medium text-indigo-900">
                     Last Name
                   </th>
-
                   <th className="px-6 py-3 font-medium">Student ID</th>
                   <th className="px-6 py-3 font-medium">XP Earned</th>
                   <th className="px-6 py-3 font-medium">Streak</th>
@@ -1118,12 +1140,9 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
               </thead>
               <tbody>
                 {filteredStudents.map((student: any) => {
-                  // LOGIC TO SPLIT NAME
                   const fullName = student.userName || "Anonymous";
-                  // Split by the first space found
                   const nameParts = fullName.split(" ");
                   const firstName = nameParts[0];
-                  // Join the rest back together (handles names like "Von Neumann")
                   const lastName = nameParts.slice(1).join(" ") || "-";
                   const isSelectedStudent =
                     selectedStudentUserId === student.userId;
@@ -1139,16 +1158,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                         isSelectedStudent ? "bg-indigo-50" : ""
                       }`}
                     >
-                      {/* FIRST NAME COLUMN */}
                       <td className="px-6 py-4 font-bold text-slate-800">
                         {firstName}
                       </td>
-
-                      {/* LAST NAME COLUMN */}
                       <td className="px-6 py-4 font-semibold text-slate-600">
                         {lastName}
                       </td>
-
                       <td className="px-6 py-4 font-medium text-slate-400 font-mono text-xs">
                         {student.userId.substring(0, 8)}...
                       </td>
@@ -1210,6 +1225,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
           </div>
         </Card>
 
+        {/* Student Report Modal */}
         {selectedStudentUserId &&
           createPortal(
             <div
@@ -1249,13 +1265,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   {!studentAttempts && (
                     <p className="text-sm text-slate-500">Loading report...</p>
                   )}
-
                   {studentAttempts && reportLessons.length === 0 && (
                     <p className="text-sm text-slate-500">
                       No attempted lessons yet.
                     </p>
                   )}
-
                   {studentAttempts && reportLessons.length > 0 && (
                     <div className="space-y-4">
                       <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
@@ -1409,18 +1423,31 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           <p className="text-sm font-medium text-slate-800">
                                             {q.question}
                                           </p>
-                                          <div className="mt-2 text-xs text-slate-600">
-                                            <span className="font-semibold">
-                                              Student answer:
-                                            </span>{" "}
-                                            {selectedOption}
-                                          </div>
-                                          <div className="mt-1 text-xs text-slate-600">
-                                            <span className="font-semibold">
-                                              Correct:
-                                            </span>{" "}
-                                            {q.options?.[q.correct] ?? "-"}
-                                          </div>
+
+                                          {q.type !== "dragdrop" ? (
+                                            <>
+                                              <div className="mt-2 text-xs text-slate-600">
+                                                <span className="font-semibold">
+                                                  Student answer:
+                                                </span>{" "}
+                                                {selectedOption}
+                                              </div>
+                                              <div className="mt-1 text-xs text-slate-600">
+                                                <span className="font-semibold">
+                                                  Correct:
+                                                </span>{" "}
+                                                {q.options?.[q.correct] ?? "-"}
+                                              </div>
+                                            </>
+                                          ) : (
+                                            <div className="mt-2 text-xs text-slate-600">
+                                              <span className="font-semibold">
+                                                Student answer:
+                                              </span>{" "}
+                                              Drag & Drop Layout Submitted
+                                            </div>
+                                          )}
+
                                           <div className="mt-1 text-xs text-slate-600">
                                             <span className="font-semibold">
                                               Time spent:
@@ -1430,11 +1457,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           <div className="mt-2">
                                             {ans ? (
                                               <span
-                                                className={`text-xs px-2 py-1 rounded-full font-bold ${
-                                                  isCorrect
-                                                    ? "bg-green-100 text-green-700"
-                                                    : "bg-red-100 text-red-700"
-                                                }`}
+                                                className={`text-xs px-2 py-1 rounded-full font-bold ${isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                                               >
                                                 {isCorrect
                                                   ? "Correct"
@@ -1489,8 +1512,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   }}
                   className="bg-white"
                 >
-                  <PlusCircle className="w-4 h-4 mr-1" />
-                  Add module
+                  <PlusCircle className="w-4 h-4 mr-1" /> Add module
                 </Button>
                 <Button
                   variant="outline"
@@ -1506,8 +1528,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   }}
                   className="bg-white"
                 >
-                  <PlusCircle className="w-4 h-4 mr-1" />
-                  Add lesson
+                  <PlusCircle className="w-4 h-4 mr-1" /> Add lesson
                 </Button>
                 <Button
                   variant="outline"
@@ -1537,6 +1558,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 >
                   {showManageLessons ? "Hide lessons" : "Manage lessons"}
                 </Button>
+
                 <label className="text-sm text-slate-600 flex flex-col gap-1 w-full sm:w-auto sm:min-w-[210px]">
                   <span className="font-medium">Module:</span>
                   <div
@@ -1547,8 +1569,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                       type="button"
                       onClick={() => setModuleFilterDropdownOpen((v) => !v)}
                       className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-left"
-                      aria-haspopup="listbox"
-                      aria-expanded={moduleFilterDropdownOpen}
                     >
                       <span className="truncate text-slate-800">
                         {lessonModuleFilter === "all"
@@ -1565,12 +1585,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                       </span>
                       <ChevronDown className="ml-2 h-4 w-4 text-slate-400 flex-shrink-0" />
                     </button>
-
                     {moduleFilterDropdownOpen && (
-                      <div
-                        role="listbox"
-                        className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden"
-                      >
+                      <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
                         <div className="max-h-64 overflow-y-auto py-1">
                           {[
                             { key: "all", label: "All modules" },
@@ -1584,8 +1600,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                               <button
                                 key={opt.key}
                                 type="button"
-                                role="option"
-                                aria-selected={isSelected}
                                 onClick={() => {
                                   setLessonModuleFilter(opt.key);
                                   setLessonDropdownOpen(false);
@@ -1608,6 +1622,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     )}
                   </div>
                 </label>
+
                 <label className="text-sm text-slate-600 flex flex-col gap-1 w-full sm:w-auto sm:min-w-[240px]">
                   <span className="font-medium">Select lesson:</span>
                   <div
@@ -1621,8 +1636,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                       }
                       onClick={() => setLessonDropdownOpen((v) => !v)}
                       className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left"
-                      aria-haspopup="listbox"
-                      aria-expanded={lessonDropdownOpen}
                     >
                       <span className="truncate text-slate-800">
                         {!lessons
@@ -1633,14 +1646,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                       </span>
                       <ChevronDown className="ml-2 h-4 w-4 text-slate-400 flex-shrink-0" />
                     </button>
-
                     {lessonDropdownOpen &&
                       filteredLessons &&
                       filteredLessons.length > 0 && (
-                        <div
-                          role="listbox"
-                          className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden"
-                        >
+                        <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
                           <div className="max-h-64 overflow-y-auto py-1">
                             {filteredLessons.map((lesson: any) => {
                               const isSelected =
@@ -1649,8 +1658,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 <button
                                   key={lesson._id}
                                   type="button"
-                                  role="option"
-                                  aria-selected={isSelected}
                                   onClick={() => {
                                     setSelectedLessonId(lesson._id);
                                     setLessonDropdownOpen(false);
@@ -1679,6 +1686,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {/* Manage Modules/Lessons Modals */}
             {(showManageModules || showManageLessons) &&
               createPortal(
                 <div
@@ -1750,7 +1758,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           onChange={(e) =>
                                             setNewModuleCode(e.target.value)
                                           }
-                                          placeholder="e.g., QXU7044"
                                         />
                                       </div>
                                       <div className="flex flex-col gap-1">
@@ -1764,7 +1771,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           onChange={(e) =>
                                             setNewModuleTitle(e.target.value)
                                           }
-                                          placeholder="e.g., Polymer Processing"
                                         />
                                       </div>
                                     </div>
@@ -1781,7 +1787,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                             e.target.value,
                                           )
                                         }
-                                        placeholder="Short description shown on the course tile."
                                       />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1805,7 +1810,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                               onClick={() =>
                                                 setNewModuleColor(c)
                                               }
-                                              className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${newModuleColor === c ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                                              className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${
+                                                newModuleColor === c
+                                                  ? "border-indigo-300 bg-indigo-50 text-indigo-900"
+                                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                              }`}
                                             >
                                               {c}
                                             </button>
@@ -1830,7 +1839,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                                   opt.key as any,
                                                 )
                                               }
-                                              className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${newModuleIconKey === opt.key ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                                              className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${
+                                                newModuleIconKey === opt.key
+                                                  ? "border-indigo-300 bg-indigo-50 text-indigo-900"
+                                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                              }`}
                                             >
                                               {opt.label}
                                             </button>
@@ -1868,9 +1881,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                     setModuleDropTargetId(module._id);
                                   }}
                                   onDragLeave={() => {
-                                    if (moduleDropTargetId === module._id) {
+                                    if (moduleDropTargetId === module._id)
                                       setModuleDropTargetId(null);
-                                    }
                                   }}
                                   onDrop={async (event) => {
                                     event.preventDefault();
@@ -1910,20 +1922,16 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                       size="sm"
                                       className="text-slate-600 hover:bg-slate-100"
                                       onClick={() => startEditModule(module)}
-                                      title="Edit module"
                                     >
-                                      <Pencil className="w-4 h-4 mr-1" />
-                                      Edit
+                                      <Pencil className="w-4 h-4 mr-1" /> Edit
                                     </Button>
                                     <Button
                                       variant="ghost"
                                       size="sm"
                                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                       onClick={() => handleDeleteModule(module)}
-                                      title="Delete module"
                                     >
-                                      <Trash2 className="w-4 h-4 mr-1" />
-                                      Delete
+                                      <Trash2 className="w-4 h-4 mr-1" /> Delete
                                     </Button>
                                   </div>
                                 </div>
@@ -1992,10 +2000,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           {moduleDropdownOpen &&
                                             modules &&
                                             modules.length > 0 && (
-                                              <div
-                                                role="listbox"
-                                                className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden"
-                                              >
+                                              <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
                                                 <div className="max-h-48 overflow-y-auto py-1">
                                                   {modules.map((m: any) => {
                                                     const isSel =
@@ -2005,8 +2010,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                                       <button
                                                         key={m.moduleKey}
                                                         type="button"
-                                                        role="option"
-                                                        aria-selected={isSel}
                                                         onClick={() => {
                                                           setNewLessonSection(
                                                             m.moduleKey,
@@ -2015,7 +2018,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                                             false,
                                                           );
                                                         }}
-                                                        className={`w-full px-3 py-2 text-sm text-left transition-colors ${isSel ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}
+                                                        className={`w-full px-3 py-2 text-sm text-left transition-colors ${
+                                                          isSel
+                                                            ? "bg-indigo-50 text-indigo-900"
+                                                            : "text-slate-700 hover:bg-slate-50"
+                                                        }`}
                                                       >
                                                         <div className="font-medium truncate">
                                                           {m.code} — {m.title}
@@ -2041,7 +2048,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                               e.target.value,
                                             )
                                           }
-                                          placeholder="Beginner / Intermediate / Advanced / Expert"
                                         />
                                       </div>
                                     </div>
@@ -2056,7 +2062,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                         onChange={(e) =>
                                           setNewLessonTitle(e.target.value)
                                         }
-                                        placeholder="e.g., 9. Polymer Characterisation"
                                       />
                                     </div>
                                     <div className="flex flex-col gap-1">
@@ -2072,7 +2077,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                             e.target.value,
                                           )
                                         }
-                                        placeholder="Short description shown to students."
                                       />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -2105,7 +2109,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           onChange={(e) =>
                                             setNewLessonOrder(e.target.value)
                                           }
-                                          placeholder="Auto"
                                         />
                                       </div>
                                     </div>
@@ -2139,9 +2142,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                     setLessonDropTargetId(lesson._id);
                                   }}
                                   onDragLeave={() => {
-                                    if (lessonDropTargetId === lesson._id) {
+                                    if (lessonDropTargetId === lesson._id)
                                       setLessonDropTargetId(null);
-                                    }
                                   }}
                                   onDrop={async (event) => {
                                     event.preventDefault();
@@ -2182,8 +2184,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                       className="text-slate-600 hover:bg-slate-100"
                                       onClick={() => startEditLesson(lesson)}
                                     >
-                                      <Pencil className="w-4 h-4 mr-1" />
-                                      Edit
+                                      <Pencil className="w-4 h-4 mr-1" /> Edit
                                     </Button>
                                     <Button
                                       variant="ghost"
@@ -2191,8 +2192,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                       onClick={() => handleDeleteLesson(lesson)}
                                     >
-                                      <Trash2 className="w-4 h-4 mr-1" />
-                                      Delete
+                                      <Trash2 className="w-4 h-4 mr-1" /> Delete
                                     </Button>
                                   </div>
                                 </div>
@@ -2207,6 +2207,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 document.body,
               )}
 
+            {/* Add Module Modal */}
             {showAddModule &&
               createPortal(
                 <div
@@ -2246,7 +2247,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                               className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               value={newModuleCode}
                               onChange={(e) => setNewModuleCode(e.target.value)}
-                              placeholder="e.g., QXU7044"
                             />
                           </div>
                           <div className="flex flex-col gap-1">
@@ -2260,7 +2260,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                               onChange={(e) =>
                                 setNewModuleTitle(e.target.value)
                               }
-                              placeholder="e.g., Polymer Processing"
                             />
                           </div>
                         </div>
@@ -2276,7 +2275,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             onChange={(e) =>
                               setNewModuleDescription(e.target.value)
                             }
-                            placeholder="Short description shown on the course tile."
                           />
                         </div>
 
@@ -2349,7 +2347,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             Clear
                           </Button>
                           <Button size="sm" onClick={handleSaveModule}>
-                            {editingModuleId ? "Save module" : "Create module"}
+                            Create module
                           </Button>
                         </div>
                       </div>
@@ -2359,6 +2357,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 document.body,
               )}
 
+            {/* Add Lesson Modal */}
             {showAddLesson &&
               createPortal(
                 <div
@@ -2399,8 +2398,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 disabled={!modules || modules.length === 0}
                                 onClick={() => setModuleDropdownOpen((v) => !v)}
                                 className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left"
-                                aria-haspopup="listbox"
-                                aria-expanded={moduleDropdownOpen}
                               >
                                 <span className="truncate text-slate-800">
                                   {!modules
@@ -2417,10 +2414,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                               {moduleDropdownOpen &&
                                 modules &&
                                 modules.length > 0 && (
-                                  <div
-                                    role="listbox"
-                                    className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden"
-                                  >
+                                  <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
                                     <div className="max-h-64 overflow-y-auto py-1">
                                       {modules.map((m: any) => {
                                         const isSelected =
@@ -2429,8 +2423,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           <button
                                             key={m.moduleKey}
                                             type="button"
-                                            role="option"
-                                            aria-selected={isSelected}
                                             onClick={() => {
                                               setNewLessonSection(m.moduleKey);
                                               setModuleDropdownOpen(false);
@@ -2467,7 +2459,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                               onChange={(e) =>
                                 setNewLessonDifficulty(e.target.value)
                               }
-                              placeholder="Beginner / Intermediate / Advanced / Expert"
                             />
                           </div>
                         </div>
@@ -2481,7 +2472,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             value={newLessonTitle}
                             onChange={(e) => setNewLessonTitle(e.target.value)}
-                            placeholder="e.g., 9. Polymer Characterisation"
                           />
                         </div>
 
@@ -2496,7 +2486,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             onChange={(e) =>
                               setNewLessonDescription(e.target.value)
                             }
-                            placeholder="Short description shown to students."
                           />
                         </div>
 
@@ -2518,9 +2507,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
                           <div className="flex flex-col gap-1">
                             <label className="text-xs font-medium text-slate-700">
-                              Order
+                              Order{" "}
                               <span className="font-normal text-slate-500">
-                                {" "}
                                 (optional)
                               </span>
                             </label>
@@ -2541,14 +2529,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              resetNewLessonForm();
-                            }}
+                            onClick={() => resetNewLessonForm()}
                           >
                             Clear
                           </Button>
                           <Button size="sm" onClick={handleSaveLesson}>
-                            {editingLessonId ? "Save lesson" : "Create lesson"}
+                            Create lesson
                           </Button>
                         </div>
                       </div>
@@ -2558,6 +2544,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 document.body,
               )}
 
+            {/* Questions View */}
             {!selectedLesson && (
               <p className="text-sm text-slate-500">
                 {lessons && lessons.length === 0
@@ -2601,7 +2588,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   </div>
                 </div>
 
-                {/* Existing questions overview */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-semibold text-slate-800">
@@ -2612,8 +2598,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                       size="sm"
                       onClick={startAddNewQuestion}
                     >
-                      <PlusCircle className="w-4 h-4 mr-1" />
-                      Add new question
+                      <PlusCircle className="w-4 h-4 mr-1" /> Add new question
                     </Button>
                   </div>
 
@@ -2633,10 +2618,18 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 {q.question}
                               </p>
                               <p className="text-xs text-slate-500 mt-1">
-                                Correct answer:{" "}
-                                <span className="font-semibold">
-                                  {q.options?.[q.correct] ?? "Not set"}
-                                </span>
+                                {q.type === "dragdrop" ? (
+                                  <span className="italic">
+                                    Drag & Drop Question
+                                  </span>
+                                ) : (
+                                  <>
+                                    Correct answer:{" "}
+                                    <span className="font-semibold">
+                                      {q.options?.[q.correct] ?? "Not set"}
+                                    </span>
+                                  </>
+                                )}
                               </p>
                             </div>
                             <div className="flex items-start gap-2">
@@ -2646,8 +2639,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 className="text-slate-600 hover:bg-slate-100"
                                 onClick={() => startEditQuestion(idx)}
                               >
-                                <Pencil className="w-4 h-4 mr-1" />
-                                Edit
+                                <Pencil className="w-4 h-4 mr-1" /> Edit
                               </Button>
                               <Button
                                 variant="ghost"
@@ -2655,12 +2647,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => handleDeleteQuestion(idx)}
                               >
-                                <Trash2 className="w-4 h-4 mr-1" />
-                                Delete
+                                <Trash2 className="w-4 h-4 mr-1" /> Delete
                               </Button>
                             </div>
                           </div>
 
+                          {/* Responses Preview */}
                           {(() => {
                             const questionKey = `${selectedLesson._id}:${idx}`;
                             const responses =
@@ -2669,55 +2661,65 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                               (_option: string, optionIdx: number) => {
                                 const users = new Set<string>();
                                 for (const response of responses) {
-                                  if (response.selectedOption === optionIdx) {
+                                  if (response.selectedOption === optionIdx)
                                     users.add(response.userId);
-                                  }
                                 }
                                 return users.size;
                               },
                             );
                             const uniqueNoAnswerUsers = new Set<string>();
                             for (const response of responses) {
-                              if (response.selectedOption === null) {
+                              if (
+                                response.selectedOption === null &&
+                                !response.placedSections
+                              )
                                 uniqueNoAnswerUsers.add(response.userId);
-                              }
                             }
 
                             return (
                               <div className="mt-3 border-t pt-3">
-                                <div className="mb-2 space-y-1">
-                                  {(q.options || []).map(
-                                    (option: string, optionIdx: number) => (
-                                      <p
-                                        key={`${questionKey}:count:${optionIdx}`}
-                                        className="text-xs text-slate-600"
-                                      >
+                                {q.type !== "dragdrop" ? (
+                                  <div className="mb-2 space-y-1">
+                                    {(q.options || []).map(
+                                      (option: string, optionIdx: number) => (
+                                        <p
+                                          key={`${questionKey}:count:${optionIdx}`}
+                                          className="text-xs text-slate-600"
+                                        >
+                                          <span className="font-semibold">
+                                            Option {optionIdx + 1}:
+                                          </span>{" "}
+                                          {uniquePickersByOption[optionIdx]}{" "}
+                                          {uniquePickersByOption[optionIdx] ===
+                                          1
+                                            ? "person"
+                                            : "people"}
+                                          <span className="text-slate-500">{` (${option})`}</span>
+                                        </p>
+                                      ),
+                                    )}
+                                    {uniqueNoAnswerUsers.size > 0 && (
+                                      <p className="text-xs text-slate-600">
                                         <span className="font-semibold">
-                                          Option {optionIdx + 1}:
+                                          No answer:
                                         </span>{" "}
-                                        {uniquePickersByOption[optionIdx]}{" "}
-                                        {uniquePickersByOption[optionIdx] === 1
+                                        {uniqueNoAnswerUsers.size}{" "}
+                                        {uniqueNoAnswerUsers.size === 1
                                           ? "person"
                                           : "people"}
-                                        <span className="text-slate-500">
-                                          {` (${option})`}
-                                        </span>
                                       </p>
-                                    ),
-                                  )}
-                                  {uniqueNoAnswerUsers.size > 0 && (
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="mb-2 space-y-1">
                                     <p className="text-xs text-slate-600">
                                       <span className="font-semibold">
-                                        No answer:
+                                        Total Responses:
                                       </span>{" "}
-                                      {uniqueNoAnswerUsers.size}{" "}
-                                      {uniqueNoAnswerUsers.size === 1
-                                        ? "person"
-                                        : "people"}
+                                      {responses.length}
                                     </p>
-                                  )}
-                                </div>
-
+                                  </div>
+                                )}
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -2740,14 +2742,14 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                   )}
                 </div>
 
+                {/* Response Modal */}
                 {responseModalQuestionIndex !== null &&
                   createPortal(
                     <div
                       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
                       onPointerDown={(e) => {
-                        if (e.target === e.currentTarget) {
+                        if (e.target === e.currentTarget)
                           setResponseModalQuestionIndex(null);
-                        }
                       }}
                     >
                       <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden">
@@ -2772,7 +2774,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             <XCircle className="w-4 h-4" />
                           </Button>
                         </div>
-
                         <div className="overflow-y-auto p-4">
                           {(() => {
                             const activeQuestion =
@@ -2785,29 +2786,24 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                               ) || [];
                             const modalKey = `${selectedLesson._id}:${responseModalQuestionIndex}`;
 
-                            if (!activeQuestion) {
+                            if (!activeQuestion)
                               return (
                                 <p className="text-xs text-slate-500 italic">
                                   This question is no longer available.
                                 </p>
                               );
-                            }
-
-                            if (!selectedLessonAttempts) {
+                            if (!selectedLessonAttempts)
                               return (
                                 <p className="text-xs text-slate-500">
                                   Loading responses...
                                 </p>
                               );
-                            }
-
-                            if (responses.length === 0) {
+                            if (responses.length === 0)
                               return (
                                 <p className="text-xs text-slate-500 italic">
                                   No responses yet for this question.
                                 </p>
                               );
-                            }
 
                             return (
                               <div className="space-y-2">
@@ -2842,23 +2838,71 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           Submitted: {submittedAt}
                                         </span>
                                       </div>
-                                      <div className="mt-1 text-slate-600">
-                                        Answer: {selectedOptionLabel}
-                                        {selectedOptionLabel !== "No answer"
-                                          ? ` - ${selectedOptionText}`
-                                          : ""}
-                                      </div>
-                                      <div className="mt-1 text-slate-600">
-                                        Time spent:{" "}
-                                        {formatDurationMs(response.timeSpentMs)}
-                                      </div>
-                                      <div className="mt-1">
+
+                                      {activeQuestion.type !== "dragdrop" ? (
+                                        <div className="mt-1 text-slate-600">
+                                          Answer: {selectedOptionLabel}{" "}
+                                          {selectedOptionLabel !== "No answer"
+                                            ? ` - ${selectedOptionText}`
+                                            : ""}
+                                        </div>
+                                      ) : (
+                                        <div className="mt-2 text-slate-600 bg-white p-2 rounded border border-slate-200">
+                                          <span className="font-semibold block mb-2 text-[11px] uppercase tracking-wider text-slate-500">
+                                            Student's Layout
+                                          </span>
+                                          {response.placedSections &&
+                                          response.placedSections.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                              {response.placedSections.map(
+                                                (sec: any, secIdx: number) => (
+                                                  <div
+                                                    key={secIdx}
+                                                    className="flex-1 min-w-[100px] border border-indigo-100 rounded bg-indigo-50/30 p-1.5"
+                                                  >
+                                                    <div className="font-semibold text-[10px] text-indigo-900 border-b border-indigo-100 pb-0.5 mb-1">
+                                                      {sec.name}
+                                                    </div>
+                                                    {sec.answers &&
+                                                    sec.answers.length > 0 ? (
+                                                      <ul className="list-disc list-inside text-[11px] text-slate-700 space-y-0.5">
+                                                        {sec.answers.map(
+                                                          (
+                                                            a: string,
+                                                            aIdx: number,
+                                                          ) => (
+                                                            <li key={aIdx}>
+                                                              {a}
+                                                            </li>
+                                                          ),
+                                                        )}
+                                                      </ul>
+                                                    ) : (
+                                                      <span className="text-[10px] italic text-slate-400">
+                                                        Empty
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                ),
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span className="italic text-[11px] text-slate-400">
+                                              No layout saved.
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      <div className="mt-2 text-slate-600 flex justify-between items-center">
+                                        <span>
+                                          Time spent:{" "}
+                                          {formatDurationMs(
+                                            response.timeSpentMs,
+                                          )}
+                                        </span>
                                         <span
-                                          className={`px-2 py-0.5 rounded-full font-semibold ${
-                                            response.isCorrect
-                                              ? "bg-green-100 text-green-700"
-                                              : "bg-red-100 text-red-700"
-                                          }`}
+                                          className={`px-2 py-0.5 rounded-full font-semibold ${response.isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                                         >
                                           {response.isCorrect
                                             ? "Correct"
@@ -2877,7 +2921,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     document.body,
                   )}
 
-                {/* Edit / add form */}
+                {/* Edit / Add Form */}
                 <div className="border-t pt-4 mt-2">
                   <h3 className="text-sm font-semibold text-slate-800 mb-2">
                     {editingIndex === null
@@ -2885,6 +2929,21 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                       : `Edit question ${editingIndex + 1}`}
                   </h3>
                   <div className="space-y-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-slate-700">
+                        Question type
+                      </label>
+                      <select
+                        className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2"
+                        value={questionType}
+                        onChange={(e) =>
+                          setQuestionType(e.target.value as "mcq" | "dragdrop")
+                        }
+                      >
+                        <option value="mcq">Multiple Choice</option>
+                        <option value="dragdrop">Drag & Drop</option>
+                      </select>
+                    </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium text-slate-700">
                         Question text
@@ -2897,118 +2956,326 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                       />
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Answer options (one per line)
-                      </label>
-                      <textarea
-                        rows={4}
-                        className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={optionsText}
-                        onChange={(e) => setOptionsText(e.target.value)}
-                      />
-                    </div>
+                    {questionType === "mcq" && (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-slate-700">
+                            Answer options (one per line)
+                          </label>
+                          <textarea
+                            rows={4}
+                            className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={optionsText}
+                            onChange={(e) => setOptionsText(e.target.value)}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-slate-700">
+                              Correct option number{" "}
+                              <span className="font-normal text-slate-500">
+                                (1 = first line)
+                              </span>
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              value={correctOptionNumber}
+                              onChange={(e) =>
+                                setCorrectOptionNumber(e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-slate-700">
-                          Correct option number
-                          <span className="font-normal text-slate-500">
-                            {" "}
-                            (1 = first line)
-                          </span>
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          value={correctOptionNumber}
-                          onChange={(e) =>
-                            setCorrectOptionNumber(e.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-slate-700">
-                          Upload image
-                        </label>
-                        <input
-                          id="question-image-upload"
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          onChange={handleImageUpload}
-                          disabled={isUploading}
-                          ref={imageInputRef}
-                        />
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            imageInputRef.current?.click();
-                          }}
-                          className={`inline-flex w-fit items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${
-                            isUploading
-                              ? "opacity-60 pointer-events-none"
-                              : "cursor-pointer"
-                          }`}
-                        >
-                          Choose image to upload
-                        </button>
-                        <p className="text-[11px] text-slate-500">
-                          {imageFileName || "No file selected"}
-                        </p>
-                        {imageStorageId ? (
-                          <p className="text-[11px] text-slate-500">
-                            Uploaded: {imageStorageId}
-                          </p>
-                        ) : null}
-                        <div className="mt-2 w-full h-48 bg-slate-50 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden relative">
-                          {isUploading ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-                              <p className="text-xs text-slate-500">
-                                Securely Processing Image...
-                              </p>
-                            </div>
-                          ) : previewUrl ? (
-                            <div className="relative w-full h-full">
-                              <img
-                                key={previewUrl}
-                                src={previewUrl}
-                                alt="Preview"
-                                className="w-full h-full object-contain p-2"
-                                onError={() => {
-                                  setBrokenLinks((prev) => {
-                                    const next = new Set(prev);
-                                    next.add(previewUrl);
-                                    return next;
-                                  });
+                    {questionType === "dragdrop" && (
+                      <div className="border rounded-md p-3 bg-slate-50">
+                        <div className="mb-2">
+                          <label className="text-xs font-medium text-slate-700">
+                            Answer bank
+                          </label>
+                          <div className="flex gap-2 mt-1">
+                            <input
+                              type="text"
+                              className="flex-1 rounded-md border border-slate-200 text-sm px-2 h-8"
+                              value={ddBankInput}
+                              onChange={(e) => setDdBankInput(e.target.value)}
+                              placeholder="Add answer and press Enter"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && ddBankInput.trim()) {
+                                  setDdAnswerBank([
+                                    ...ddAnswerBank,
+                                    {
+                                      id: crypto.randomUUID(),
+                                      text: ddBankInput.trim(),
+                                    },
+                                  ]);
+                                  setDdBankInput("");
+                                  e.preventDefault();
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="px-2 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition"
+                              onClick={() => {
+                                if (ddBankInput.trim()) {
+                                  setDdAnswerBank([
+                                    ...ddAnswerBank,
+                                    {
+                                      id: crypto.randomUUID(),
+                                      text: ddBankInput.trim(),
+                                    },
+                                  ]);
+                                  setDdBankInput("");
+                                }
+                              }}
+                            >
+                              Add
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {ddAnswerBank.map((ans) => (
+                              <div
+                                key={ans.id}
+                                draggable
+                                onDragStart={(e) =>
+                                  e.dataTransfer.setData("text/plain", ans.id)
+                                }
+                                className="px-2 py-1 bg-white border rounded shadow text-sm cursor-move flex items-center"
+                              >
+                                {ans.text}
+                                <button
+                                  type="button"
+                                  className="ml-2 text-xs text-red-500 hover:text-red-700"
+                                  onClick={() =>
+                                    setDdAnswerBank(
+                                      ddAnswerBank.filter(
+                                        (a) => a.id !== ans.id,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mb-2">
+                          <label className="text-xs font-medium text-slate-700">
+                            Sections
+                          </label>
+                          <div className="flex gap-2 mb-2">
+                            {ddSections.map((section, sIdx) => (
+                              <input
+                                key={`sec-input-${sIdx}`}
+                                type="text"
+                                className="rounded-md border border-slate-200 text-sm px-2 h-8"
+                                value={section.name}
+                                onChange={(e) => {
+                                  const newSections = [...ddSections];
+                                  newSections[sIdx].name = e.target.value;
+                                  setDdSections(newSections);
                                 }}
                               />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setImageUrl("");
-                                  setImageStorageId("");
+                            ))}
+                            <button
+                              type="button"
+                              className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition"
+                              onClick={() =>
+                                setDdSections([
+                                  ...ddSections,
+                                  {
+                                    name: `Section ${ddSections.length + 1}`,
+                                    answers: [],
+                                  },
+                                ])
+                              }
+                            >
+                              + Add Section
+                            </button>
+                          </div>
+                          <div className="flex gap-4">
+                            {ddSections.map((section, sIdx) => (
+                              <div
+                                key={`sec-drop-${sIdx}`}
+                                className="flex-1 min-w-[120px] bg-white border rounded p-2 min-h-[60px]"
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                  const draggedId =
+                                    e.dataTransfer.getData("text/plain");
+                                  if (!draggedId) return;
+
+                                  let draggedItem = ddAnswerBank.find(
+                                    (a) => a.id === draggedId,
+                                  );
+                                  if (!draggedItem) {
+                                    for (const sec of ddSections) {
+                                      const found = sec.answers.find(
+                                        (a) => a.id === draggedId,
+                                      );
+                                      if (found) draggedItem = found;
+                                    }
+                                  }
+                                  if (!draggedItem) return;
+
+                                  setDdAnswerBank((prev) =>
+                                    prev.filter((a) => a.id !== draggedId),
+                                  );
+
+                                  const newSections = ddSections.map(
+                                    (sec, i) => {
+                                      const filteredAnswers =
+                                        sec.answers.filter(
+                                          (a) => a.id !== draggedId,
+                                        );
+                                      if (i === sIdx) {
+                                        return {
+                                          ...sec,
+                                          answers: [
+                                            ...filteredAnswers,
+                                            draggedItem!,
+                                          ],
+                                        };
+                                      }
+                                      return {
+                                        ...sec,
+                                        answers: filteredAnswers,
+                                      };
+                                    },
+                                  );
+
+                                  setDdSections(newSections);
                                 }}
-                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
-                                title="Remove image"
                               >
-                                <XCircle className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="text-center p-4">
-                              <p className="text-xs text-slate-400 font-medium italic">
-                                {brokenLinks.size > 0
-                                  ? "Blocked resource hidden"
-                                  : "Ready for diagram"}
-                              </p>
-                            </div>
-                          )}
+                                <div className="font-semibold text-xs mb-1 border-b pb-1">
+                                  {section.name}
+                                </div>
+                                {section.answers.length === 0 && (
+                                  <div className="text-slate-400 text-xs italic mt-2">
+                                    Drop answers here
+                                  </div>
+                                )}
+                                {section.answers.map((ans) => (
+                                  <div
+                                    key={ans.id}
+                                    className="px-2 py-1 bg-indigo-50 border border-indigo-100 rounded shadow-sm text-sm flex items-center justify-between mt-2 cursor-move"
+                                    draggable
+                                    onDragStart={(e) =>
+                                      e.dataTransfer.setData(
+                                        "text/plain",
+                                        ans.id,
+                                      )
+                                    }
+                                  >
+                                    <span className="truncate mr-2">
+                                      {ans.text}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      className="text-xs text-red-500 hover:text-red-700 shrink-0"
+                                      onClick={() => {
+                                        const newSections = [...ddSections];
+                                        newSections[sIdx].answers = newSections[
+                                          sIdx
+                                        ].answers.filter(
+                                          (a) => a.id !== ans.id,
+                                        );
+                                        setDdSections(newSections);
+                                        setDdAnswerBank([...ddAnswerBank, ans]);
+                                      }}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
                         </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-slate-700">
+                        Upload image
+                      </label>
+                      <input
+                        id="question-image-upload"
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={handleImageUpload}
+                        disabled={isUploading}
+                        ref={imageInputRef}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          imageInputRef.current?.click();
+                        }}
+                        className={`inline-flex w-fit items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${isUploading ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}
+                      >
+                        Choose image to upload
+                      </button>
+                      <p className="text-[11px] text-slate-500">
+                        {imageFileName || "No file selected"}
+                      </p>
+                      {imageStorageId && (
+                        <p className="text-[11px] text-slate-500">
+                          Uploaded: {imageStorageId}
+                        </p>
+                      )}
+
+                      <div className="mt-2 w-full h-48 bg-slate-50 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden relative">
+                        {isUploading ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                            <p className="text-xs text-slate-500">
+                              Securely Processing Image...
+                            </p>
+                          </div>
+                        ) : previewUrl ? (
+                          <div className="relative w-full h-full">
+                            <img
+                              key={previewUrl}
+                              src={previewUrl}
+                              alt="Preview"
+                              className="w-full h-full object-contain p-2"
+                              onError={() => {
+                                setBrokenLinks((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(previewUrl);
+                                  return next;
+                                });
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setImageUrl("");
+                                setImageStorageId("");
+                              }}
+                              className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
+                              title="Remove image"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-center p-4">
+                            <p className="text-xs text-slate-400 font-medium italic">
+                              {brokenLinks.size > 0
+                                ? "Blocked resource hidden"
+                                : "Ready for diagram"}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
 

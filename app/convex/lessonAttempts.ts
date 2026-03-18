@@ -81,9 +81,19 @@ export const saveAnswer = mutation({
   args: {
     attemptId: v.id("lessonAttempts"),
     questionIndex: v.number(),
-    selectedOption: v.union(v.number(), v.null()),
     isCorrect: v.boolean(),
     timeSpentMs: v.optional(v.number()),
+    // 1. MAKE THIS OPTIONAL:
+    selectedOption: v.optional(v.union(v.number(), v.null())),
+    // 2. ADD THIS NEW FIELD:
+    placedSections: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          answers: v.array(v.string()),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -97,16 +107,21 @@ export const saveAnswer = mutation({
     const nextAnswers = existing.filter(
       (a: any) => a.questionIndex !== args.questionIndex,
     );
-    nextAnswers.push({
+    // Build new answer object
+    const newAnswer: any = {
       questionIndex: args.questionIndex,
-      selectedOption: args.selectedOption,
       isCorrect: args.isCorrect,
       answeredAt: new Date().toISOString(),
       timeSpentMs:
         typeof args.timeSpentMs === "number"
           ? Math.max(0, Math.round(args.timeSpentMs))
           : undefined,
-    });
+    };
+    if (args.selectedOption !== undefined)
+      newAnswer.selectedOption = args.selectedOption;
+    if (args.placedSections !== undefined)
+      newAnswer.placedSections = args.placedSections;
+    nextAnswers.push(newAnswer);
 
     const totalTimeMs = nextAnswers.reduce(
       (acc: number, answer: any) => acc + (answer.timeSpentMs || 0),

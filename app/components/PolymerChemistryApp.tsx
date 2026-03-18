@@ -8,6 +8,7 @@ import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { StudentLeaderboard } from "./StudentLeaderboard";
 import { ExplainerText } from "./ExplainerText";
+import DragDropStudentQuestion from "./DragDropStudentQuestion";
 import {
   Card,
   CardContent,
@@ -39,16 +40,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-/**
- * Main application component for the Polymer Chemistry Learning Platform
- *
- * Features:
- * - Multi-course support with dynamic module loading
- * - Interactive quizzes with text-to-speech
- * - Progress tracking (XP, streaks, completed lessons)
- * - Review system with explanations
- * - Settings and data export functionality
- */
 const PolymerChemistryApp = () => {
   // ========================================
   // 1. MODULE CONFIGURATION
@@ -77,16 +68,12 @@ const PolymerChemistryApp = () => {
   // ========================================
   // 2. STATE MANAGEMENT
   // ========================================
-  // Navigation state
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null); // Currently selected course module
-  const [currentLesson, setCurrentLesson] = useState<any>(null); // Active lesson being taken
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+  const [currentLesson, setCurrentLesson] = useState<any>(null);
 
-  // Quiz state
-  const [currentQuestion, setCurrentQuestion] = useState(0); // Current question index (0-based)
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null); // Currently selected answer for active question
-  const [selectedAnswers, setSelectedAnswers] = useState<Array<number | null>>(
-    [], // Array storing all answers for the current quiz
-  );
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<any>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<Array<any>>([]);
   const [failedQuestionImages, setFailedQuestionImages] = useState<Set<string>>(
     new Set(),
   );
@@ -94,27 +81,24 @@ const PolymerChemistryApp = () => {
     Date.now(),
   );
   const [activeAttemptId, setActiveAttemptId] = useState<string | null>(null);
-  const [showResult, setShowResult] = useState(false); // Whether to show answer feedback
-  const [score, setScore] = useState(0); // Running score for current quiz
+  const [showResult, setShowResult] = useState(false);
+  const [score, setScore] = useState(0);
 
-  // UI state
-  const [showSettings, setShowSettings] = useState(false); // Toggle settings screen
-  const [showReview, setShowReview] = useState(false); // Toggle quiz review screen
-  const [reviewAnimate, setReviewAnimate] = useState(false); // Animation trigger for review screen
+  const [showSettings, setShowSettings] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [reviewAnimate, setReviewAnimate] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // ========================================
   // 3. BACKEND INTEGRATION (Convex)
   // ========================================
-  // Real-time queries - automatically re-render when data changes
-  const userProgress = useQuery(api.userProgress.get); // User's XP, streak, completed lessons
-  const lessons = useQuery(api.lessons.getAll); // All available lessons across all courses
-  const modules = useQuery(api.modules.getAll); // Course tiles shown on dashboard
+  const userProgress = useQuery(api.userProgress.get);
+  const lessons = useQuery(api.lessons.getAll);
+  const modules = useQuery(api.modules.getAll);
 
-  // Mutations - functions to modify backend data
-  const updateProgress = useMutation(api.userProgress.update); // Save progress after completing lessons
-  const resetProgress = useMutation(api.userProgress.reset); // Clear all user progress
-  const initializeUser = useMutation(api.userProgress.initializeUser); // Initialize user with name
+  const updateProgress = useMutation(api.userProgress.update);
+  const resetProgress = useMutation(api.userProgress.reset);
+  const initializeUser = useMutation(api.userProgress.initializeUser);
   const startOrResumeAttempt = useMutation(
     api.lessonAttempts.startOrResumeAttempt,
   );
@@ -122,27 +106,18 @@ const PolymerChemistryApp = () => {
   const finalizeAttempt = useMutation(api.lessonAttempts.finalizeAttempt);
 
   // ========================================
-  // 4. CLERK HOOKS
+  // 4. CLERK HOOKS & AUDIO
   // ========================================
   const { user } = useUser();
   const router = useRouter();
   const isAdmin = user?.publicMetadata?.role === "admin";
 
-  // ========================================
-  // 4b. AUDIO REFERENCES
-  // ========================================
-  // Audio elements for answer feedback sounds
-  const correctSound = useRef<HTMLAudioElement | null>(null); // Plays when answer is correct
-  const wrongSound = useRef<HTMLAudioElement | null>(null); // Plays when answer is incorrect
+  const correctSound = useRef<HTMLAudioElement | null>(null);
+  const wrongSound = useRef<HTMLAudioElement | null>(null);
 
   // ========================================
-  // 5. EFFECTS & SIDE EFFECTS
+  // 5. EFFECTS
   // ========================================
-
-  /**
-   * Initialize or update user with their name from Clerk
-   * Runs whenever the user object changes
-   */
   useEffect(() => {
     if (user) {
       initializeUser({
@@ -152,43 +127,22 @@ const PolymerChemistryApp = () => {
     }
   }, [user, initializeUser]);
 
-  /**
-   * Trigger smooth entrance animation for review screen
-   * Uses a small delay to ensure CSS transition fires properly
-   */
   useEffect(() => {
     let t: number | undefined;
     if (showReview) {
-      // Small 20ms delay allows DOM to update before animation starts
       t = window.setTimeout(() => setReviewAnimate(true), 20);
-    } else {
-      setReviewAnimate(false);
     }
-    // Cleanup: clear timeout if component unmounts
     return () => {
       if (t) clearTimeout(t);
+      setReviewAnimate(false);
     };
   }, [showReview]);
 
-  /**
-   * Automatic text-to-speech for questions
-   * Reads the question aloud whenever a new question is displayed
-   * Includes overlap prevention and cleanup for smooth UX
-   */
   useEffect(() => {
     if (currentLesson && currentLesson.questions) {
-      // Get the text of the current question
       const questionText = currentLesson.questions[currentQuestion].question;
-
-      // Cancel any previous speech to prevent overlapping audio
       window.speechSynthesis.cancel();
-
-      // Add 300ms delay for natural pacing after page transition
-      const timer = setTimeout(() => {
-        speak(questionText);
-      }, 300);
-
-      // Cleanup function: stops speech if user navigates away quickly
+      const timer = setTimeout(() => speak(questionText), 300);
       return () => {
         clearTimeout(timer);
         window.speechSynthesis.cancel();
@@ -199,28 +153,22 @@ const PolymerChemistryApp = () => {
   // ========================================
   // 6. DERIVED STATE
   // ========================================
-  // Extract user progress data with safe defaults
-  const xp = userProgress?.xp || 0; // Total experience points
-  const streak = userProgress?.streak || 0; // Consecutive days of learning
-  const completedLessonIds = userProgress?.completedLessonIds || []; // Array of completed lesson IDs
+  const xp = userProgress?.xp || 0;
+  const streak = userProgress?.streak || 0;
+  const completedLessonIds = userProgress?.completedLessonIds || [];
 
   // ========================================
-  // 7. EVENT HANDLERS & HELPER FUNCTIONS
+  // 7. HANDLERS
   // ========================================
-
-  /**
-   * Initialize a new lesson session
-   * Resets all quiz-related state to start fresh
-   */
   const startLesson = async (lesson: any) => {
     setCurrentLesson(lesson);
-    setCurrentQuestion(0); // Start at first question
+    setCurrentQuestion(0);
     setSelectedAnswer(null);
     setShowResult(false);
     setScore(0);
     setShowReview(false);
     setReviewAnimate(false);
-    setSelectedAnswers(Array(lesson.questions.length).fill(null)); // Empty answer array
+    setSelectedAnswers(Array(lesson.questions.length).fill(null));
     setQuestionStartedAt(Date.now());
     setActiveAttemptId(null);
 
@@ -236,17 +184,21 @@ const PolymerChemistryApp = () => {
           index >= 0 &&
           index < restoredAnswers.length
         ) {
-          restoredAnswers[index] =
-            typeof answer.selectedOption === "number"
-              ? answer.selectedOption
-              : null;
+          if (lesson.questions[index].type === "dragdrop") {
+            restoredAnswers[index] = answer.placedSections || null;
+          } else {
+            restoredAnswers[index] =
+              typeof answer.selectedOption === "number"
+                ? answer.selectedOption
+                : null;
+          }
         }
       }
 
       setSelectedAnswers(restoredAnswers);
 
       const nextQuestionIndex = restoredAnswers.findIndex(
-        (answer: number | null) => answer === null,
+        (answer: any) => answer === null,
       );
 
       if (nextQuestionIndex === -1 && restoredAnswers.length > 0) {
@@ -254,25 +206,13 @@ const PolymerChemistryApp = () => {
         setCurrentQuestion(lastIndex);
         setSelectedAnswer(restoredAnswers[lastIndex]);
         setShowReview(true);
-
-        const restoredScore = restoredAnswers.reduce(
-          (acc: number, selected: number | null, idx: number) => {
-            const question = lesson.questions?.[idx];
-            if (question && selected === question.correct) {
-              return acc + 1;
-            }
-            return acc;
-          },
-          0,
-        );
-        setScore(restoredScore);
+        setScore(computeFinalScoreFromAnswers(restoredAnswers, lesson));
       } else {
         const resumeIndex = nextQuestionIndex >= 0 ? nextQuestionIndex : 0;
         setCurrentQuestion(resumeIndex);
         setSelectedAnswer(restoredAnswers[resumeIndex] ?? null);
         setShowReview(false);
       }
-
       setShowResult(false);
       setQuestionStartedAt(Date.now());
     } catch (err) {
@@ -280,83 +220,60 @@ const PolymerChemistryApp = () => {
     }
   };
 
-  /**
-   * Text-to-Speech Helper
-   * Reads text aloud using the browser's speech synthesis API
-   */
   const speak = (text: string) => {
-    // Cancel any current speech to prevent overlap
     window.speechSynthesis.cancel();
-
     const utterance = new SpeechSynthesisUtterance(text);
-
-    // Customize voice parameters for optimal learning experience
-    utterance.rate = 0.9; // 90% speed - slightly slower for clarity
-    utterance.pitch = 1; // Normal pitch
-    utterance.lang = "en-GB"; // British English accent
-
-    // Queue the speech
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.lang = "en-GB";
     window.speechSynthesis.speak(utterance);
   };
 
-  /**
-   * Handle user selecting an answer option
-   * Reads the option aloud and stores the selection
-   * Only works before the answer is checked (showResult is false)
-   */
-  const handleAnswerSelect = (index: number) => {
-    if (!showResult) {
-      // Get the text of the selected option
-      const optionText =
-        currentLesson.questions[currentQuestion].options[index];
-      speak(optionText); // Read the selected option aloud
-
-      const question = currentLesson.questions[currentQuestion];
-      const isCorrect = index === question.correct;
-
-      setSelectedAnswer(index); // Update current question's selection
-
-      // Update the answers array for the current question
-      setSelectedAnswers((prev) => {
-        const next = [...prev];
-        next[currentQuestion] = index; // Store answer at current question index
-        return next;
-      });
-    }
-  };
-
-  /**
-   * Check the user's answer and provide feedback
-   * Plays appropriate sound, calculates interim score, and shows explanation
-   */
-  const checkAnswer = () => {
+  const handleAnswerSubmit = (answerPayload: any, isCorrect: boolean) => {
     if (showResult) return;
 
-    setShowResult(true); // Show the answer feedback UI
-
-    // Determine if answer is correct
     const question = currentLesson.questions[currentQuestion];
-    const userAnswer = selectedAnswers[currentQuestion];
-    const isCorrect = userAnswer === question.correct;
+
+    if (question.type !== "dragdrop") {
+      const optionText = question.options[answerPayload as number];
+      speak(optionText);
+    }
+
+    setSelectedAnswer(answerPayload);
+    setSelectedAnswers((prev) => {
+      const next = [...prev];
+      next[currentQuestion] = answerPayload;
+      return next;
+    });
+
+    triggerCheckAnswer(answerPayload, isCorrect);
+  };
+
+  const triggerCheckAnswer = (userAnswer: any, isCorrect: boolean) => {
+    setShowResult(true);
+
+    const question = currentLesson.questions[currentQuestion];
     const elapsedMs = Math.max(0, Date.now() - questionStartedAt);
 
     if (activeAttemptId) {
+      const dbPayload =
+        question.type === "dragdrop"
+          ? { placedSections: userAnswer }
+          : { selectedOption: userAnswer as number };
+
       saveAnswer({
         attemptId: activeAttemptId as Id<"lessonAttempts">,
         questionIndex: currentQuestion,
-        selectedOption: userAnswer ?? null,
         isCorrect,
         timeSpentMs: elapsedMs,
-      }).catch((err) => {
-        console.error("Answer save failed:", err);
-      });
+        ...dbPayload,
+      }).catch((err) => console.error("Answer save failed:", err));
     }
 
-    // Play feedback sound using audio refs
     if (isCorrect) {
       if (correctSound.current) {
-        correctSound.current.currentTime = 0; // Reset to start
-        correctSound.current.volume = 0.5; // 50% volume
+        correctSound.current.currentTime = 0;
+        correctSound.current.volume = 0.5;
         correctSound.current
           .play()
           .catch((e) => console.error("Sound error:", e));
@@ -371,59 +288,78 @@ const PolymerChemistryApp = () => {
       }
     }
 
-    // Fallback audio playback (alternative approach)
-    // Note: Path starts with '/' which points to the public folder
-    const audio = new Audio(
-      isCorrect ? "/sounds/correct.mp3" : "/sounds/incorrect.mp3",
-    );
-    audio.volume = 0.2; // Lower volume to avoid being jarring
-    // Play and catch errors (e.g., if user hasn't interacted with page yet)
-    audio.play().catch((e) => console.log("Audio play failed:", e));
-
-    // Calculate interim score by counting correct answers so far
     const interimScore =
       selectedAnswers?.reduce((acc, ans, idx) => {
-        const question = currentLesson?.questions?.[idx];
-        if (question && ans === question.correct) {
-          return (acc || 0) + 1;
+        const q = currentLesson?.questions?.[idx];
+        if (!q || ans === null) return acc;
+
+        let wasCorrect = false;
+        if (q.type === "dragdrop") {
+          wasCorrect =
+            idx === currentQuestion
+              ? isCorrect
+              : evaluateDragDropCorrectness(q, ans);
+        } else {
+          wasCorrect = ans === q.correct;
         }
-        return acc;
+
+        return wasCorrect ? acc + 1 : acc;
       }, 0) ?? 0;
-    setScore(interimScore);
+
+    setScore(interimScore + (isCorrect ? 1 : 0)); // Add current question if correct
   };
 
-  /**
-   * Navigate to next question or show review
-   * If last question, transitions to review screen
-   */
+  const evaluateDragDropCorrectness = (question: any, studentAns: any) => {
+    if (!studentAns) return false;
+    return question.sections.every((correctSec: any) => {
+      const studentSec = studentAns?.find(
+        (s: any) => s.name === correctSec.name,
+      );
+      if (
+        !studentSec ||
+        correctSec.answers.length !== studentSec.answers.length
+      )
+        return false;
+      const correctSorted = [...correctSec.answers].sort();
+      const studentSorted = [...studentSec.answers]
+        .map((a: any) => (typeof a === "string" ? a : a.text))
+        .sort();
+      return correctSorted.every(
+        (val: string, i: number) => val === studentSorted[i],
+      );
+    });
+  };
+
   const nextQuestion = () => {
     if (currentQuestion < currentLesson.questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1); // Move to next question
-      setSelectedAnswer(selectedAnswers[currentQuestion + 1] ?? null); // Load saved answer if any
-      setShowResult(false); // Hide result for new question
+      setCurrentQuestion(currentQuestion + 1);
+      setSelectedAnswer(selectedAnswers[currentQuestion + 1] ?? null);
+      setShowResult(false);
       setQuestionStartedAt(Date.now());
     } else {
-      // Last question completed - show review screen
       setShowReview(true);
     }
   };
 
-  /**
-   * Calculate the final score for the completed quiz
-   * Counts how many answers match the correct answer index
-   */
-  const computeFinalScore = () => {
-    if (!currentLesson) return 0;
-    return selectedAnswers.reduce((acc, ans, idx) => {
-      if (ans === currentLesson.questions[idx].correct) return (acc || 0) + 1;
-      return acc;
+  const computeFinalScoreFromAnswers = (answers: any[], lesson: any) => {
+    return answers.reduce((acc, ans, idx) => {
+      if (ans === null) return acc;
+      const q = lesson.questions[idx];
+      let isCorrect = false;
+      if (q.type === "dragdrop") {
+        isCorrect = evaluateDragDropCorrectness(q, ans);
+      } else {
+        isCorrect = ans === q.correct;
+      }
+      return isCorrect ? acc + 1 : acc;
     }, 0);
   };
 
-  /**
-   * Hide review screen with animation
-   * Accepts optional callback to execute after animation completes
-   */
+  const computeFinalScore = () => {
+    if (!currentLesson) return 0;
+    return computeFinalScoreFromAnswers(selectedAnswers, currentLesson);
+  };
+
   const hideReview = (callback?: () => void) => {
     setReviewAnimate(false);
     window.setTimeout(() => {
@@ -432,33 +368,22 @@ const PolymerChemistryApp = () => {
     }, 220);
   };
 
-  /**
-   * Save progress and complete the lesson
-   * Calculates XP based on score percentage, updates streak, and marks lesson as completed
-   */
   const completeLesson = async () => {
     if (!currentLesson) return;
 
-    // Calculate performance metrics
     const finalScore = computeFinalScore();
     const earnedXP = Math.round(
       ((finalScore || 0) / currentLesson.questions.length) *
-        currentLesson.xpReward, // XP proportional to score percentage
+        currentLesson.xpReward,
     );
     const newXp = xp + earnedXP;
-    const newStreak = streak + 1; // Increment streak
+    const newStreak = streak + 1;
 
-    // Update completed lessons list
     let newCompletedLessons = [...completedLessonIds];
-    const isAlreadyCompleted = newCompletedLessons.some(
-      (id) => id === currentLesson._id,
-    );
-
-    if (!isAlreadyCompleted) {
-      newCompletedLessons.push(currentLesson._id); // Add to completed list
+    if (!newCompletedLessons.includes(currentLesson._id)) {
+      newCompletedLessons.push(currentLesson._id);
     }
 
-    // Save to backend
     await updateProgress({
       xp: newXp,
       streak: newStreak,
@@ -472,7 +397,6 @@ const PolymerChemistryApp = () => {
       });
     }
 
-    // Reset all quiz state and return to dashboard
     setShowReview(false);
     setReviewAnimate(false);
     setCurrentLesson(null);
@@ -484,10 +408,6 @@ const PolymerChemistryApp = () => {
     setActiveAttemptId(null);
   };
 
-  /**
-   * Reset all user progress after confirmation
-   * Clears XP, streak, and completed lessons (lessons themselves are preserved)
-   */
   const handleResetProgress = async () => {
     if (
       confirm(
@@ -498,10 +418,6 @@ const PolymerChemistryApp = () => {
     }
   };
 
-  /**
-   * Export all data as JSON backup file
-   * Includes progress, lessons, and export timestamp
-   */
   const exportData = () => {
     const data = {
       progress: { xp, streak, completedLessonIds },
@@ -521,28 +437,15 @@ const PolymerChemistryApp = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `polymer-chemistry-backup-${
-      new Date().toISOString().split("T")[0]
-    }.json`;
+    a.download = `polymer-chemistry-backup-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  /**
-   * Get the completion status of a lesson
-   * Returns "completed" or "available" based on user progress
-   */
   const getLessonStatus = (lessonId: string) => {
-    return completedLessonIds.some((id) => id === lessonId)
-      ? "completed"
-      : "available";
+    return completedLessonIds.includes(lessonId) ? "completed" : "available";
   };
 
-  /**
-   * Hidden component to ensure Tailwind includes dynamic color classes
-   * Tailwind v4 needs explicit class usage for JIT compilation
-   * Without this, dynamically generated color classes (indigo-100, pink-100, etc.) might be purged
-   */
   const TailwindSafelist = () => (
     <div className="hidden">
       <div className="bg-indigo-100 border-indigo-100 hover:border-indigo-500 text-indigo-600 text-indigo-900 group-hover:bg-indigo-600 hover:border-indigo-300 text-indigo-700" />
@@ -568,8 +471,6 @@ const PolymerChemistryApp = () => {
   // ========================================
   // 8. UI RENDERING
   // ========================================
-
-  // Loading state: Show spinner while data is being fetched
   if (
     lessons === undefined ||
     userProgress === undefined ||
@@ -585,10 +486,7 @@ const PolymerChemistryApp = () => {
     );
   }
 
-  // ========================================
-  // SETTINGS SCREEN
-  // ========================================
-  // Shows data management options: export data, reset progress, force update curriculum
+  // --- SETTINGS ---
   if (showSettings) {
     return (
       <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
@@ -600,12 +498,10 @@ const PolymerChemistryApp = () => {
           >
             ← Back to Lessons
           </Button>
-
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="w-6 h-6" />
-                Settings & Data Management
+                <Settings className="w-6 h-6" /> Settings & Data Management
               </CardTitle>
               <CardDescription>
                 Manage your learning data and progress
@@ -623,11 +519,9 @@ const PolymerChemistryApp = () => {
                   className="w-full"
                   variant="outline"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Data
+                  <Download className="w-4 h-4 mr-2" /> Export Data
                 </Button>
               </div>
-
               <div>
                 <h3 className="font-semibold mb-2">Reset Progress</h3>
                 <p className="text-sm text-gray-600 mb-3">
@@ -638,11 +532,9 @@ const PolymerChemistryApp = () => {
                   className="w-full"
                   variant="destructive"
                 >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Reset All Progress
+                  <RotateCcw className="w-4 h-4 mr-2" /> Reset All Progress
                 </Button>
               </div>
-
               <div className="pt-4 border-t">
                 <h3 className="font-semibold mb-2">Current Stats</h3>
                 <div className="space-y-2 text-sm">
@@ -662,8 +554,6 @@ const PolymerChemistryApp = () => {
                   </div>
                 </div>
               </div>
-
-              {/* TEACHER ACCESS SECTION IN SETTINGS */}
               <div className="pt-4 border-t mt-4">
                 <h3 className="font-semibold mb-2 text-slate-800">
                   Instructor Access
@@ -677,8 +567,8 @@ const PolymerChemistryApp = () => {
                       onClick={() => router.push("/teacher")}
                       className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
                     >
-                      <LayoutDashboard className="w-4 h-4 mr-2" />
-                      Open Teacher Dashboard
+                      <LayoutDashboard className="w-4 h-4 mr-2" /> Open Teacher
+                      Dashboard
                     </Button>
                   </>
                 ) : (
@@ -697,21 +587,14 @@ const PolymerChemistryApp = () => {
     );
   }
 
-  // ========================================
-  // LESSON INTERFACE
-  // ========================================
-  // Handles both active quiz-taking and post-quiz review
+  // --- LESSON/QUIZ ---
   if (currentLesson) {
-    // ----------------------------------------
-    // REVIEW SCREEN: Shows all answers, explanations, and completion options
-    // ----------------------------------------
     if (showReview) {
       const finalScore = computeFinalScore();
       const earnedXPPreview = Math.round(
         ((finalScore || 0) / currentLesson.questions.length) *
           currentLesson.xpReward,
       );
-
       return (
         <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
           <div className="max-w-2xl mx-auto">
@@ -719,7 +602,6 @@ const PolymerChemistryApp = () => {
               <Button variant="outline" onClick={() => hideReview()}>
                 ← Back to Quiz
               </Button>
-              {/* Increased mr-10 md:mr-0 to nudge even further left on mobile */}
               <div className="flex items-center gap-4 mr-10 md:mr-0">
                 <div className="flex items-center gap-2">
                   <Flame className="w-5 h-5 text-orange-500" />
@@ -735,11 +617,7 @@ const PolymerChemistryApp = () => {
             </div>
 
             <div
-              className={`transform transition-all duration-200 ease-out ${
-                reviewAnimate
-                  ? "opacity-100 translate-y-0 scale-100"
-                  : "opacity-0 translate-y-3 scale-95"
-              }`}
+              className={`transform transition-all duration-200 ease-out ${reviewAnimate ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-3 scale-95"}`}
             >
               <Card>
                 <CardHeader>
@@ -748,7 +626,6 @@ const PolymerChemistryApp = () => {
                     Quick summary of your answers and what you'll earn
                   </CardDescription>
                 </CardHeader>
-
                 <CardContent>
                   <div className="mb-4">
                     <p className="text-lg font-semibold">
@@ -758,93 +635,43 @@ const PolymerChemistryApp = () => {
                       Earned XP (preview): +{earnedXPPreview} XP
                     </p>
                   </div>
-
                   <div className="space-y-3 mb-4">
                     {currentLesson.questions.map((q: any, idx: number) => {
                       const userAns = selectedAnswers[idx];
-                      const correctIdx = q.correct;
-                      const isCorrect = userAns === correctIdx;
+                      const isCorrect =
+                        q.type === "dragdrop"
+                          ? evaluateDragDropCorrectness(q, userAns)
+                          : userAns === q.correct;
                       return (
                         <div
                           key={idx}
-                          className={`p-3 rounded-md border ${
-                            isCorrect
-                              ? "border-green-200 bg-green-50"
-                              : "border-red-200 bg-red-50"
-                          }`}
+                          className="p-3 border rounded-lg bg-gray-50"
                         >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="font-medium">{q.question}</p>
-                              <p className="text-sm text-gray-700 mt-1">
-                                Your answer:{" "}
-                                <span className="font-semibold">
-                                  {userAns === null
-                                    ? "No answer"
-                                    : q.options[userAns]}
-                                </span>
-                              </p>
-                              {!isCorrect && (
-                                <p className="text-sm text-gray-700">
-                                  Correct:{" "}
-                                  <span className="font-semibold">
-                                    {q.options[correctIdx]}
-                                  </span>
-                                </p>
-                              )}
-                              <p className="text-sm text-gray-600 mt-2">
-                                {q.explanation}
-                              </p>
-                            </div>
-                            <div className="ml-4">
-                              {isCorrect ? (
-                                <CheckCircle2 className="w-6 h-6 text-green-500" />
-                              ) : (
-                                <XCircle className="w-6 h-6 text-red-500" />
-                              )}
-                            </div>
+                          <p className="font-medium text-sm mb-1">
+                            Q: {q.question}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {isCorrect ? (
+                              <CheckCircle2 className="w-5 h-5 text-green-500" />
+                            ) : (
+                              <XCircle className="w-5 h-5 text-red-500" />
+                            )}
+                            <span
+                              className={`text-sm ${isCorrect ? "text-green-700" : "text-red-700"}`}
+                            >
+                              {isCorrect ? "Correct" : "Incorrect"}
+                            </span>
                           </div>
                         </div>
                       );
                     })}
                   </div>
-
-                  <div className="flex gap-3 justify-end">
-                    <Button
-                      onClick={() =>
-                        hideReview(() => {
-                          setSelectedAnswers(
-                            Array(currentLesson.questions.length).fill(null),
-                          );
-                          setSelectedAnswer(null);
-                          setCurrentQuestion(0);
-                          setShowResult(false);
-                          setScore(0);
-                        })
-                      }
-                      variant="outline"
-                    >
-                      Retry Lesson
-                    </Button>
-
-                    <Button
-                      onClick={() => hideReview(() => completeLesson())}
-                      className="bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      Finish and Save Progress
-                    </Button>
-
-                    <Button
-                      onClick={() =>
-                        hideReview(() => {
-                          setCurrentLesson(null);
-                        })
-                      }
-                      variant="ghost"
-                    >
-                      Back to Lessons (Don't Save)
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={completeLesson}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-lg h-12"
+                  >
+                    Complete Lesson
+                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -853,13 +680,19 @@ const PolymerChemistryApp = () => {
       );
     }
 
-    // ----------------------------------------
-    // QUIZ INTERFACE: Active question-taking screen
-    // ----------------------------------------
     const question = currentLesson.questions[currentQuestion];
-    const isCorrect = selectedAnswers[currentQuestion] === question.correct;
+    let isCorrectForUI = false;
+    if (question.type === "dragdrop") {
+      isCorrectForUI = evaluateDragDropCorrectness(
+        question,
+        selectedAnswers[currentQuestion],
+      );
+    } else {
+      isCorrectForUI = selectedAnswers[currentQuestion] === question.correct;
+    }
+
     const progress =
-      ((currentQuestion + 1) / currentLesson.questions.length) * 100; // Progress percentage
+      ((currentQuestion + 1) / currentLesson.questions.length) * 100;
     const hasQuestionImage = !!question.imageUrl;
     const showQuestionImage =
       hasQuestionImage && !failedQuestionImages.has(question.imageUrl);
@@ -871,7 +704,6 @@ const PolymerChemistryApp = () => {
             <Button variant="outline" onClick={() => setCurrentLesson(null)}>
               ← Back
             </Button>
-            {/* Increased mr-10 md:mr-0 to nudge even further left on mobile */}
             <div className="flex items-center gap-4 mr-10 md:mr-0">
               <div className="flex items-center gap-2">
                 <Flame className="w-5 h-5 text-orange-500" />
@@ -880,7 +712,7 @@ const PolymerChemistryApp = () => {
               <div className="flex items-center gap-2">
                 <Star className="w-5 h-5 text-yellow-500" />
                 <span className="font-bold">
-                  {computeFinalScore()}/{currentLesson.questions.length}
+                  {score}/{currentLesson.questions.length}
                 </span>
               </div>
             </div>
@@ -906,7 +738,6 @@ const PolymerChemistryApp = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* -------------------- IMAGE SECTION -------------------- */}
               {showQuestionImage && (
                 <div className="mb-6 flex justify-center bg-white rounded-xl border border-indigo-50 overflow-hidden shadow-sm p-4">
                   <img
@@ -919,10 +750,6 @@ const PolymerChemistryApp = () => {
                       objectFit: "contain",
                     }}
                     onError={(e) => {
-                      console.error(
-                        "❌ Image failed to load:",
-                        question.imageUrl,
-                      );
                       setFailedQuestionImages((prev) => {
                         const next = new Set(prev);
                         if (question.imageUrl) next.add(question.imageUrl);
@@ -938,60 +765,74 @@ const PolymerChemistryApp = () => {
                   still answer the question.
                 </div>
               )}
-              {/* ----------------------------------------------------------- */}
 
               <div className="space-y-3 mb-6">
-                {question.options.map((option: string, index: number) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswerSelect(index)}
+                {(question.type ?? "mcq") === "dragdrop" ? (
+                  <DragDropStudentQuestion
+                    question={question}
+                    studentAnswer={selectedAnswers[currentQuestion] || null}
+                    setStudentAnswer={(ans) => {
+                      const updated = [...selectedAnswers];
+                      updated[currentQuestion] = ans;
+                      setSelectedAnswers(updated);
+                    }}
                     disabled={showResult}
-                    // We keep disabled:cursor-not-allowed, but rely on global CSS for the pointer
-                    className={`w-full p-4 text-left rounded-lg border-2 transition-all disabled:cursor-not-allowed ${
-                      selectedAnswers[currentQuestion] === index
-                        ? showResult
-                          ? index === question.correct
+                  />
+                ) : (
+                  question.options.map((option: string, index: number) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        const isCorrect = index === question.correct;
+                        handleAnswerSubmit(index, isCorrect);
+                      }}
+                      disabled={showResult}
+                      className={`w-full p-4 text-left rounded-lg border-2 transition-all disabled:cursor-not-allowed ${
+                        selectedAnswers[currentQuestion] === index
+                          ? showResult
+                            ? index === question.correct
+                              ? "border-green-500 bg-green-50"
+                              : "border-red-500 bg-red-50"
+                            : "border-indigo-500 bg-indigo-50"
+                          : showResult && index === question.correct
                             ? "border-green-500 bg-green-50"
-                            : "border-red-500 bg-red-50"
-                          : "border-indigo-500 bg-indigo-50"
-                        : showResult && index === question.correct
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 hover:border-gray-300 bg-white"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{option}</span>
-                      {showResult && index === question.correct && (
-                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      )}
-                      {showResult &&
-                        selectedAnswers[currentQuestion] === index &&
-                        index !== question.correct && (
-                          <XCircle className="w-5 h-5 text-red-500" />
+                            : "border-gray-200 hover:border-gray-300 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{option}</span>
+                        {showResult && index === question.correct && (
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
                         )}
-                    </div>
-                  </button>
-                ))}
+                        {showResult &&
+                          selectedAnswers[currentQuestion] === index &&
+                          index !== question.correct && (
+                            <XCircle className="w-5 h-5 text-red-500" />
+                          )}
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
 
               {showResult && (
                 <Alert
                   className={
-                    isCorrect
-                      ? "bg-green-50 border-green-200"
-                      : "bg-red-50 border-red-200"
+                    isCorrectForUI
+                      ? "bg-green-50 border-green-200 mt-4"
+                      : "bg-red-50 border-red-200 mt-4"
                   }
                 >
                   <AlertDescription>
                     <div className="flex items-start gap-2">
-                      {isCorrect ? (
+                      {isCorrectForUI ? (
                         <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
                       ) : (
                         <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
                       )}
                       <div>
                         <p className="font-semibold mb-1">
-                          {isCorrect ? "Correct!" : "Not quite right"}
+                          {isCorrectForUI ? "Correct!" : "Not quite right"}
                         </p>
                         <p className="text-sm">{question.explanation}</p>
                       </div>
@@ -1001,15 +842,24 @@ const PolymerChemistryApp = () => {
               )}
 
               <div className="mt-6 flex justify-end">
-                {!showResult ? (
+                {!showResult && question.type === "dragdrop" && (
                   <Button
-                    onClick={checkAnswer}
-                    disabled={selectedAnswers[currentQuestion] === null}
+                    onClick={() => {
+                      const studentAns = selectedAnswers[currentQuestion];
+                      const isCorrectDragDrop = evaluateDragDropCorrectness(
+                        question,
+                        studentAns,
+                      );
+                      triggerCheckAnswer(studentAns, isCorrectDragDrop);
+                    }}
+                    disabled={!selectedAnswers[currentQuestion]}
                     className="bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed"
                   >
                     Check Answer
                   </Button>
-                ) : (
+                )}
+
+                {showResult && (
                   <Button
                     onClick={nextQuestion}
                     className="bg-indigo-600 hover:bg-indigo-700"
@@ -1027,15 +877,11 @@ const PolymerChemistryApp = () => {
     );
   }
 
-  // ========================================
-  // MAIN DASHBOARD
-  // ========================================
-  // Shows course selection (if no module selected) or lesson list (if module selected)
+  // --- DASHBOARD ---
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
       <TailwindSafelist />
       <div className="max-w-4xl mx-auto pb-20 md:pb-0">
-        {/* HEADER */}
         <div className="text-center mb-8">
           <div className="relative flex items-center justify-center mb-4">
             <h1 className="text-3xl md:text-4xl font-bold text-indigo-900">
@@ -1054,12 +900,9 @@ const PolymerChemistryApp = () => {
           </p>
         </div>
 
-        {/* --- DASHBOARD VIEW --- */}
         {!selectedModuleId && !currentLesson && (
           <div className="space-y-8">
-            {/* 1. STATS GRID (Restored to 3 columns always) */}
             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
-              {/* XP Card */}
               <Card className="border-indigo-100 shadow-sm bg-white">
                 <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                   <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mb-2">
@@ -1073,8 +916,6 @@ const PolymerChemistryApp = () => {
                   </p>
                 </CardContent>
               </Card>
-
-              {/* Streak Card */}
               <Card className="border-orange-100 shadow-sm bg-white">
                 <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                   <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mb-2">
@@ -1088,8 +929,6 @@ const PolymerChemistryApp = () => {
                   </p>
                 </CardContent>
               </Card>
-
-              {/* Completed Card */}
               <Card className="border-green-100 shadow-sm bg-white">
                 <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-2">
@@ -1104,8 +943,6 @@ const PolymerChemistryApp = () => {
                 </CardContent>
               </Card>
             </div>
-
-            {/* 2. RANKINGS BUTTON (Moved Here) */}
             <div className="max-w-2xl mx-auto">
               <Button
                 onClick={() => setShowLeaderboard(true)}
@@ -1118,52 +955,43 @@ const PolymerChemistryApp = () => {
                 <ArrowRight className="w-5 h-5 text-indigo-300" />
               </Button>
             </div>
-
-            {/* 3. COURSE SELECTION HEADER */}
             <div className="text-center mt-8">
               <h2 className="text-2xl font-bold text-indigo-900">
                 Select Your Course
               </h2>
             </div>
-
-            {/* 4. COURSE GRID */}
             <div className="grid md:grid-cols-2 gap-6 pb-20">
               {allModules.map((course: any) => {
                 const Icon = iconForModule(course.iconKey);
                 const lessonCount =
                   lessons?.filter((l: any) => l.section === course.moduleKey)
                     .length || 0;
-                const bgColor = `bg-${course.color}-100`;
-                const borderColor = `border-${course.color}-100`;
-                const hoverBorderColor = `hover:border-${course.color}-500`;
-                const textColor = `text-${course.color}-600`;
-                const darkTextColor = `text-${course.color}-900`;
-                const hoverBgColor = `group-hover:bg-${course.color}-600`;
-
                 return (
                   <div
                     key={course.moduleKey}
                     onClick={() => setSelectedModuleId(course.moduleKey)}
-                    className={`cursor-pointer group bg-white p-8 rounded-2xl border-2 ${borderColor} ${hoverBorderColor} hover:shadow-xl transition-all duration-200`}
+                    className={`cursor-pointer group bg-white p-8 rounded-2xl border-2 border-${course.color}-100 hover:border-${course.color}-500 hover:shadow-xl transition-all duration-200`}
                   >
                     <div
-                      className={`h-16 w-16 ${bgColor} rounded-full flex items-center justify-center mb-4 ${hoverBgColor} transition-colors`}
+                      className={`h-16 w-16 bg-${course.color}-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-${course.color}-600 transition-colors`}
                     >
                       <Icon
-                        className={`w-8 h-8 ${textColor} group-hover:text-white`}
+                        className={`w-8 h-8 text-${course.color}-600 group-hover:text-white`}
                       />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">
                       {course.code}
                     </h2>
-                    <h3 className={`text-lg font-medium ${darkTextColor} mb-3`}>
+                    <h3
+                      className={`text-lg font-medium text-${course.color}-900 mb-3`}
+                    >
                       {course.title}
                     </h3>
                     <p className="text-gray-600 mb-4 text-sm">
                       {course.description}
                     </p>
                     <span
-                      className={`text-sm font-semibold ${textColor} group-hover:translate-x-1 inline-block transition-transform`}
+                      className={`text-sm font-semibold text-${course.color}-600 group-hover:translate-x-1 inline-block transition-transform`}
                     >
                       {lessonCount > 0
                         ? `View ${lessonCount} Lessons →`
@@ -1176,26 +1004,22 @@ const PolymerChemistryApp = () => {
           </div>
         )}
 
-        {/* --- DYNAMIC LESSON LIST --- */}
         {selectedModuleId && !currentLesson && (
           <div>
             <button
               onClick={() => setSelectedModuleId(null)}
               className="flex items-center text-gray-500 hover:text-indigo-600 mb-6 font-medium transition-colors"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Courses
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Courses
             </button>
-
             <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Book className="w-6 h-6" />
+              <Book className="w-6 h-6" />{" "}
               {allModules.find((m: any) => m.moduleKey === selectedModuleId)
                 ?.code || selectedModuleId}
               :{" "}
               {allModules.find((m: any) => m.moduleKey === selectedModuleId)
                 ?.title || ""}
             </h2>
-
             <div className="space-y-4">
               {lessons
                 ?.filter((lesson: any) => lesson.section === selectedModuleId)
@@ -1206,26 +1030,17 @@ const PolymerChemistryApp = () => {
                     allModules.find(
                       (m: any) => m.moduleKey === selectedModuleId,
                     )?.color || "indigo";
-                  const hoverColor = `hover:text-${themeColor}-700`;
-                  const borderHoverColor = `hover:border-${themeColor}-300`;
-                  const bgThemeLight = `bg-${themeColor}-100`;
-                  const textTheme = `text-${themeColor}-700`;
-
                   return (
                     <Card
                       key={lesson._id}
-                      className={`cursor-pointer transition-all hover:shadow-lg group ${
-                        status === "completed"
-                          ? "border-green-200 bg-green-50"
-                          : borderHoverColor
-                      }`}
+                      className={`cursor-pointer transition-all hover:shadow-lg group ${status === "completed" ? "border-green-200 bg-green-50" : `hover:border-${themeColor}-300`}`}
                       onClick={() => void startLesson(lesson)}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <CardTitle
-                              className={`flex items-center gap-2 ${hoverColor} transition-colors`}
+                              className={`flex items-center gap-2 hover:text-${themeColor}-700 transition-colors`}
                             >
                               {lesson.title}
                               {status === "completed" && (
@@ -1238,7 +1053,7 @@ const PolymerChemistryApp = () => {
                           </div>
                           <div className="text-right">
                             <span
-                              className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${bgThemeLight} ${textTheme}`}
+                              className={`inline-block px-3 py-1 rounded-full text-xs font-semibold bg-${themeColor}-100 text-${themeColor}-700`}
                             >
                               {lesson.difficulty}
                             </span>
@@ -1252,8 +1067,6 @@ const PolymerChemistryApp = () => {
                   );
                 })}
             </div>
-
-            {/* Dynamic Empty State */}
             {lessons?.filter((l: any) => l.section === selectedModuleId)
               .length === 0 && (
               <div className="text-center p-12 mt-8 border-2 border-dashed rounded-xl">
@@ -1275,7 +1088,6 @@ const PolymerChemistryApp = () => {
           <StudentLeaderboard onClose={() => setShowLeaderboard(false)} />
         )}
 
-        {/* MOBILE BOTTOM NAV - Only visible on small screens (block md:hidden) */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex justify-around items-center md:hidden z-50 pb-safe">
           <button
             onClick={() => setSelectedModuleId(null)}
@@ -1284,7 +1096,6 @@ const PolymerChemistryApp = () => {
             <Home className="w-6 h-6" />
             <span className="text-xs font-medium">Home</span>
           </button>
-
           <button
             onClick={() => setShowSettings(true)}
             className="flex flex-col items-center text-gray-500 hover:text-indigo-600"
@@ -1297,5 +1108,4 @@ const PolymerChemistryApp = () => {
     </div>
   );
 };
-
 export default PolymerChemistryApp;
