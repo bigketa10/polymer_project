@@ -716,7 +716,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     if (!selectedLesson) return;
     const q = selectedLesson.questions[index];
     setEditingIndex(index);
-    setQuestionType(q.type || "mcq");
+    setQuestionType(q.type === "dragdrop" ? "dragdrop" : "mcq");
     setQuestionText(q.question || "");
     setOptionsText((q.options || []).join("\n"));
     setCorrectOptionNumber(
