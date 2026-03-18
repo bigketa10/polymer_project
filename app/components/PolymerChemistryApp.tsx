@@ -442,7 +442,7 @@ const PolymerChemistryApp = () => {
     URL.revokeObjectURL(url);
   };
 
-  const getLessonStatus = (lessonId: string) => {
+  const getLessonStatus = (lessonId: Id<"lessons">) => {
     return completedLessonIds.includes(lessonId) ? "completed" : "available";
   };
 
