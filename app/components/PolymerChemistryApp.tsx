@@ -248,31 +248,6 @@ const PolymerChemistryApp = () => {
     // Do NOT trigger check or backend save here
   };
 
-  // Helper to play chime reliably after user interaction
-  const playChime = (type: 'correct' | 'wrong') => {
-    let audioRef = type === 'correct' ? correctSound : wrongSound;
-    let audio = audioRef.current;
-    if (!audio) {
-      // Try to re-query the DOM if ref is lost
-      audio = document.querySelector(type === 'correct' ? 'audio[src="/sounds/correct.mp3"]' : 'audio[src="/sounds/incorrect.mp3"]');
-      if (audio) {
-        audioRef.current = audio as HTMLAudioElement;
-      } else {
-        return;
-      }
-    }
-    try {
-      audio.currentTime = 0;
-      audio.volume = 0.5;
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {/* ignore autoplay errors */});
-      }
-    } catch (e) {
-      // ignore
-    }
-  };
-
   const triggerCheckAnswer = (userAnswer: any, isCorrect: boolean) => {
     setShowResult(true);
 
@@ -294,11 +269,22 @@ const PolymerChemistryApp = () => {
       }).catch((err) => console.error("Answer save failed:", err));
     }
 
-    // Play chime after user interaction
     if (isCorrect) {
-      playChime('correct');
+      if (correctSound.current) {
+        correctSound.current.currentTime = 0;
+        correctSound.current.volume = 0.5;
+        correctSound.current
+          .play()
+          .catch((e) => console.error("Sound error:", e));
+      }
     } else {
-      playChime('wrong');
+      if (wrongSound.current) {
+        wrongSound.current.currentTime = 0;
+        wrongSound.current.volume = 0.5;
+        wrongSound.current
+          .play()
+          .catch((e) => console.error("Sound error:", e));
+      }
     }
 
     const interimScore =
@@ -790,7 +776,6 @@ const PolymerChemistryApp = () => {
                       setSelectedAnswers(updated);
                     }}
                     disabled={showResult}
-                    onReadItem={speak}
                   />
                 ) : (
                   question.options.map((option: string, index: number) => (

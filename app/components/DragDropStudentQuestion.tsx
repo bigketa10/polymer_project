@@ -5,7 +5,6 @@ export interface DragDropStudentQuestionProps {
   studentAnswer: any;
   setStudentAnswer: (ans: any) => void;
   disabled?: boolean;
-  onReadItem?: (text: string) => void;
 }
 
 type DragDropItem = { id: string; text: string };
@@ -15,7 +14,6 @@ const DragDropStudentQuestion: React.FC<DragDropStudentQuestionProps> = ({
   studentAnswer,
   setStudentAnswer,
   disabled = false,
-  onReadItem,
 }) => {
   const [bank, setBank] = useState<DragDropItem[]>([]);
   const [userSections, setUserSections] = useState<
@@ -160,12 +158,7 @@ const DragDropStudentQuestion: React.FC<DragDropStudentQuestionProps> = ({
             key={item.id}
             draggable={!disabled}
             onDragStart={(e) => {
-              if (!disabled) {
-                e.dataTransfer.setData("text/plain", item.id);
-                if (onReadItem && item.text) {
-                  onReadItem(item.text);
-                }
-              }
+              if (!disabled) e.dataTransfer.setData("text/plain", item.id);
             }}
             className={`px-3 py-1.5 rounded-md shadow-sm text-sm font-medium transition-colors ${
               disabled
