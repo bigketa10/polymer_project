@@ -16,6 +16,7 @@ import type * as modules from "../modules.js";
 import type * as teachers from "../teachers.js";
 import type * as uploads from "../uploads.js";
 import type * as userProgress from "../userProgress.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   teachers: typeof teachers;
   uploads: typeof uploads;
   userProgress: typeof userProgress;
+  users: typeof users;
 }>;
 
 /**
