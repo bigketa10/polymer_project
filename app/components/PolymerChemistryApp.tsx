@@ -90,7 +90,9 @@ const PolymerChemistryApp = () => {
   const [failedQuestionImages, setFailedQuestionImages] = useState<Set<string>>(
     new Set(),
   );
-  const [questionStartedAt, setQuestionStartedAt] = useState<number>(Date.now());
+  const [questionStartedAt, setQuestionStartedAt] = useState<number>(
+    Date.now(),
+  );
   const [activeAttemptId, setActiveAttemptId] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false); // Whether to show answer feedback
   const [score, setScore] = useState(0); // Running score for current quiz
@@ -113,7 +115,9 @@ const PolymerChemistryApp = () => {
   const updateProgress = useMutation(api.userProgress.update); // Save progress after completing lessons
   const resetProgress = useMutation(api.userProgress.reset); // Clear all user progress
   const initializeUser = useMutation(api.userProgress.initializeUser); // Initialize user with name
-  const startOrResumeAttempt = useMutation(api.lessonAttempts.startOrResumeAttempt);
+  const startOrResumeAttempt = useMutation(
+    api.lessonAttempts.startOrResumeAttempt,
+  );
   const saveAnswer = useMutation(api.lessonAttempts.saveAnswer);
   const finalizeAttempt = useMutation(api.lessonAttempts.finalizeAttempt);
 
@@ -715,8 +719,8 @@ const PolymerChemistryApp = () => {
               <Button variant="outline" onClick={() => hideReview()}>
                 ← Back to Quiz
               </Button>
-
-              <div className="flex items-center gap-4">
+              {/* Increased mr-10 md:mr-0 to nudge even further left on mobile */}
+              <div className="flex items-center gap-4 mr-10 md:mr-0">
                 <div className="flex items-center gap-2">
                   <Flame className="w-5 h-5 text-orange-500" />
                   <span className="font-bold">{streak}</span>
@@ -867,7 +871,8 @@ const PolymerChemistryApp = () => {
             <Button variant="outline" onClick={() => setCurrentLesson(null)}>
               ← Back
             </Button>
-            <div className="flex items-center gap-4">
+            {/* Increased mr-10 md:mr-0 to nudge even further left on mobile */}
+            <div className="flex items-center gap-4 mr-10 md:mr-0">
               <div className="flex items-center gap-2">
                 <Flame className="w-5 h-5 text-orange-500" />
                 <span className="font-bold">{streak}</span>
@@ -929,7 +934,8 @@ const PolymerChemistryApp = () => {
               )}
               {hasQuestionImage && !showQuestionImage && (
                 <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  The diagram for this question could not be loaded. You can still answer the question.
+                  The diagram for this question could not be loaded. You can
+                  still answer the question.
                 </div>
               )}
               {/* ----------------------------------------------------------- */}
@@ -1227,7 +1233,7 @@ const PolymerChemistryApp = () => {
                               )}
                             </CardTitle>
                             <CardDescription>
-                              <ExplainerText text={lesson.description} />
+                              {lesson.description}
                             </CardDescription>
                           </div>
                           <div className="text-right">

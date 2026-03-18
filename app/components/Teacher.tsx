@@ -1,4 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+// Helper to format ISO date strings or timestamps in a friendly way
+function formatDateTime(dt: string | number | undefined | null): string {
+  if (!dt) return "-";
+  const date =
+    typeof dt === "string" || typeof dt === "number" ? new Date(dt) : null;
+  if (!date || isNaN(date.getTime())) return "-";
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
@@ -93,6 +108,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     string | null
   >(null);
   const [selectedStudentName, setSelectedStudentName] = useState("");
+  const [studentReportAttemptFilter, setStudentReportAttemptFilter] =
+    useState<string>("all");
   const [expandedReportLessons, setExpandedReportLessons] = useState<
     Set<string>
   >(new Set());
@@ -171,6 +188,57 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
     return rows.sort((a, b) => (a.lesson.order || 0) - (b.lesson.order || 0));
   }, [studentAttempts, lessons]);
+
+  const reportAttemptOptions = useMemo(() => {
+    if (!studentAttempts || !lessons) return [];
+
+    const lessonMap = new Map<string, any>();
+    for (const lesson of lessons) {
+      lessonMap.set(String(lesson._id), lesson);
+    }
+
+    return studentAttempts
+      .map((attempt: any) => {
+        const lesson = lessonMap.get(String(attempt.lessonId));
+        if (!lesson) return null;
+        return { attempt, lesson };
+      })
+      .filter((value): value is { attempt: any; lesson: any } => value !== null)
+      .sort((a, b) => {
+        const aTime =
+          a.attempt.updatedAt ||
+          a.attempt.completedAt ||
+          a.attempt.startedAt ||
+          "";
+        const bTime =
+          b.attempt.updatedAt ||
+          b.attempt.completedAt ||
+          b.attempt.startedAt ||
+          "";
+        return bTime.localeCompare(aTime);
+      });
+  }, [studentAttempts, lessons]);
+
+  const displayedStudentReportLessons = useMemo(() => {
+    if (studentReportAttemptFilter === "all") return reportLessons;
+
+    const selected = reportAttemptOptions.find(
+      ({ attempt }) => String(attempt._id) === studentReportAttemptFilter,
+    );
+    if (!selected) return [];
+
+    const matchingLesson = reportLessons.find(
+      ({ lesson }) => String(lesson._id) === String(selected.lesson._id),
+    );
+
+    return [
+      {
+        lesson: selected.lesson,
+        latestAttempt: selected.attempt,
+        attemptCount: matchingLesson?.attemptCount || 1,
+      },
+    ];
+  }, [reportLessons, reportAttemptOptions, studentReportAttemptFilter]);
 
   const studentNameByUserId = useMemo(() => {
     const map = new Map<string, string>();
@@ -292,6 +360,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   useEffect(() => {
     setResponseModalQuestionIndex(null);
   }, [selectedLessonId]);
+
+  useEffect(() => {
+    setStudentReportAttemptFilter("all");
+    setExpandedReportLessons(new Set());
+  }, [selectedStudentUserId]);
 
   useEffect(() => {
     if (!modules || modules.length === 0) return;
@@ -1185,7 +1258,45 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
                   {studentAttempts && reportLessons.length > 0 && (
                     <div className="space-y-4">
-                      {reportLessons.map(
+                      <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                        <label className="text-xs font-medium text-slate-700">
+                          Filter report by attempt
+                        </label>
+                        <select
+                          value={studentReportAttemptFilter}
+                          onChange={(e) => {
+                            setStudentReportAttemptFilter(e.target.value);
+                            setExpandedReportLessons(new Set());
+                          }}
+                          className="h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 md:w-[320px]"
+                        >
+                          <option value="all">Latest attempt per lesson</option>
+                          {reportAttemptOptions.map(({ lesson, attempt }) => {
+                            const attemptTime =
+                              attempt.updatedAt ||
+                              attempt.completedAt ||
+                              attempt.startedAt ||
+                              "";
+                            return (
+                              <option
+                                key={String(attempt._id)}
+                                value={String(attempt._id)}
+                              >
+                                {lesson.title} -{" "}
+                                {formatResponseTimestamp(attemptTime)}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+
+                      {displayedStudentReportLessons.length === 0 && (
+                        <p className="text-sm text-slate-500">
+                          No report found for the selected attempt.
+                        </p>
+                      )}
+
+                      {displayedStudentReportLessons.map(
                         ({ lesson, latestAttempt, attemptCount }) => {
                           const answerMap = new Map<number, any>();
                           for (const ans of latestAttempt.answers || []) {
@@ -1204,7 +1315,9 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             typeof latestAttempt.completionPercent === "number"
                               ? latestAttempt.completionPercent
                               : totalQuestions > 0
-                                ? Math.round((answeredCount / totalQuestions) * 100)
+                                ? Math.round(
+                                    (answeredCount / totalQuestions) * 100,
+                                  )
                                 : 0;
                           const totalTimeMs =
                             typeof latestAttempt.totalTimeMs === "number"
@@ -1216,13 +1329,14 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 );
 
                           const lessonKey = String(lesson._id);
-                          const isExpanded = expandedReportLessons.has(lessonKey);
+                          const isExpanded =
+                            expandedReportLessons.has(lessonKey);
                           const updatedAt =
                             latestAttempt.updatedAt || latestAttempt.startedAt;
 
                           return (
                             <div
-                              key={lesson._id}
+                              key={`${lesson._id}:${latestAttempt._id}`}
                               className="border rounded-lg p-4 bg-white"
                             >
                               <div className="flex items-center justify-between gap-3">
@@ -1237,11 +1351,14 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 <div className="text-xs text-slate-500 text-right">
                                   <div>Attempts: {attemptCount}</div>
                                   <div>
-                                    Progress: {answeredCount}/{totalQuestions} ({completionPercent}%)
+                                    Progress: {answeredCount}/{totalQuestions} (
+                                    {completionPercent}%)
                                   </div>
-                                  <div>Total time: {formatDurationMs(totalTimeMs)}</div>
                                   <div>
-                                    Last updated: {updatedAt ? updatedAt : "-"}
+                                    Total time: {formatDurationMs(totalTimeMs)}
+                                  </div>
+                                  <div>
+                                    Last updated: {formatDateTime(updatedAt)}
                                   </div>
                                 </div>
                               </div>
@@ -1262,69 +1379,77 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                     });
                                   }}
                                 >
-                                  {isExpanded ? "Hide questions" : "Show questions"}
+                                  {isExpanded
+                                    ? "Hide questions"
+                                    : "Show questions"}
                                 </Button>
                               </div>
 
                               {isExpanded && (
                                 <div className="mt-3 space-y-3">
-                                  {lesson.questions.map((q: any, idx: number) => {
-                                    const ans = answerMap.get(idx);
-                                    const selectedOption =
-                                      ans && ans.selectedOption !== null
-                                        ? q.options?.[ans.selectedOption]
-                                        : "No answer";
-                                    const isCorrect = ans ? ans.isCorrect : false;
+                                  {lesson.questions.map(
+                                    (q: any, idx: number) => {
+                                      const ans = answerMap.get(idx);
+                                      const selectedOption =
+                                        ans && ans.selectedOption !== null
+                                          ? q.options?.[ans.selectedOption]
+                                          : "No answer";
+                                      const isCorrect = ans
+                                        ? ans.isCorrect
+                                        : false;
 
-                                    return (
-                                      <div
-                                        key={idx}
-                                        className="rounded-md border border-slate-100 bg-slate-50 p-3"
-                                      >
-                                        <p className="text-xs text-slate-500">
-                                          Q{idx + 1}
-                                        </p>
-                                        <p className="text-sm font-medium text-slate-800">
-                                          {q.question}
-                                        </p>
-                                        <div className="mt-2 text-xs text-slate-600">
-                                          <span className="font-semibold">
-                                            Student answer:
-                                          </span>{" "}
-                                          {selectedOption}
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className="rounded-md border border-slate-100 bg-slate-50 p-3"
+                                        >
+                                          <p className="text-xs text-slate-500">
+                                            Q{idx + 1}
+                                          </p>
+                                          <p className="text-sm font-medium text-slate-800">
+                                            {q.question}
+                                          </p>
+                                          <div className="mt-2 text-xs text-slate-600">
+                                            <span className="font-semibold">
+                                              Student answer:
+                                            </span>{" "}
+                                            {selectedOption}
+                                          </div>
+                                          <div className="mt-1 text-xs text-slate-600">
+                                            <span className="font-semibold">
+                                              Correct:
+                                            </span>{" "}
+                                            {q.options?.[q.correct] ?? "-"}
+                                          </div>
+                                          <div className="mt-1 text-xs text-slate-600">
+                                            <span className="font-semibold">
+                                              Time spent:
+                                            </span>{" "}
+                                            {formatDurationMs(ans?.timeSpentMs)}
+                                          </div>
+                                          <div className="mt-2">
+                                            {ans ? (
+                                              <span
+                                                className={`text-xs px-2 py-1 rounded-full font-bold ${
+                                                  isCorrect
+                                                    ? "bg-green-100 text-green-700"
+                                                    : "bg-red-100 text-red-700"
+                                                }`}
+                                              >
+                                                {isCorrect
+                                                  ? "Correct"
+                                                  : "Incorrect"}
+                                              </span>
+                                            ) : (
+                                              <span className="text-xs px-2 py-1 rounded-full font-bold bg-slate-200 text-slate-600">
+                                                Not answered
+                                              </span>
+                                            )}
+                                          </div>
                                         </div>
-                                        <div className="mt-1 text-xs text-slate-600">
-                                          <span className="font-semibold">
-                                            Correct:
-                                          </span>{" "}
-                                          {q.options?.[q.correct] ?? "-"}
-                                        </div>
-                                        <div className="mt-1 text-xs text-slate-600">
-                                          <span className="font-semibold">
-                                            Time spent:
-                                          </span>{" "}
-                                          {formatDurationMs(ans?.timeSpentMs)}
-                                        </div>
-                                        <div className="mt-2">
-                                          {ans ? (
-                                            <span
-                                              className={`text-xs px-2 py-1 rounded-full font-bold ${
-                                                isCorrect
-                                                  ? "bg-green-100 text-green-700"
-                                                  : "bg-red-100 text-red-700"
-                                              }`}
-                                            >
-                                              {isCorrect ? "Correct" : "Incorrect"}
-                                            </span>
-                                          ) : (
-                                            <span className="text-xs px-2 py-1 rounded-full font-bold bg-slate-200 text-slate-600">
-                                              Not answered
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                                      );
+                                    },
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -2596,7 +2721,9 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => setResponseModalQuestionIndex(idx)}
+                                  onClick={() =>
+                                    setResponseModalQuestionIndex(idx)
+                                  }
                                 >
                                   {`View responses (${responses.length})`}
                                 </Button>
@@ -2648,9 +2775,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
                         <div className="overflow-y-auto p-4">
                           {(() => {
-                            const activeQuestion = selectedLesson.questions?.[
-                              responseModalQuestionIndex
-                            ];
+                            const activeQuestion =
+                              selectedLesson.questions?.[
+                                responseModalQuestionIndex
+                              ];
                             const responses =
                               lessonResponsesByQuestion.get(
                                 responseModalQuestionIndex,
@@ -2721,7 +2849,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           : ""}
                                       </div>
                                       <div className="mt-1 text-slate-600">
-                                        Time spent: {formatDurationMs(response.timeSpentMs)}
+                                        Time spent:{" "}
+                                        {formatDurationMs(response.timeSpentMs)}
                                       </div>
                                       <div className="mt-1">
                                         <span

@@ -40,13 +40,11 @@ export const startOrResumeAttempt = mutation({
       )
       .collect();
 
-    const latest = attempts
-      .slice()
-      .sort((a, b) => {
-        const aTime = a.updatedAt || a.startedAt || "";
-        const bTime = b.updatedAt || b.startedAt || "";
-        return bTime.localeCompare(aTime);
-      })[0];
+    const latest = attempts.slice().sort((a, b) => {
+      const aTime = a.updatedAt || a.startedAt || "";
+      const bTime = b.updatedAt || b.startedAt || "";
+      return bTime.localeCompare(aTime);
+    })[0];
 
     if (latest && !latest.completedAt) {
       return {
