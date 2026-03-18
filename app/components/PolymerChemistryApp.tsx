@@ -229,7 +229,7 @@ const PolymerChemistryApp = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  const handleAnswerSubmit = (answerPayload: any, isCorrect: boolean) => {
+  const handleAnswerSubmit = (answerPayload: any) => {
     if (showResult) return;
 
     const question = currentLesson.questions[currentQuestion];
@@ -245,8 +245,7 @@ const PolymerChemistryApp = () => {
       next[currentQuestion] = answerPayload;
       return next;
     });
-
-    triggerCheckAnswer(answerPayload, isCorrect);
+    // Do NOT trigger check or backend save here
   };
 
   const triggerCheckAnswer = (userAnswer: any, isCorrect: boolean) => {
@@ -782,20 +781,17 @@ const PolymerChemistryApp = () => {
                   question.options.map((option: string, index: number) => (
                     <button
                       key={index}
-                      onClick={() => {
-                        const isCorrect = index === question.correct;
-                        handleAnswerSubmit(index, isCorrect);
-                      }}
+                      onClick={() => handleAnswerSubmit(index)} // Just selects, doesn't check
                       disabled={showResult}
                       className={`w-full p-4 text-left rounded-lg border-2 transition-all disabled:cursor-not-allowed ${
                         selectedAnswers[currentQuestion] === index
                           ? showResult
                             ? index === question.correct
-                              ? "border-green-500 bg-green-50"
-                              : "border-red-500 bg-red-50"
-                            : "border-indigo-500 bg-indigo-50"
+                              ? "border-green-500 bg-green-50" // Correct highlight
+                              : "border-red-500 bg-red-50" // Incorrect highlight
+                            : "border-indigo-500 bg-indigo-50" // Selected highlight
                           : showResult && index === question.correct
-                            ? "border-green-500 bg-green-50"
+                            ? "border-green-500 bg-green-50" // Reveal correct answer
                             : "border-gray-200 hover:border-gray-300 bg-white"
                       }`}
                     >
@@ -842,23 +838,33 @@ const PolymerChemistryApp = () => {
               )}
 
               <div className="mt-6 flex justify-end">
-                {!showResult && question.type === "dragdrop" && (
+                {/* Submit Button visible when answer is picked but not yet checked */}
+                {!showResult && (
                   <Button
                     onClick={() => {
                       const studentAns = selectedAnswers[currentQuestion];
-                      const isCorrectDragDrop = evaluateDragDropCorrectness(
-                        question,
-                        studentAns,
-                      );
-                      triggerCheckAnswer(studentAns, isCorrectDragDrop);
+                      let isCorrect = false;
+
+                      if (question.type === "dragdrop") {
+                        isCorrect = evaluateDragDropCorrectness(
+                          question,
+                          studentAns,
+                        );
+                      } else {
+                        isCorrect = studentAns === question.correct;
+                      }
+
+                      triggerCheckAnswer(studentAns, isCorrect);
                     }}
-                    disabled={!selectedAnswers[currentQuestion]}
+                    // Disable if no MCQ option is picked or no D&D items are moved
+                    disabled={selectedAnswers[currentQuestion] === null}
                     className="bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed"
                   >
                     Check Answer
                   </Button>
                 )}
 
+                {/* Next Question / Review button shown AFTER checking */}
                 {showResult && (
                   <Button
                     onClick={nextQuestion}
