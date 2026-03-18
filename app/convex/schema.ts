@@ -1,15 +1,7 @@
-
-
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-    // 4. GLOSSARY TABLE (Editable by teachers)
-    glossary: defineTable({
-      term: v.string(),
-      definition: v.string(),
-      category: v.optional(v.string()),
-    }).index("by_term", ["term"]),
   // 0. MODULES TABLE (Courses / Modules shown on homepage)
   modules: defineTable({
     moduleKey: v.string(), // stable string id used by lessons.section (e.g. "qxu5031")
