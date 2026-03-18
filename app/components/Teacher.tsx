@@ -721,34 +721,38 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setQuestionType(q.type === "dragdrop" ? "dragdrop" : "mcq");
     setQuestionText(q.question || "");
     setOptionsText((q.options || []).join("\n"));
-    setCorrectOptionNumber(typeof q.correct === "number" ? String(q.correct + 1) : "1");
+    setCorrectOptionNumber(
+      typeof q.correct === "number" ? String(q.correct + 1) : "1",
+    );
     setExplanation(q.explanation || "");
     setImageUrl(q.imageUrl || "");
     setImageStorageId(q.imageStorageId || "");
     setImageFileName("");
 
-    if (q.type === 'dragdrop') {
+    if (q.type === "dragdrop") {
       const ensureId = (text: string): DragDropItem => ({
         id: crypto.randomUUID(),
-        text
+        text,
       });
       setDdAnswerBank((q.answerBank || []).map(ensureId));
       if (q.sections && q.sections.length > 0) {
-        setDdSections(q.sections.map((s: any) => ({
-          name: s.name,
-          answers: (s.answers || []).map(ensureId)
-        })));
+        setDdSections(
+          q.sections.map((s: any) => ({
+            name: s.name,
+            answers: (s.answers || []).map(ensureId),
+          })),
+        );
       } else {
         setDdSections([
-          { name: 'Section 1', answers: [] },
-          { name: 'Section 2', answers: [] }
+          { name: "Section 1", answers: [] },
+          { name: "Section 2", answers: [] },
         ]);
       }
     } else {
       setDdAnswerBank([]);
       setDdSections([
-        { name: 'Section 1', answers: [] },
-        { name: 'Section 2', answers: [] }
+        { name: "Section 1", answers: [] },
+        { name: "Section 2", answers: [] },
       ]);
     }
   };
@@ -2774,10 +2778,9 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                         </div>
                         <div className="overflow-y-auto p-4">
                           {(() => {
-                            const activeQuestion =
-                              selectedLesson.questions?.[
-                                responseModalQuestionIndex
-                              ] as any;
+                            const activeQuestion = selectedLesson.questions?.[
+                              responseModalQuestionIndex
+                            ] as any;
                             const responses =
                               lessonResponsesByQuestion.get(
                                 responseModalQuestionIndex,
