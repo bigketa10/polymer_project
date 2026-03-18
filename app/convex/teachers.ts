@@ -51,7 +51,38 @@ export const getClassStats = query({
 export const removeStudent = mutation({
   args: { id: v.id("userProgress") }, // Requires the document ID
   handler: async (ctx, args) => {
+    // 1. Delete userProgress record
+    const progress = await ctx.db.get(args.id);
+    if (!progress) return;
+    const userId = progress.userId;
     await ctx.db.delete(args.id);
+
+    // 2. Delete all lessonAttempts for this user
+    const attempts = await ctx.db
+      .query("lessonAttempts")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const attempt of attempts) {
+      await ctx.db.delete(attempt._id);
+    }
+
+    // 3. Delete all messages for this user
+    const messages = await ctx.db
+      .query("messages")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .collect();
+    for (const msg of messages) {
+      await ctx.db.delete(msg._id);
+    }
+
+    // 4. Delete all user-created lessons for this user
+    const lessons = await ctx.db
+      .query("lessons")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .collect();
+    for (const lesson of lessons) {
+      await ctx.db.delete(lesson._id);
+    }
   },
 });
 
