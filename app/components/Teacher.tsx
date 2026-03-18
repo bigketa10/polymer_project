@@ -1,6 +1,125 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
+  // --- Glossary Modal State ---
+  const [showGlossaryModal, setShowGlossaryModal] = useState(false);
+  const [editingGlossaryId, setEditingGlossaryId] = useState<string | null>(null);
+  const [glossaryTerm, setGlossaryTerm] = useState("");
+  const [glossaryDefinition, setGlossaryDefinition] = useState("");
+  const [glossaryCategory, setGlossaryCategory] = useState("");
+  const glossary = useQuery(api.glossaryTable.getGlossary);
+  const addGlossaryEntry = useMutation(api.glossaryTable.addGlossaryEntry);
+  const updateGlossaryEntry = useMutation(api.glossaryTable.updateGlossaryEntry);
+  const deleteGlossaryEntry = useMutation(api.glossaryTable.deleteGlossaryEntry);
+  // Glossary modal handlers
+  const openGlossaryModal = () => {
+    setShowGlossaryModal(true);
+    setEditingGlossaryId(null);
+    setGlossaryTerm("");
+    setGlossaryDefinition("");
+    setGlossaryCategory("");
+  };
+  const startEditGlossary = (entry: any) => {
+    setEditingGlossaryId(entry._id);
+    setGlossaryTerm(entry.term);
+    setGlossaryDefinition(entry.definition);
+    setGlossaryCategory(entry.category || "");
+    setShowGlossaryModal(true);
+  };
+  const handleSaveGlossary = async () => {
+    if (!glossaryTerm.trim() || !glossaryDefinition.trim()) {
+      alert("Term and definition are required.");
+      return;
+    }
+    try {
+      if (editingGlossaryId) {
+        await updateGlossaryEntry({
+          id: editingGlossaryId as unknown as Id<"glossary">,
+          definition: glossaryDefinition.trim(),
+          category: glossaryCategory.trim() || undefined,
+        });
+      } else {
+        await addGlossaryEntry({
+          term: glossaryTerm.trim(),
+          definition: glossaryDefinition.trim(),
+          category: glossaryCategory.trim() || undefined,
+        });
+      }
+      setShowGlossaryModal(false);
+      setEditingGlossaryId(null);
+      setGlossaryTerm("");
+      setGlossaryDefinition("");
+      setGlossaryCategory("");
+    } catch (e: any) {
+      alert(e?.message || "Failed to save glossary entry.");
+    }
+  };
+  const handleDeleteGlossary = async (id: string) => {
+    if (!window.confirm("Delete this glossary entry?")) return;
+    await deleteGlossaryEntry({ id: id as unknown as Id<"glossary"> });
+  };
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={openGlossaryModal}
+        className="bg-white"
+      >
+        Glossary
+      </Button>
+      {/* Glossary Modal */}
+      {showGlossaryModal && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onPointerDown={e => { if (e.target === e.currentTarget) setShowGlossaryModal(false); }}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+              <h2 className="text-lg font-semibold text-slate-800">Glossary</h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowGlossaryModal(false)}>
+                <XCircle className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="overflow-y-auto p-4 space-y-4">
+              <form className="flex flex-col gap-2 md:flex-row md:items-end md:gap-4" onSubmit={e => { e.preventDefault(); handleSaveGlossary(); }}>
+                <Input
+                  placeholder="Term"
+                  value={glossaryTerm}
+                  onChange={e => setGlossaryTerm(e.target.value)}
+                  disabled={!!editingGlossaryId}
+                  className="md:w-32"
+                />
+                <Input
+                  placeholder="Definition"
+                  value={glossaryDefinition}
+                  onChange={e => setGlossaryDefinition(e.target.value)}
+                  className="flex-1"
+                />
+                <Input
+                  placeholder="Category (optional)"
+                  value={glossaryCategory}
+                  onChange={e => setGlossaryCategory(e.target.value)}
+                  className="md:w-32"
+                />
+                <Button type="submit" size="sm" className="bg-indigo-600 text-white hover:bg-indigo-700">
+                  {editingGlossaryId ? "Update" : "Add"}
+                </Button>
+              </form>
+              <div className="divide-y divide-slate-100">
+                {glossary && glossary.length > 0 ? glossary.map((entry: any) => (
+                  <div key={entry._id} className="flex items-center gap-2 py-2 group">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-800 truncate">{entry.term}</div>
+                      <div className="text-slate-600 text-sm truncate">{entry.definition}</div>
+                      {entry.category && <div className="text-xs text-slate-400">{entry.category}</div>}
+                    </div>
+                    <Button variant="ghost" size="icon-sm" onClick={() => startEditGlossary(entry)} title="Edit"><Pencil className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => handleDeleteGlossary(entry._id)} title="Delete"><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                )) : <div className="text-slate-400 text-sm py-4">No glossary entries yet.</div>}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
