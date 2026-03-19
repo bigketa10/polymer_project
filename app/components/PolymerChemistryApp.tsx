@@ -186,6 +186,8 @@ const PolymerChemistryApp = () => {
         ) {
           if (lesson.questions[index].type === "dragdrop") {
             restoredAnswers[index] = answer.placedSections || null;
+          } else if (lesson.questions[index].type === "fillblank") {
+            restoredAnswers[index] = answer.textAnswer || null;
           } else {
             restoredAnswers[index] =
               typeof answer.selectedOption === "number"
@@ -234,7 +236,7 @@ const PolymerChemistryApp = () => {
 
     const question = currentLesson.questions[currentQuestion];
 
-    if (question.type !== "dragdrop") {
+    if (question.type !== "dragdrop" && question.type !== "fillblank") {
       const optionText = question.options[answerPayload as number];
       speak(optionText);
     }
@@ -249,12 +251,16 @@ const PolymerChemistryApp = () => {
   };
 
   // Helper to play chime reliably after user interaction
-  const playChime = (type: 'correct' | 'wrong') => {
-    let audioRef = type === 'correct' ? correctSound : wrongSound;
+  const playChime = (type: "correct" | "wrong") => {
+    let audioRef = type === "correct" ? correctSound : wrongSound;
     let audio = audioRef.current;
     if (!audio) {
       // Try to re-query the DOM if ref is lost
-      audio = document.querySelector(type === 'correct' ? 'audio[src="/sounds/correct.mp3"]' : 'audio[src="/sounds/incorrect.mp3"]');
+      audio = document.querySelector(
+        type === "correct"
+          ? 'audio[src="/sounds/correct.mp3"]'
+          : 'audio[src="/sounds/incorrect.mp3"]',
+      );
       if (audio) {
         audioRef.current = audio as HTMLAudioElement;
       } else {
@@ -266,7 +272,9 @@ const PolymerChemistryApp = () => {
       audio.volume = 0.5;
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(() => {/* ignore autoplay errors */});
+        playPromise.catch(() => {
+          /* ignore autoplay errors */
+        });
       }
     } catch (e) {
       // ignore
@@ -283,7 +291,9 @@ const PolymerChemistryApp = () => {
       const dbPayload =
         question.type === "dragdrop"
           ? { placedSections: userAnswer }
-          : { selectedOption: userAnswer as number };
+          : question.type === "fillblank"
+            ? { textAnswer: userAnswer as string }
+            : { selectedOption: userAnswer as number };
 
       saveAnswer({
         attemptId: activeAttemptId as Id<"lessonAttempts">,
@@ -296,9 +306,9 @@ const PolymerChemistryApp = () => {
 
     // Play chime after user interaction
     if (isCorrect) {
-      playChime('correct');
+      playChime("correct");
     } else {
-      playChime('wrong');
+      playChime("wrong");
     }
 
     const interimScore =
@@ -312,6 +322,16 @@ const PolymerChemistryApp = () => {
             idx === currentQuestion
               ? isCorrect
               : evaluateDragDropCorrectness(q, ans);
+        } else if (q.type === "fillblank") {
+          wasCorrect =
+            idx === currentQuestion
+              ? isCorrect
+              : String(ans || "")
+                  .trim()
+                  .toLowerCase() ===
+                String(q.correctAnswer || "")
+                  .trim()
+                  .toLowerCase();
         } else {
           wasCorrect = ans === q.correct;
         }
@@ -361,6 +381,14 @@ const PolymerChemistryApp = () => {
       let isCorrect = false;
       if (q.type === "dragdrop") {
         isCorrect = evaluateDragDropCorrectness(q, ans);
+      } else if (q.type === "fillblank") {
+        isCorrect =
+          String(ans || "")
+            .trim()
+            .toLowerCase() ===
+          String(q.correctAnswer || "")
+            .trim()
+            .toLowerCase();
       } else {
         isCorrect = ans === q.correct;
       }
@@ -654,7 +682,14 @@ const PolymerChemistryApp = () => {
                       const isCorrect =
                         q.type === "dragdrop"
                           ? evaluateDragDropCorrectness(q, userAns)
-                          : userAns === q.correct;
+                          : q.type === "fillblank"
+                            ? String(userAns || "")
+                                .trim()
+                                .toLowerCase() ===
+                              String(q.correctAnswer || "")
+                                .trim()
+                                .toLowerCase()
+                            : userAns === q.correct;
                       return (
                         <div
                           key={idx}
@@ -700,6 +735,14 @@ const PolymerChemistryApp = () => {
         question,
         selectedAnswers[currentQuestion],
       );
+    } else if (question.type === "fillblank") {
+      isCorrectForUI =
+        String(selectedAnswers[currentQuestion] || "")
+          .trim()
+          .toLowerCase() ===
+        String(question.correctAnswer || "")
+          .trim()
+          .toLowerCase();
     } else {
       isCorrectForUI = selectedAnswers[currentQuestion] === question.correct;
     }
@@ -792,8 +835,35 @@ const PolymerChemistryApp = () => {
                     disabled={showResult}
                     onReadItem={speak}
                   />
+                ) : question.type === "fillblank" ? (
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      placeholder="Type your answer here..."
+                      className={`w-full p-4 border-2 rounded-lg transition-all text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                        showResult
+                          ? isCorrectForUI
+                            ? "border-green-500 bg-green-50 text-green-900"
+                            : "border-red-500 bg-red-50 text-red-900"
+                          : "border-gray-200 focus:border-indigo-500"
+                      }`}
+                      value={selectedAnswers[currentQuestion] || ""}
+                      onChange={(e) => {
+                        if (!showResult) {
+                          const val = e.target.value;
+                          setSelectedAnswer(val);
+                          setSelectedAnswers((prev) => {
+                            const next = [...prev];
+                            next[currentQuestion] = val;
+                            return next;
+                          });
+                        }
+                      }}
+                      disabled={showResult}
+                    />
+                  </div>
                 ) : (
-                  question.options.map((option: string, index: number) => (
+                  question.options?.map((option: string, index: number) => (
                     <button
                       key={index}
                       onClick={() => handleAnswerSubmit(index)} // Just selects, doesn't check
@@ -865,14 +935,28 @@ const PolymerChemistryApp = () => {
                           question,
                           studentAns,
                         );
+                      } else if (question.type === "fillblank") {
+                        isCorrect =
+                          String(studentAns || "")
+                            .trim()
+                            .toLowerCase() ===
+                          String(question.correctAnswer || "")
+                            .trim()
+                            .toLowerCase();
                       } else {
                         isCorrect = studentAns === question.correct;
                       }
 
                       triggerCheckAnswer(studentAns, isCorrect);
                     }}
-                    // Disable if no MCQ option is picked or no D&D items are moved
-                    disabled={selectedAnswers[currentQuestion] === null}
+                    // Disable if no MCQ option is picked, no D&D items are moved, or text input is empty
+                    disabled={
+                      selectedAnswers[currentQuestion] === null ||
+                      (question.type === "fillblank" &&
+                        String(
+                          selectedAnswers[currentQuestion] || "",
+                        ).trim() === "")
+                    }
                     className="bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed"
                   >
                     Check Answer
