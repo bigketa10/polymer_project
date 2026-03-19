@@ -94,6 +94,8 @@ export const saveAnswer = mutation({
         }),
       ),
     ),
+    // 3. ADD THIS FOR FILL-IN-THE-BLANK:
+    textAnswer: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -121,6 +123,7 @@ export const saveAnswer = mutation({
       newAnswer.selectedOption = args.selectedOption;
     if (args.placedSections !== undefined)
       newAnswer.placedSections = args.placedSections;
+    if (args.textAnswer !== undefined) newAnswer.textAnswer = args.textAnswer;
     nextAnswers.push(newAnswer);
 
     const totalTimeMs = nextAnswers.reduce(
