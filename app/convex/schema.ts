@@ -119,4 +119,10 @@ export default defineSchema({
     body: v.string(),
     format: v.optional(v.string()),
   }),
+
+  // 4. GLOSSARY TABLE
+  glossary: defineTable({
+    term: v.string(),
+    definition: v.string(),
+  }).index("by_term", ["term"]),
 });

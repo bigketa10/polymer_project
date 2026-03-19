@@ -65,6 +65,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const deleteModule = useMutation(api.modules.deleteModule);
   const reorderModules = useMutation(api.modules.reorderModules);
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
+  const glossary = useQuery(api.glossary.getAll);
+  const createGlossaryTerm = useMutation(api.glossary.createTerm);
+  const updateGlossaryTerm = useMutation(api.glossary.updateTerm);
+  const deleteGlossaryTerm = useMutation(api.glossary.deleteTerm);
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [lessonDropdownOpen, setLessonDropdownOpen] = useState(false);
@@ -145,6 +149,14 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [lessonDropTargetId, setLessonDropTargetId] = useState<string | null>(
     null,
   );
+
+  // --- Glossary Management State ---
+  const [showGlossaryModal, setShowGlossaryModal] = useState(false);
+  const [editingGlossaryId, setEditingGlossaryId] = useState<string | null>(
+    null,
+  );
+  const [newGlossaryTerm, setNewGlossaryTerm] = useState("");
+  const [newGlossaryDef, setNewGlossaryDef] = useState("");
 
   // --- Queries & Memos ---
   const studentAttempts = useQuery(
@@ -559,6 +571,58 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setNewLessonDifficulty(lesson.difficulty || "Beginner");
     setNewLessonXpReward(String(lesson.xpReward || 100));
     setNewLessonOrder(String(lesson.order || ""));
+  };
+
+  const resetGlossaryForm = () => {
+    setEditingGlossaryId(null);
+    setNewGlossaryTerm("");
+    setNewGlossaryDef("");
+  };
+
+  const startEditGlossaryTerm = (term: any) => {
+    setEditingGlossaryId(term._id);
+    setNewGlossaryTerm(term.term);
+    setNewGlossaryDef(term.definition);
+  };
+
+  const handleSaveGlossaryTerm = async () => {
+    const term = newGlossaryTerm.trim();
+    const definition = newGlossaryDef.trim();
+
+    if (!term || !definition) {
+      alert("Term and definition are required.");
+      return;
+    }
+
+    try {
+      if (editingGlossaryId) {
+        await updateGlossaryTerm({
+          id: editingGlossaryId as Id<"glossary">,
+          term,
+          definition,
+        });
+        alert("Glossary term updated.");
+      } else {
+        await createGlossaryTerm({ term, definition });
+        alert("Glossary term created.");
+      }
+      resetGlossaryForm();
+    } catch (e: any) {
+      alert(e.message || "Failed to save glossary term.");
+    }
+  };
+
+  const handleDeleteGlossaryTerm = async (term: any) => {
+    if (!window.confirm(`Delete glossary term "${term.term}"?`)) return;
+    try {
+      await deleteGlossaryTerm({ id: term._id });
+      if (editingGlossaryId === term._id) {
+        resetGlossaryForm();
+      }
+      alert("Glossary term deleted.");
+    } catch (e: any) {
+      alert(e.message || "Failed to delete glossary term.");
+    }
   };
 
   const handleSaveLesson = async () => {
@@ -1564,6 +1628,17 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 >
                   {showManageLessons ? "Hide lessons" : "Manage lessons"}
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowGlossaryModal(true);
+                    resetGlossaryForm();
+                  }}
+                  className="bg-white"
+                >
+                  Manage Glossary
+                </Button>
 
                 <label className="text-sm text-slate-600 flex flex-col gap-1 w-full sm:w-auto sm:min-w-[210px]">
                   <span className="font-medium">Module:</span>
@@ -2546,6 +2621,133 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                           <Button size="sm" onClick={handleSaveLesson}>
                             Create lesson
                           </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>,
+                document.body,
+              )}
+
+            {/* Manage Glossary Modal */}
+            {showGlossaryModal &&
+              createPortal(
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                  onPointerDown={(e) => {
+                    if (e.target === e.currentTarget) {
+                      setShowGlossaryModal(false);
+                      resetGlossaryForm();
+                    }
+                  }}
+                >
+                  <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                      <h2 className="text-sm font-semibold text-slate-800">
+                        Manage Glossary
+                      </h2>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowGlossaryModal(false);
+                          resetGlossaryForm();
+                        }}
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Form for adding/editing */}
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-slate-800">
+                          {editingGlossaryId ? "Edit Term" : "Add New Term"}
+                        </h3>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-slate-700">
+                            Term
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={newGlossaryTerm}
+                            onChange={(e) => setNewGlossaryTerm(e.target.value)}
+                            placeholder="e.g. polymer"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-slate-700">
+                            Definition
+                          </label>
+                          <textarea
+                            rows={4}
+                            className="w-full rounded-md border border-slate-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={newGlossaryDef}
+                            onChange={(e) => setNewGlossaryDef(e.target.value)}
+                            placeholder="A large molecule..."
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          {editingGlossaryId && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={resetGlossaryForm}
+                            >
+                              Cancel Edit
+                            </Button>
+                          )}
+                          <Button size="sm" onClick={handleSaveGlossaryTerm}>
+                            {editingGlossaryId ? "Save Changes" : "Add Term"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* List of existing terms */}
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-slate-800">
+                          Existing Terms
+                        </h3>
+                        <div className="max-h-[55vh] overflow-y-auto pr-2 space-y-2">
+                          {!glossary && <p>Loading...</p>}
+                          {glossary?.map((term: any) => (
+                            <div
+                              key={term._id}
+                              className="border rounded-md px-3 py-2 flex items-center justify-between gap-4 bg-slate-50"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-slate-800 truncate">
+                                  {term.term}
+                                </p>
+                                <p className="text-xs text-slate-500 truncate">
+                                  {term.definition}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-slate-500 hover:bg-slate-100"
+                                  onClick={() => startEditGlossaryTerm(term)}
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-red-500 hover:bg-red-50"
+                                  onClick={() => handleDeleteGlossaryTerm(term)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          {glossary?.length === 0 && (
+                            <p className="text-xs text-slate-500 italic">
+                              No glossary terms found.
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>

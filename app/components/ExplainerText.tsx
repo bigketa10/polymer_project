@@ -1,7 +1,19 @@
-import React from "react";
-import { glossary } from "../convex/glossary"; // Adjust path as needed
+import React, { useMemo } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../convex/_generated/api";
 
 export const ExplainerText = ({ text }: { text: string }) => {
+  const glossaryData = useQuery(api.glossary.getAll);
+
+  const glossary = useMemo(() => {
+    if (!glossaryData) return {};
+    const map: Record<string, { definition: string }> = {};
+    for (const item of glossaryData) {
+      map[item.term] = { definition: item.definition };
+    }
+    return map;
+  }, [glossaryData]);
+
   const words = text.split(" ");
 
   return (
