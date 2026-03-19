@@ -50,14 +50,11 @@ type DragDropItem = { id: string; text: string };
 export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const { user } = useUser();
   const stats = useQuery(api.teachers.getClassStats, user ? {} : "skip");
-  const stats = useQuery(api.teachers.getClassStats);
   const lessons = useQuery(api.lessons.getAll);
   const modules = useQuery(api.modules.getAll);
   const ensureDefaultModules = useMutation(api.modules.ensureDefaultModules);
   const removeStudent = useMutation(api.teachers.removeStudent);
-  const resetAllStudentProgress = useMutation(
-    api.teachers.resetAllStudentProgress,
-  );
+  const resetAllStudentProgress = useMutation(api.teachers.resetAllStudentProgress);
   const updateQuestions = useMutation(api.lessons.updateQuestions);
   const createLesson = useMutation(api.lessons.createLesson);
   const updateLesson = useMutation(api.lessons.updateLesson);
@@ -102,17 +99,13 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   const [moduleDropdownOpen, setModuleDropdownOpen] = useState(false);
   const moduleDropdownRef = useRef<HTMLDivElement | null>(null);
-  const [moduleFilterDropdownOpen, setModuleFilterDropdownOpen] =
-    useState(false);
+  const [moduleFilterDropdownOpen, setModuleFilterDropdownOpen] = useState(false);
   const moduleFilterDropdownRef = useRef<HTMLDivElement | null>(null);
 
   // --- Question Editing State ---
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [questionType, setQuestionType] = useState<"mcq" | "dragdrop">("mcq");
-  const [questionType, setQuestionType] = useState<
-    "mcq" | "dragdrop" | "fillblank"
-  >("mcq");
+  const [questionType, setQuestionType] = useState<"mcq" | "dragdrop" | "fillblank">("mcq");
   const [questionText, setQuestionText] = useState("");
   const [optionsText, setOptionsText] = useState("");
   const [correctOptionNumber, setCorrectOptionNumber] = useState("");
@@ -135,33 +128,20 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [ddBankInput, setDdBankInput] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStudentUserId, setSelectedStudentUserId] = useState<
-    string | null
-  >(null);
+  const [selectedStudentUserId, setSelectedStudentUserId] = useState<string | null>(null);
   const [selectedStudentName, setSelectedStudentName] = useState("");
-  const [studentReportAttemptFilter, setStudentReportAttemptFilter] =
-    useState<string>("all");
-  const [expandedReportLessons, setExpandedReportLessons] = useState<
-    Set<string>
-  >(new Set());
-  const [responseModalQuestionIndex, setResponseModalQuestionIndex] = useState<
-    number | null
-  >(null);
+  const [studentReportAttemptFilter, setStudentReportAttemptFilter] = useState<string>("all");
+  const [expandedReportLessons, setExpandedReportLessons] = useState<Set<string>>(new Set());
+  const [responseModalQuestionIndex, setResponseModalQuestionIndex] = useState<number | null>(null);
 
   const [draggedModuleId, setDraggedModuleId] = useState<string | null>(null);
   const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
-  const [moduleDropTargetId, setModuleDropTargetId] = useState<string | null>(
-    null,
-  );
-  const [lessonDropTargetId, setLessonDropTargetId] = useState<string | null>(
-    null,
-  );
+  const [moduleDropTargetId, setModuleDropTargetId] = useState<string | null>(null);
+  const [lessonDropTargetId, setLessonDropTargetId] = useState<string | null>(null);
 
   // --- Glossary Management State ---
   const [showGlossaryModal, setShowGlossaryModal] = useState(false);
-  const [editingGlossaryId, setEditingGlossaryId] = useState<string | null>(
-    null,
-  );
+  const [editingGlossaryId, setEditingGlossaryId] = useState<string | null>(null);
   const [newGlossaryTerm, setNewGlossaryTerm] = useState("");
   const [newGlossaryDef, setNewGlossaryDef] = useState("");
 
@@ -169,15 +149,11 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const studentAttempts = useQuery(
     api.lessonAttempts.getByUser,
     selectedStudentUserId && user ? { userId: selectedStudentUserId } : "skip",
-    selectedStudentUserId ? { userId: selectedStudentUserId } : "skip",
   );
 
   const selectedLessonAttempts = useQuery(
     api.lessonAttempts.getByLesson,
-    selectedLessonId && user
-      ? { lessonId: selectedLessonId as Id<"lessons"> }
-      : "skip",
-    selectedLessonId ? { lessonId: selectedLessonId as Id<"lessons"> } : "skip",
+    selectedLessonId && user ? { lessonId: selectedLessonId as Id<"lessons"> } : "skip",
   );
 
   const storagePreviewUrl = useQuery(
@@ -384,10 +360,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       });
     }
   }, [ensureDefaultModules, user]);
-    void ensureDefaultModules().catch((err) => {
-      console.error("Failed to ensure default modules:", err);
-    });
-  }, [ensureDefaultModules]);
 
   useEffect(() => {
     if (!lessons || lessons.length === 0) return;
@@ -804,7 +776,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     const q = selectedLesson.questions[index] as any;
 
     setEditingIndex(index);
-    setQuestionType(q.type === "dragdrop" ? "dragdrop" : "mcq");
     if (q.type === "dragdrop") {
       setQuestionType("dragdrop");
     } else if (q.type === "fillblank") {
@@ -1552,11 +1523,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                                 {q.correctAnswer ?? "-"}
                                               </div>
                                             </>
-                                          ) : (
-                                            <></>
-                                          )}
-
-                                          {q.type !== "dragdrop" ? (
+                                          ) : q.type !== "dragdrop" ? (
                                             <>
                                               <div className="mt-2 text-xs text-slate-600">
                                                 <span className="font-semibold">
@@ -2354,343 +2321,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                 document.body,
               )}
 
-            {/* Add Module Modal */}
-            {showAddModule &&
-              createPortal(
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-                  onPointerDown={(e) => {
-                    if (e.target === e.currentTarget) {
-                      setShowAddModule(false);
-                      resetNewModuleForm();
-                    }
-                  }}
-                >
-                  <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-                      <h2 className="text-sm font-semibold text-slate-800">
-                        Create a new module
-                      </h2>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowAddModule(false);
-                          resetNewModuleForm();
-                        }}
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <div className="overflow-y-auto p-4">
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">
-                              Module code
-                            </label>
-                            <input
-                              type="text"
-                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={newModuleCode}
-                              onChange={(e) => setNewModuleCode(e.target.value)}
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">
-                              Module title
-                            </label>
-                            <input
-                              type="text"
-                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={newModuleTitle}
-                              onChange={(e) =>
-                                setNewModuleTitle(e.target.value)
-                              }
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-slate-700">
-                            Description
-                          </label>
-                          <textarea
-                            rows={3}
-                            className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            value={newModuleDescription}
-                            onChange={(e) =>
-                              setNewModuleDescription(e.target.value)
-                            }
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">
-                              Color theme
-                            </label>
-                            <div className="flex flex-wrap gap-2">
-                              {[
-                                "indigo",
-                                "pink",
-                                "blue",
-                                "emerald",
-                                "amber",
-                                "violet",
-                                "rose",
-                              ].map((c) => (
-                                <button
-                                  key={c}
-                                  type="button"
-                                  onClick={() => setNewModuleColor(c)}
-                                  className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${
-                                    newModuleColor === c
-                                      ? "border-indigo-300 bg-indigo-50 text-indigo-900"
-                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                                  }`}
-                                >
-                                  {c}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">
-                              Icon
-                            </label>
-                            <div className="flex gap-2">
-                              {[
-                                { key: "bookOpen", label: "Book" },
-                                { key: "beaker", label: "Beaker" },
-                                { key: "atom", label: "Atom" },
-                              ].map((opt) => (
-                                <button
-                                  key={opt.key}
-                                  type="button"
-                                  onClick={() =>
-                                    setNewModuleIconKey(opt.key as any)
-                                  }
-                                  className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${
-                                    newModuleIconKey === opt.key
-                                      ? "border-indigo-300 bg-indigo-50 text-indigo-900"
-                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                                  }`}
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end gap-2 pt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={resetNewModuleForm}
-                          >
-                            Clear
-                          </Button>
-                          <Button size="sm" onClick={handleSaveModule}>
-                            Create module
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>,
-                document.body,
-              )}
-
-            {/* Add Lesson Modal */}
-            {showAddLesson &&
-              createPortal(
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-                  onPointerDown={(e) => {
-                    if (e.target === e.currentTarget) {
-                      setShowAddLesson(false);
-                      resetNewLessonForm();
-                    }
-                  }}
-                >
-                  <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-                      <h2 className="text-sm font-semibold text-slate-800">
-                        Create a new lesson
-                      </h2>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowAddLesson(false);
-                          resetNewLessonForm();
-                        }}
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <div className="overflow-y-auto p-4">
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">
-                              Course
-                            </label>
-                            <div ref={moduleDropdownRef} className="relative">
-                              <button
-                                type="button"
-                                disabled={!modules || modules.length === 0}
-                                onClick={() => setModuleDropdownOpen((v) => !v)}
-                                className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left"
-                              >
-                                <span className="truncate text-slate-800">
-                                  {!modules
-                                    ? "Loading modules..."
-                                    : modules.length === 0
-                                      ? "No modules"
-                                      : selectedModuleForNewLesson
-                                        ? `${selectedModuleForNewLesson.code} — ${selectedModuleForNewLesson.title}`
-                                        : "Select a module"}
-                                </span>
-                                <ChevronDown className="ml-2 h-4 w-4 text-slate-400 flex-shrink-0" />
-                              </button>
-
-                              {moduleDropdownOpen &&
-                                modules &&
-                                modules.length > 0 && (
-                                  <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
-                                    <div className="max-h-64 overflow-y-auto py-1">
-                                      {modules.map((m: any) => {
-                                        const isSelected =
-                                          m.moduleKey === newLessonSection;
-                                        return (
-                                          <button
-                                            key={m.moduleKey}
-                                            type="button"
-                                            onClick={() => {
-                                              setNewLessonSection(m.moduleKey);
-                                              setModuleDropdownOpen(false);
-                                            }}
-                                            className={`w-full px-3 py-2 text-sm text-left transition-colors ${
-                                              isSelected
-                                                ? "bg-indigo-50 text-indigo-900"
-                                                : "text-slate-700 hover:bg-slate-50"
-                                            }`}
-                                          >
-                                            <div className="font-medium truncate">
-                                              {m.code} — {m.title}
-                                            </div>
-                                            <div className="text-xs text-slate-500 truncate mt-0.5">
-                                              {m.description}
-                                            </div>
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">
-                              Difficulty
-                            </label>
-                            <input
-                              type="text"
-                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={newLessonDifficulty}
-                              onChange={(e) =>
-                                setNewLessonDifficulty(e.target.value)
-                              }
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-slate-700">
-                            Lesson title
-                          </label>
-                          <input
-                            type="text"
-                            className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            value={newLessonTitle}
-                            onChange={(e) => setNewLessonTitle(e.target.value)}
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-slate-700">
-                            Description
-                          </label>
-                          <textarea
-                            rows={3}
-                            className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            value={newLessonDescription}
-                            onChange={(e) =>
-                              setNewLessonDescription(e.target.value)
-                            }
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">
-                              XP reward
-                            </label>
-                            <input
-                              type="number"
-                              min={1}
-                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={newLessonXpReward}
-                              onChange={(e) =>
-                                setNewLessonXpReward(e.target.value)
-                              }
-                            />
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">
-                              Order{" "}
-                              <span className="font-normal text-slate-500">
-                                (optional)
-                              </span>
-                            </label>
-                            <input
-                              type="number"
-                              min={1}
-                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={newLessonOrder}
-                              onChange={(e) =>
-                                setNewLessonOrder(e.target.value)
-                              }
-                              placeholder="Auto"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end gap-2 pt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => resetNewLessonForm()}
-                          >
-                            Clear
-                          </Button>
-                          <Button size="sm" onClick={handleSaveLesson}>
-                            Create lesson
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>,
-                document.body,
-              )}
-
             {/* Manage Glossary Modal */}
             {showGlossaryModal &&
               createPortal(
@@ -2952,7 +2582,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             for (const response of responses) {
                               if (
                                 response.selectedOption === null &&
-                                !response.placedSections
+                                !response.placedSections &&
+                                !response.textAnswer
                               )
                                 uniqueNoAnswerUsers.add(response.userId);
                             }
@@ -2960,78 +2591,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             return (
                               <div className="mt-3 border-t pt-3">
                                 {q.type === "mcq" ? (
-                                {q.type !== "dragdrop" ? (
                                   <div className="mb-2 space-y-1">
-                                    {(() => {
-                                      const uniquePickersByOption = (
-                                        q.options || []
-                                      ).map(
-                                        (
-                                          _option: string,
-                                          optionIdx: number,
-                                        ) => {
-                                          const users = new Set<string>();
-                                          for (const response of responses) {
-                                            if (
-                                              response.selectedOption ===
-                                              optionIdx
-                                            )
-                                              users.add(response.userId);
-                                          }
-                                          return users.size;
-                                        },
-                                      );
-                                      const uniqueNoAnswerUsers =
-                                        new Set<string>();
-                                      for (const response of responses) {
-                                        if (
-                                          response.selectedOption === null &&
-                                          !response.placedSections
-                                        )
-                                          uniqueNoAnswerUsers.add(
-                                            response.userId,
-                                          );
-                                      }
-                                      return (
-                                        <>
-                                          {(q.options || []).map(
-                                            (
-                                              option: string,
-                                              optionIdx: number,
-                                            ) => (
-                                              <p
-                                                key={`${questionKey}:count:${optionIdx}`}
-                                                className="text-xs text-slate-600"
-                                              >
-                                                <span className="font-semibold">
-                                                  Option {optionIdx + 1}:
-                                                </span>{" "}
-                                                {uniquePickersByOption[
-                                                  optionIdx
-                                                ] || 0}{" "}
-                                                {uniquePickersByOption[
-                                                  optionIdx
-                                                ] === 1
-                                                  ? "person"
-                                                  : "people"}
-                                                <span className="text-slate-500">{` (${option})`}</span>
-                                              </p>
-                                            ),
-                                          )}
-                                          {uniqueNoAnswerUsers.size > 0 && (
-                                            <p className="text-xs text-slate-600">
-                                              <span className="font-semibold">
-                                                No answer:
-                                              </span>{" "}
-                                              {uniqueNoAnswerUsers.size}{" "}
-                                              {uniqueNoAnswerUsers.size === 1
-                                                ? "person"
-                                                : "people"}
-                                            </p>
-                                          )}
-                                        </>
-                                      );
-                                    })()}
                                     {(q.options || []).map(
                                       (option: string, optionIdx: number) => (
                                         <p
@@ -3201,8 +2761,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                             ? ` - ${selectedOptionText}`
                                             : ""}
                                         </div>
-                                      ) : activeQuestion.type ===
-                                        "fillblank" ? (
+                                      ) : activeQuestion.type === "fillblank" ? (
                                         <div className="mt-1 text-slate-600">
                                           Answer:{" "}
                                           {response.textAnswer ?? "No answer"}
@@ -3247,39 +2806,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                                 ),
                                               )}
                                             </div>
-                                             <div className="flex flex-wrap gap-2">
-                                               {response.placedSections.map(
-                                                 (sec: any, secIdx: number) => (
-                                                   <div
-                                                     key={secIdx}
-                                                     className="flex-1 min-w-[100px] border border-indigo-100 rounded bg-indigo-50/30 p-1.5"
-                                                   >
-                                                     <div className="font-semibold text-[10px] text-indigo-900 border-b border-indigo-100 pb-0.5 mb-1">
-                                                       {sec.name}
-                                                     </div>
-                                                     {sec.answers &&
-                                                     sec.answers.length > 0 ? (
-                                                       <ul className="list-disc list-inside text-[11px] text-slate-700 space-y-0.5">
-                                                         {sec.answers.map(
-                                                           (
-                                                             a: string,
-                                                             aIdx: number,
-                                                           ) => (
-                                                             <li key={aIdx}>
-                                                               {a}
-                                                             </li>
-                                                           ),
-                                                         )}
-                                                       </ul>
-                                                     ) : (
-                                                       <span className="text-[10px] italic text-slate-400">
-                                                         Empty
-                                                       </span>
-                                                     )}
-                                                   </div>
-                                                 ),
-                                               )}
-                                             </div>
                                           ) : (
                                             <span className="italic text-[11px] text-slate-400">
                                               No layout saved.
@@ -3358,34 +2884,57 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 value={questionType}
                                 onChange={(e) =>
                                   setQuestionType(
-                                    e.target.value as "mcq" | "dragdrop",
-                                    e.target.value as
-                                      | "mcq"
-                                      | "dragdrop"
-                                      | "fillblank",
+                                    e.target.value as "mcq" | "dragdrop" | "fillblank"
                                   )
                                 }
                               >
                                 <option value="mcq">Multiple Choice</option>
                                 <option value="dragdrop">Drag & Drop</option>
-                                <option value="fillblank">
-                                  Fill in the Blank
-                                </option>
+                                <option value="fillblank">Fill in the Blank</option>
                               </select>
                             </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-xs font-medium text-slate-700">
-                                Question text
-                              </label>
-                              <textarea
-                                rows={3}
-                                className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                value={questionText}
-                                onChange={(e) =>
-                                  setQuestionText(e.target.value)
-                                }
-                              />
-                            </div>
+                            
+                            {questionType === "fillblank" ? (
+                              <div className="flex flex-col gap-1">
+                                <label className="text-xs font-medium text-slate-700">
+                                  Question with blank (use "___")
+                                </label>
+                                <textarea
+                                  rows={3}
+                                  className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  value={questionText}
+                                  onChange={(e) => setQuestionText(e.target.value)}
+                                  placeholder="A polymer is a large ___ made of repeating subunits."
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-1">
+                                <label className="text-xs font-medium text-slate-700">
+                                  Question text
+                                </label>
+                                <textarea
+                                  rows={3}
+                                  className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  value={questionText}
+                                  onChange={(e) => setQuestionText(e.target.value)}
+                                />
+                              </div>
+                            )}
+
+                            {questionType === "fillblank" && (
+                              <div className="flex flex-col gap-1">
+                                <label className="text-xs font-medium text-slate-700">
+                                  Correct Answer
+                                </label>
+                                <input
+                                  type="text"
+                                  className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  value={fillCorrectAnswer}
+                                  onChange={(e) => setFillCorrectAnswer(e.target.value)}
+                                  placeholder="molecule"
+                                />
+                              </div>
+                            )}
 
                             {questionType === "mcq" && (
                               <>
@@ -3420,39 +2969,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                       }
                                     />
                                   </div>
-                                </div>
-                              </>
-                            )}
-
-                            {questionType === "fillblank" && (
-                              <>
-                                <div className="flex flex-col gap-1">
-                                  <label className="text-xs font-medium text-slate-700">
-                                    Question with blank (use "___")
-                                  </label>
-                                  <textarea
-                                    rows={3}
-                                    className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    value={questionText}
-                                    onChange={(e) =>
-                                      setQuestionText(e.target.value)
-                                    }
-                                    placeholder="A polymer is a large ___ made of repeating subunits."
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                  <label className="text-xs font-medium text-slate-700">
-                                    Correct Answer
-                                  </label>
-                                  <input
-                                    type="text"
-                                    className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    value={fillCorrectAnswer}
-                                    onChange={(e) =>
-                                      setFillCorrectAnswer(e.target.value)
-                                    }
-                                    placeholder="molecule"
-                                  />
                                 </div>
                               </>
                             )}
