@@ -2641,7 +2641,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     }
                   }}
                 >
-                  <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden">
+                  <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
                       <h2 className="text-sm font-semibold text-slate-800">
                         Manage Glossary
