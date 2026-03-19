@@ -100,7 +100,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const moduleFilterDropdownRef = useRef<HTMLDivElement | null>(null);
 
   // --- Question Editing State ---
-  const [showQuestionModal, setShowQuestionModal] = useState(false); // Add this line
+  const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [questionType, setQuestionType] = useState<"mcq" | "dragdrop">("mcq");
   const [questionText, setQuestionText] = useState("");
@@ -711,6 +711,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const startAddNewQuestion = () => {
     setEditingIndex(null);
     resetForm();
+    setShowQuestionModal(true);
   };
 
   const startEditQuestion = (index: number) => {
@@ -1463,7 +1464,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                             {ans ? (
                                               <span
                                                 className={`text-xs px-2 py-1 rounded-full font-bold ${isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-                                                >
+                                              >
                                                 {isCorrect
                                                   ? "Correct"
                                                   : "Incorrect"}
@@ -2837,6 +2838,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                     <div
                                       key={`${modalKey}:${responseIdx}`}
                                       className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-xs"
+                                      style={{
+                                        border: "1px solid #d1d5db",
+                                        borderRadius: "0.375rem",
+                                      }}
                                     >
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="font-semibold text-slate-700">
@@ -2929,413 +2934,430 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     document.body,
                   )}
 
-                {/* Edit / Add Form */}
-                <div className="border-t pt-4 mt-2">
-                  <h3 className="text-sm font-semibold text-slate-800 mb-2">
-                    {editingIndex === null
-                      ? "Add a new question"
-                      : `Edit question ${editingIndex + 1}`}
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Question type
-                      </label>
-                      <select
-                        className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2"
-                        value={questionType}
-                        onChange={(e) =>
-                          setQuestionType(e.target.value as "mcq" | "dragdrop")
-                        }
-                      >
-                        <option value="mcq">Multiple Choice</option>
-                        <option value="dragdrop">Drag & Drop</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Question text
-                      </label>
-                      <textarea
-                        rows={3}
-                        className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={questionText}
-                        onChange={(e) => setQuestionText(e.target.value)}
-                      />
-                    </div>
-
-                    {questionType === "mcq" && (
-                      <>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-slate-700">
-                            Answer options (one per line)
-                          </label>
-                          <textarea
-                            rows={4}
-                            className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            value={optionsText}
-                            onChange={(e) => setOptionsText(e.target.value)}
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">
-                              Correct option number{" "}
-                              <span className="font-normal text-slate-500">
-                                (1 = first line)
-                              </span>
-                            </label>
-                            <input
-                              type="number"
-                              min={1}
-                              className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={correctOptionNumber}
-                              onChange={(e) =>
-                                setCorrectOptionNumber(e.target.value)
-                              }
-                            />
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {questionType === "dragdrop" && (
-                      <div className="border rounded-md p-3 bg-slate-50">
-                        <div className="mb-2">
-                          <label className="text-xs font-medium text-slate-700">
-                            Answer bank
-                          </label>
-                          <div className="flex gap-2 mt-1">
-                            <input
-                              type="text"
-                              className="flex-1 rounded-md border border-slate-200 text-sm px-2 h-8"
-                              value={ddBankInput}
-                              onChange={(e) => setDdBankInput(e.target.value)}
-                              placeholder="Add answer and press Enter"
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" && ddBankInput.trim()) {
-                                  setDdAnswerBank([
-                                    ...ddAnswerBank,
-                                    {
-                                      id: crypto.randomUUID(),
-                                      text: ddBankInput.trim(),
-                                    },
-                                  ]);
-                                  setDdBankInput("");
-                                  e.preventDefault();
-                                }
-                              }}
-                            />
-                            <button
-                              type="button"
-                              className="px-2 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition"
-                              onClick={() => {
-                                if (ddBankInput.trim()) {
-                                  setDdAnswerBank([
-                                    ...ddAnswerBank,
-                                    {
-                                      id: crypto.randomUUID(),
-                                      text: ddBankInput.trim(),
-                                    },
-                                  ]);
-                                  setDdBankInput("");
-                                }
-                              }}
-                            >
-                              Add
-                            </button>
-                          </div>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {ddAnswerBank.map((ans) => (
-                              <div
-                                key={ans.id}
-                                draggable
-                                onDragStart={(e) =>
-                                  e.dataTransfer.setData("text/plain", ans.id)
-                                }
-                                className="px-2 py-1 bg-white border rounded shadow text-sm cursor-move flex items-center"
-                              >
-                                {ans.text}
-                                <button
-                                  type="button"
-                                  className="ml-2 text-xs text-red-500 hover:text-red-700 shrink-0"
-                                  onClick={() =>
-                                    setDdAnswerBank(
-                                      ddAnswerBank.filter(
-                                        (a) => a.id !== ans.id,
-                                      ),
-                                    )
-                                  }
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="mb-2">
-                          <label className="text-xs font-medium text-slate-700">
-                            Sections
-                          </label>
-                          <div className="flex gap-2 mb-2">
-                            {ddSections.map((section, sIdx) => (
-                              <input
-                                key={`sec-input-${sIdx}`}
-                                type="text"
-                                className="rounded-md border border-slate-200 text-sm px-2 h-8"
-                                value={section.name}
-                                onChange={(e) => {
-                                  const newSections = [...ddSections];
-                                  newSections[sIdx].name = e.target.value;
-                                  setDdSections(newSections);
-                                }}
-                              />
-                            ))}
-                            <button
-                              type="button"
-                              className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition"
-                              onClick={() =>
-                                setDdSections([
-                                  ...ddSections,
-                                  {
-                                    name: `Section ${ddSections.length + 1}`,
-                                    answers: [],
-                                  },
-                                ])
-                              }
-                            >
-                              + Add Section
-                            </button>
-                          </div>
-                          <div className="flex gap-4">
-                            {ddSections.map((section, sIdx) => (
-                              <div
-                                key={`sec-drop-${sIdx}`}
-                                className="flex-1 min-w-[120px] bg-white border rounded p-2 min-h-[60px]"
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={(e) => {
-                                  const draggedId =
-                                    e.dataTransfer.getData("text/plain");
-                                  if (!draggedId) return;
-
-                                  let draggedItem = ddAnswerBank.find(
-                                    (a) => a.id === draggedId,
-                                  );
-                                  if (!draggedItem) {
-                                    for (const sec of ddSections) {
-                                      const found = sec.answers.find(
-                                        (a) => a.id === draggedId,
-                                      );
-                                      if (found) draggedItem = found;
-                                    }
-                                  }
-                                  if (!draggedItem) return;
-
-                                  setDdAnswerBank((prev) =>
-                                    prev.filter((a) => a.id !== draggedId),
-                                  );
-
-                                  const newSections = ddSections.map(
-                                    (sec, i) => {
-                                      const filteredAnswers =
-                                        sec.answers.filter(
-                                          (a) => a.id !== draggedId,
-                                        );
-                                      if (i === sIdx) {
-                                        return {
-                                          ...sec,
-                                          answers: [
-                                            ...filteredAnswers,
-                                            draggedItem!,
-                                          ],
-                                        };
-                                      }
-                                      return {
-                                        ...sec,
-                                        answers: filteredAnswers,
-                                      };
-                                    },
-                                  );
-
-                                  setDdSections(newSections);
-                                }}
-                              >
-                                <div className="font-semibold text-xs mb-1 border-b pb-1">
-                                  {section.name}
-                                </div>
-                                {section.answers.length === 0 && (
-                                  <div className="text-slate-400 text-xs italic mt-2">
-                                    Drop answers here
-                                  </div>
-                                )}
-                                {section.answers.map((ans) => (
-                                  <div
-                                    key={ans.id}
-                                    className="px-2 py-1 bg-indigo-50 border border-indigo-100 rounded shadow-sm text-sm flex items-center justify-between mt-2 cursor-move"
-                                    draggable
-                                    onDragStart={(e) =>
-                                      e.dataTransfer.setData(
-                                        "text/plain",
-                                        ans.id,
-                                      )
-                                    }
-                                  >
-                                    <span className="truncate mr-2">
-                                      {ans.text}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      className="text-xs text-red-500 hover:text-red-700 shrink-0"
-                                      onClick={() => {
-                                        const newSections = [...ddSections];
-                                        newSections[sIdx].answers = newSections[
-                                          sIdx
-                                        ].answers.filter(
-                                          (a) => a.id !== ans.id,
-                                        );
-                                        setDdSections(newSections);
-                                        setDdAnswerBank([...ddAnswerBank, ans]);
-                                      }}
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Upload image
-                      </label>
-                      <input
-                        id="question-image-upload"
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        onChange={handleImageUpload}
-                        disabled={isUploading}
-                        ref={imageInputRef}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          imageInputRef.current?.click();
-                        }}
-                        className={`inline-flex w-fit items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${isUploading ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}
-                      >
-                        Choose image to upload
-                      </button>
-                      <p className="text-[11px] text-slate-500">
-                        {imageFileName || "No file selected"}
-                      </p>
-                      {imageStorageId && (
-                        <p className="text-[11px] text-slate-500">
-                          Uploaded: {imageStorageId}
-                        </p>
-                      )}
-
-                      <div className="mt-2 w-full h-48 bg-slate-50 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden relative">
-                        {isUploading ? (
-                          <div className="flex flex-col items-center gap-2">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-                            <p className="text-xs text-slate-500">
-                              Securely Processing Image...
-                            </p>
-                          </div>
-                        ) : previewUrl ? (
-                          <div className="relative w-full h-full">
-                            <img
-                              key={previewUrl}
-                              src={previewUrl}
-                              alt="Preview"
-                              className="w-full h-full object-contain p-2"
-                              onError={() => {
-                                setBrokenLinks((prev) => {
-                                  const next = new Set(prev);
-                                  next.add(previewUrl);
-                                  return next;
-                                });
-                              }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setImageUrl("");
-                                setImageStorageId("");
-                              }}
-                              className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
-                              title="Remove image"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="text-center p-4">
-                            <p className="text-xs text-slate-400 font-medium italic">
-                              {brokenLinks.size > 0
-                                ? "Blocked resource hidden"
-                                : "Ready for diagram"}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Optional image URL
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">
-                        Explanation
-                      </label>
-                      <textarea
-                        rows={3}
-                        className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={explanation}
-                        onChange={(e) => setExplanation(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
+                {/* Question Add/Edit Modal */}
+                {showQuestionModal &&
+                  createPortal(
+                    <div
+                      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                      onPointerDown={(e) => {
+                        if (e.target === e.currentTarget) {
+                          setShowQuestionModal(false);
                           setEditingIndex(null);
                           resetForm();
-                        }}
-                      >
-                        Clear
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleSaveQuestion}
-                        disabled={isUploading}
-                      >
-                        {isUploading
-                          ? "Uploading image..."
-                          : editingIndex === null
-                            ? "Add question to set"
-                            : "Save changes"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                        }
+                      }}
+                    >
+                      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+                          <h2 className="text-sm font-semibold text-slate-800">
+                            {editingIndex === null
+                              ? "Add a new question"
+                              : `Edit question ${editingIndex + 1}`}
+                          </h2>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setShowQuestionModal(false);
+                              setEditingIndex(null);
+                              resetForm();
+                            }}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="overflow-y-auto p-4">
+                          <div className="space-y-3">
+                            <div className="flex flex-col gap-1">
+                              <label className="text-xs font-medium text-slate-700">
+                                Question type
+                              </label>
+                              <select
+                                className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2"
+                                value={questionType}
+                                onChange={(e) =>
+                                  setQuestionType(
+                                    e.target.value as "mcq" | "dragdrop",
+                                  )
+                                }
+                              >
+                                <option value="mcq">Multiple Choice</option>
+                                <option value="dragdrop">Drag & Drop</option>
+                              </select>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-xs font-medium text-slate-700">
+                                Question text
+                              </label>
+                              <textarea
+                                rows={3}
+                                className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={questionText}
+                                onChange={(e) =>
+                                  setQuestionText(e.target.value)
+                                }
+                              />
+                            </div>
+
+                            {questionType === "mcq" && (
+                              <>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs font-medium text-slate-700">
+                                    Answer options (one per line)
+                                  </label>
+                                  <textarea
+                                    rows={4}
+                                    className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    value={optionsText}
+                                    onChange={(e) =>
+                                      setOptionsText(e.target.value)
+                                    }
+                                  />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-medium text-slate-700">
+                                      Correct option number{" "}
+                                      <span className="font-normal text-slate-500">
+                                        (1 = first line)
+                                      </span>
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                      value={correctOptionNumber}
+                                      onChange={(e) =>
+                                        setCorrectOptionNumber(e.target.value)
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                              </>
+                            )}
+
+                            {questionType === "dragdrop" && (
+                              <div className="border rounded-md p-3 bg-slate-50 space-y-4">
+                                <div>
+                                  <label className="text-xs font-medium text-slate-700">
+                                    Answer bank
+                                  </label>
+                                  <div className="flex gap-2 mt-1">
+                                    <input
+                                      type="text"
+                                      className="flex-1 rounded-md border border-slate-200 text-sm px-2 h-8"
+                                      value={ddBankInput}
+                                      onChange={(e) =>
+                                        setDdBankInput(e.target.value)
+                                      }
+                                      placeholder="Add answer and press Enter"
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === "Enter" &&
+                                          ddBankInput.trim()
+                                        ) {
+                                          setDdAnswerBank([
+                                            ...ddAnswerBank,
+                                            {
+                                              id: crypto.randomUUID(),
+                                              text: ddBankInput.trim(),
+                                            },
+                                          ]);
+                                          setDdBankInput("");
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      className="px-2 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition"
+                                      onClick={() => {
+                                        if (ddBankInput.trim()) {
+                                          setDdAnswerBank([
+                                            ...ddAnswerBank,
+                                            {
+                                              id: crypto.randomUUID(),
+                                              text: ddBankInput.trim(),
+                                            },
+                                          ]);
+                                          setDdBankInput("");
+                                        }
+                                      }}
+                                    >
+                                      Add
+                                    </button>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {ddAnswerBank.map((ans) => (
+                                      <div
+                                        key={ans.id}
+                                        draggable
+                                        onDragStart={(e) =>
+                                          e.dataTransfer.setData(
+                                            "text/plain",
+                                            ans.id,
+                                          )
+                                        }
+                                        className="px-2 py-1 bg-white border rounded shadow text-sm cursor-move flex items-center"
+                                      >
+                                        {ans.text}
+                                        <button
+                                          type="button"
+                                          className="ml-2 text-xs text-red-500 hover:text-red-700"
+                                          onClick={() =>
+                                            setDdAnswerBank(
+                                              ddAnswerBank.filter(
+                                                (a) => a.id !== ans.id,
+                                              ),
+                                            )
+                                          }
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="text-xs font-medium text-slate-700">
+                                    Sections
+                                  </label>
+                                  <div className="flex flex-wrap gap-2 mt-1 mb-2">
+                                    {ddSections.map((section, sIdx) => (
+                                      <input
+                                        key={`sec-input-${sIdx}`}
+                                        type="text"
+                                        className="rounded-md border border-slate-200 text-sm px-2 h-8 w-32"
+                                        value={section.name}
+                                        onChange={(e) => {
+                                          const newSections = [...ddSections];
+                                          newSections[sIdx].name =
+                                            e.target.value;
+                                          setDdSections(newSections);
+                                        }}
+                                      />
+                                    ))}
+                                    <button
+                                      type="button"
+                                      className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition text-sm"
+                                      onClick={() =>
+                                        setDdSections([
+                                          ...ddSections,
+                                          {
+                                            name: `Section ${ddSections.length + 1}`,
+                                            answers: [],
+                                          },
+                                        ])
+                                      }
+                                    >
+                                      + Add Section
+                                    </button>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {ddSections.map((section, sIdx) => (
+                                      <div
+                                        key={`sec-drop-${sIdx}`}
+                                        className="bg-white border rounded p-2 min-h-[80px]"
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={(e) => {
+                                          const draggedId =
+                                            e.dataTransfer.getData(
+                                              "text/plain",
+                                            );
+                                          if (!draggedId) return;
+
+                                          let draggedItem = ddAnswerBank.find(
+                                            (a) => a.id === draggedId,
+                                          );
+                                          if (!draggedItem) {
+                                            for (const sec of ddSections) {
+                                              const found = sec.answers.find(
+                                                (a) => a.id === draggedId,
+                                              );
+                                              if (found) draggedItem = found;
+                                            }
+                                          }
+                                          if (!draggedItem) return;
+
+                                          setDdAnswerBank((prev) =>
+                                            prev.filter(
+                                              (a) => a.id !== draggedId,
+                                            ),
+                                          );
+
+                                          const newSections = ddSections.map(
+                                            (sec, i) => {
+                                              const filteredAnswers =
+                                                sec.answers.filter(
+                                                  (a) => a.id !== draggedId,
+                                                );
+                                              if (i === sIdx) {
+                                                return {
+                                                  ...sec,
+                                                  answers: [
+                                                    ...filteredAnswers,
+                                                    draggedItem!,
+                                                  ],
+                                                };
+                                              }
+                                              return {
+                                                ...sec,
+                                                answers: filteredAnswers,
+                                              };
+                                            },
+                                          );
+
+                                          setDdSections(newSections);
+                                        }}
+                                      >
+                                        <div className="font-semibold text-xs mb-1 border-b pb-1">
+                                          {section.name}
+                                        </div>
+                                        {section.answers.length === 0 && (
+                                          <div className="text-slate-400 text-xs italic mt-2">
+                                            Drop answers here
+                                          </div>
+                                        )}
+                                        {section.answers.map((ans) => (
+                                          <div
+                                            key={ans.id}
+                                            className="px-2 py-1 bg-indigo-50 border border-indigo-100 rounded shadow-sm text-sm flex items-center justify-between mt-2 cursor-move"
+                                            draggable
+                                            onDragStart={(e) =>
+                                              e.dataTransfer.setData(
+                                                "text/plain",
+                                                ans.id,
+                                              )
+                                            }
+                                          >
+                                            <span className="truncate mr-2">
+                                              {ans.text}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              className="text-xs text-red-500 hover:text-red-700 shrink-0"
+                                              onClick={() => {
+                                                const newSections = [
+                                                  ...ddSections,
+                                                ];
+                                                newSections[sIdx].answers =
+                                                  newSections[
+                                                    sIdx
+                                                  ].answers.filter(
+                                                    (a) => a.id !== ans.id,
+                                                  );
+                                                setDdSections(newSections);
+                                                setDdAnswerBank([
+                                                  ...ddAnswerBank,
+                                                  ans,
+                                                ]);
+                                              }}
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex flex-col gap-1">
+                              <label className="text-xs font-medium text-slate-700">
+                                Upload image
+                              </label>
+                              <input
+                                id="question-image-upload"
+                                type="file"
+                                accept="image/*"
+                                className="sr-only"
+                                onChange={handleImageUpload}
+                                disabled={isUploading}
+                                ref={imageInputRef}
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  imageInputRef.current?.click();
+                                }}
+                                className={`inline-flex w-fit items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${isUploading ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}
+                              >
+                                Choose image to upload
+                              </button>
+                              <p className="text-[11px] text-slate-500">
+                                {imageFileName || "No file selected"}
+                              </p>
+
+                              {previewUrl && (
+                                <div className="mt-2 w-full h-48 bg-slate-50 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden relative">
+                                  <img
+                                    key={previewUrl}
+                                    src={previewUrl}
+                                    alt="Preview"
+                                    className="w-full h-full object-contain p-2"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setImageUrl("");
+                                      setImageStorageId("");
+                                      setImageFileName("");
+                                    }}
+                                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full shadow-sm"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                              <label className="text-xs font-medium text-slate-700">
+                                Explanation
+                              </label>
+                              <textarea
+                                rows={3}
+                                className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={explanation}
+                                onChange={(e) => setExplanation(e.target.value)}
+                              />
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-2 mt-4 border-t border-slate-100">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setShowQuestionModal(false);
+                                  setEditingIndex(null);
+                                  resetForm();
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={handleSaveQuestion}
+                                disabled={isUploading}
+                              >
+                                {isUploading
+                                  ? "Uploading image..."
+                                  : editingIndex === null
+                                    ? "Add question to set"
+                                    : "Save changes"}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>,
+                    document.body,
+                  )}
               </>
             )}
           </CardContent>
