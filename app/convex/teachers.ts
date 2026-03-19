@@ -4,19 +4,6 @@ import { v } from "convex/values";
 export const getClassStats = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || (identity.publicMetadata as any)?.role !== "admin") {
-      // Non-admins should not see class stats.
-      // Return empty/default stats to avoid leaking information.
-      return {
-        totalStudents: 0,
-        avgXP: 0,
-        strugglingStudents: 0,
-        leaderboard: [],
-        totalLessonsCount: 0,
-      };
-    }
-
     // 1. Get all student progress records
     const allProgress = await ctx.db.query("userProgress").collect();
 
