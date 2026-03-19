@@ -119,8 +119,8 @@ export const updateQuestions = mutation({
           options: v.array(v.string()),
           correct: v.float64(), // or v.number()
           explanation: v.string(),
-          imageUrl: v.optional(v.string()),
-          imageStorageId: v.optional(v.id("_storage")),
+          imageUrl: v.optional(v.union(v.string(), v.null())),
+          imageStorageId: v.optional(v.union(v.id("_storage"), v.null())),
         }),
         // 2. The NEW Drag & Drop Format
         v.object({
@@ -134,8 +134,8 @@ export const updateQuestions = mutation({
             }),
           ),
           explanation: v.string(),
-          imageUrl: v.optional(v.string()),
-          imageStorageId: v.optional(v.id("_storage")),
+          imageUrl: v.optional(v.union(v.string(), v.null())),
+          imageStorageId: v.optional(v.union(v.id("_storage"), v.null())),
         }),
         // 3. The Fill in the Blank Format
         v.object({
@@ -143,8 +143,8 @@ export const updateQuestions = mutation({
           question: v.string(),
           correctAnswer: v.string(),
           explanation: v.string(),
-          imageUrl: v.optional(v.string()),
-          imageStorageId: v.optional(v.id("_storage")),
+          imageUrl: v.optional(v.union(v.string(), v.null())),
+          imageStorageId: v.optional(v.union(v.id("_storage"), v.null())),
         }),
       ),
     ),
@@ -160,11 +160,11 @@ export const updateQuestions = mutation({
 
     const oldStorageIds = (existing.questions || [])
       .map((q: any) => q.imageStorageId)
-      .filter((id: any) => id !== undefined);
+      .filter((id: any) => id !== undefined && id !== null);
 
     const newStorageIds = (questions || [])
       .map((q: any) => q.imageStorageId)
-      .filter((id: any) => id !== undefined);
+      .filter((id: any) => id !== undefined && id !== null);
 
     const idsToDelete = oldStorageIds.filter(
       (id: any) => !newStorageIds.includes(id),
