@@ -40,21 +40,23 @@ export const getByLesson = query({
 });
 
 export const startOrResumeAttempt = mutation({
-  args: { lessonId: v.id("lessons") },
-  handler: async (ctx, { lessonId }) => {
+  args: { lessonId: v.id("lessons"), forceNew: v.optional(v.boolean()) },
+  handler: async (ctx, { lessonId, forceNew }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const existing = await ctx.db
-      .query("lessonAttempts")
-      .withIndex("by_user_lesson", (q) =>
-        q.eq("userId", identity.subject).eq("lessonId", lessonId),
-      )
-      .filter((q) => q.eq(q.field("completedAt"), undefined))
-      .first();
+    if (!forceNew) {
+      const mostRecentAttempt = await ctx.db
+        .query("lessonAttempts")
+        .withIndex("by_user_lesson", (q) =>
+          q.eq("userId", identity.subject).eq("lessonId", lessonId),
+        )
+        .order("desc")
+        .first();
 
-    if (existing) {
-      return existing;
+      if (mostRecentAttempt) {
+        return mostRecentAttempt;
+      }
     }
 
     const lesson = await ctx.db.get(lessonId);

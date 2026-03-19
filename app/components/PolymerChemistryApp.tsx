@@ -89,6 +89,7 @@ const PolymerChemistryApp = () => {
   const [reviewAnimate, setReviewAnimate] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
+  const [isAttemptCompleted, setIsAttemptCompleted] = useState(false);
   // ========================================
   // 3. BACKEND INTEGRATION (Convex)
   // ========================================
@@ -160,7 +161,7 @@ const PolymerChemistryApp = () => {
   // ========================================
   // 7. HANDLERS
   // ========================================
-  const startLesson = async (lesson: any) => {
+  const startLesson = async (lesson: any, forceNew = false) => {
     setCurrentLesson(lesson);
     setCurrentQuestion(0);
     setSelectedAnswer(null);
@@ -171,9 +172,13 @@ const PolymerChemistryApp = () => {
     setSelectedAnswers(Array(lesson.questions.length).fill(null));
     setQuestionStartedAt(Date.now());
     setActiveAttemptId(null);
+    setIsAttemptCompleted(false);
 
     try {
-      const res: any = await startOrResumeAttempt({ lessonId: lesson._id });
+      const res: any = await startOrResumeAttempt({
+        lessonId: lesson._id,
+        forceNew,
+      });
       setActiveAttemptId(res?.id || null);
 
       const restoredAnswers = Array(lesson.questions.length).fill(null);
@@ -199,6 +204,7 @@ const PolymerChemistryApp = () => {
       }
 
       setSelectedAnswers(restoredAnswers);
+      setIsAttemptCompleted(!!res?.completedAt);
 
       const nextQuestionIndex = restoredAnswers.findIndex(
         (answer: any) => answer === null,
@@ -703,12 +709,30 @@ const PolymerChemistryApp = () => {
                       );
                     })}
                   </div>
-                  <Button
-                    onClick={completeLesson}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-lg h-12"
-                  >
-                    Complete Lesson
-                  </Button>
+                  {isAttemptCompleted ? (
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        onClick={() => startLesson(currentLesson, true)}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-lg h-12"
+                      >
+                        Retry Lesson
+                      </Button>
+                      <Button
+                        onClick={() => setCurrentLesson(null)}
+                        variant="outline"
+                        className="w-full text-lg h-12"
+                      >
+                        Back to Lessons
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={completeLesson}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-lg h-12"
+                    >
+                      Complete Lesson
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>
