@@ -930,101 +930,108 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   };
 
   const handleSaveQuestion = async () => {
-    if (!selectedLesson) return;
+    try {
+      if (!selectedLesson) return;
 
-    const trimmedQuestion = questionText.trim();
-    if (!trimmedQuestion) {
-      alert("Question text is required.");
-      return;
-    }
-
-    let newQuestion: any = { type: questionType, question: trimmedQuestion };
-    if (questionType === "mcq") {
-      const options = optionsText
-        .split("\n")
-        .map((o) => o.trim())
-        .filter((o) => o.length > 0);
-      if (options.length < 2) {
-        alert("Please provide at least two answer options.");
+      const trimmedQuestion = questionText.trim();
+      if (!trimmedQuestion) {
+        alert("Question text is required.");
         return;
       }
 
-      const correctNum = parseInt(correctOptionNumber, 10);
-      if (
-        Number.isNaN(correctNum) ||
-        correctNum < 1 ||
-        correctNum > options.length
-      ) {
-        alert(`Correct option number must be between 1 and ${options.length}.`);
-        return;
-      }
-      newQuestion = {
-        ...newQuestion,
-        options,
-        correct: correctNum - 1,
-        explanation: explanation.trim() || "No explanation provided.",
-      };
-    } else if (questionType === "fillblank") {
-      const correctAnswer = fillCorrectAnswer.trim();
-      if (!correctAnswer) {
-        alert("Correct answer is required for fill-in-the-blank questions.");
-        return;
-      }
-      if (!trimmedQuestion.includes("___")) {
-        alert("Question text must include '___' to indicate the blank.");
-        return;
-      }
-      newQuestion = {
-        ...newQuestion,
-        correctAnswer,
-        explanation: explanation.trim() || "No explanation provided.",
-      };
-    } else if (questionType === "dragdrop") {
-      if (
-        ddAnswerBank.length === 0 &&
-        ddSections.every((s) => s.answers.length === 0)
-      ) {
-        alert("Please add at least one answer to the bank or a section.");
-        return;
-      }
-      if (ddSections.length < 2) {
-        alert("Please provide at least two sections.");
-        return;
-      }
-      newQuestion = {
-        ...newQuestion,
-        answerBank: ddAnswerBank.map((a) => a.text),
-        sections: ddSections.map((s) => ({
-          name: s.name,
-          answers: s.answers.map((a) => a.text),
-        })),
-        explanation: explanation.trim() || "No explanation provided.",
-      };
-    }
+      let newQuestion: any = { type: questionType, question: trimmedQuestion };
+      if (questionType === "mcq") {
+        const options = optionsText
+          .split("\n")
+          .map((o) => o.trim())
+          .filter((o) => o.length > 0);
+        if (options.length < 2) {
+          alert("Please provide at least two answer options.");
+          return;
+        }
 
-    const trimmedImage = imageUrl.trim();
-    if (trimmedImage) newQuestion.imageUrl = trimmedImage;
-
-    const trimmedStorageId = imageStorageId.trim();
-    if (trimmedStorageId) newQuestion.imageStorageId = trimmedStorageId;
-
-    const existing = selectedLesson.questions || [];
-    const updatedQuestions =
-      editingIndex === null
-        ? [...existing, newQuestion]
-        : existing.map((q: any, idx: number) =>
-            idx === editingIndex ? newQuestion : q,
+        const correctNum = parseInt(correctOptionNumber, 10);
+        if (
+          Number.isNaN(correctNum) ||
+          correctNum < 1 ||
+          correctNum > options.length
+        ) {
+          alert(
+            `Correct option number must be between 1 and ${options.length}.`,
           );
+          return;
+        }
+        newQuestion = {
+          ...newQuestion,
+          options,
+          correct: correctNum - 1,
+          explanation: explanation.trim() || "No explanation provided.",
+        };
+      } else if (questionType === "fillblank") {
+        const correctAnswer = fillCorrectAnswer.trim();
+        if (!correctAnswer) {
+          alert("Correct answer is required for fill-in-the-blank questions.");
+          return;
+        }
+        if (!trimmedQuestion.includes("___")) {
+          alert("Question text must include '___' to indicate the blank.");
+          return;
+        }
+        newQuestion = {
+          ...newQuestion,
+          correctAnswer,
+          explanation: explanation.trim() || "No explanation provided.",
+        };
+      } else if (questionType === "dragdrop") {
+        if (
+          ddAnswerBank.length === 0 &&
+          ddSections.every((s) => s.answers.length === 0)
+        ) {
+          alert("Please add at least one answer to the bank or a section.");
+          return;
+        }
+        if (ddSections.length < 2) {
+          alert("Please provide at least two sections.");
+          return;
+        }
+        newQuestion = {
+          ...newQuestion,
+          answerBank: ddAnswerBank.map((a) => a.text),
+          sections: ddSections.map((s) => ({
+            name: s.name,
+            answers: s.answers.map((a) => a.text),
+          })),
+          explanation: explanation.trim() || "No explanation provided.",
+        };
+      }
 
-    await updateQuestions({
-      lessonId: selectedLesson._id,
-      questions: updatedQuestions,
-    });
+      const trimmedImage = imageUrl.trim();
+      if (trimmedImage) newQuestion.imageUrl = trimmedImage;
 
-    setEditingIndex(null);
-    resetForm();
-    setShowQuestionModal(false); // Close the modal after save
-    alert("Question set saved for this lesson.");
+      const trimmedStorageId = imageStorageId.trim();
+      if (trimmedStorageId) newQuestion.imageStorageId = trimmedStorageId;
+
+      const existing = selectedLesson.questions || [];
+      const updatedQuestions =
+        editingIndex === null
+          ? [...existing, newQuestion]
+          : existing.map((q: any, idx: number) =>
+              idx === editingIndex ? newQuestion : q,
+            );
+
+      await updateQuestions({
+        lessonId: selectedLesson._id,
+        questions: updatedQuestions,
+      });
+
+      setEditingIndex(null);
+      resetForm();
+      setShowQuestionModal(false); // Close the modal after save
+      alert("Question set saved for this lesson.");
+    } catch (error: any) {
+      console.error("Failed to save question:", error);
+      alert(`Failed to save question: ${error.message || "Unknown error"}`);
+    }
   };
 
   const handleDeleteQuestion = async (index: number) => {
