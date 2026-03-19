@@ -184,8 +184,11 @@ const PolymerChemistryApp = () => {
           index >= 0 &&
           index < restoredAnswers.length
         ) {
-          if (lesson.questions[index].type === "dragdrop") {
+          const questionType = lesson.questions[index].type;
+          if (questionType === "dragdrop") {
             restoredAnswers[index] = answer.placedSections || null;
+          } else if (questionType === "fillblank") {
+            restoredAnswers[index] = answer.textAnswer || null;
           } else {
             restoredAnswers[index] =
               typeof answer.selectedOption === "number"
@@ -234,7 +237,7 @@ const PolymerChemistryApp = () => {
 
     const question = currentLesson.questions[currentQuestion];
 
-    if (question.type !== "dragdrop") {
+    if (question.type === "mcq") {
       const optionText = question.options[answerPayload as number];
       speak(optionText);
     }
@@ -286,10 +289,14 @@ const PolymerChemistryApp = () => {
     const elapsedMs = Math.max(0, Date.now() - questionStartedAt);
 
     if (activeAttemptId) {
-      const dbPayload =
-        question.type === "dragdrop"
-          ? { placedSections: userAnswer }
-          : { selectedOption: userAnswer as number };
+      let dbPayload: any;
+      if (question.type === "dragdrop") {
+        dbPayload = { placedSections: userAnswer };
+      } else if (question.type === "fillblank") {
+        dbPayload = { textAnswer: userAnswer as string };
+      } else {
+        dbPayload = { selectedOption: userAnswer as number };
+      }
 
       saveAnswer({
         attemptId: activeAttemptId as Id<"lessonAttempts">,
@@ -319,7 +326,11 @@ const PolymerChemistryApp = () => {
               ? isCorrect
               : evaluateDragDropCorrectness(q, ans);
         } else {
-          wasCorrect = ans === q.correct;
+          wasCorrect =
+            q.type === "fillblank"
+              ? (ans || "").toString().trim().toLowerCase() ===
+                (q.correctAnswer || "").trim().toLowerCase()
+              : ans === q.correct;
         }
 
         return wasCorrect ? acc + 1 : acc;
@@ -367,6 +378,10 @@ const PolymerChemistryApp = () => {
       let isCorrect = false;
       if (q.type === "dragdrop") {
         isCorrect = evaluateDragDropCorrectness(q, ans);
+      } else if (q.type === "fillblank") {
+        isCorrect =
+          (ans || "").toString().trim().toLowerCase() ===
+          (q.correctAnswer || "").trim().toLowerCase();
       } else {
         isCorrect = ans === q.correct;
       }
@@ -658,9 +673,12 @@ const PolymerChemistryApp = () => {
                     {currentLesson.questions.map((q: any, idx: number) => {
                       const userAns = selectedAnswers[idx];
                       const isCorrect =
-                        q.type === "dragdrop"
-                          ? evaluateDragDropCorrectness(q, userAns)
-                          : userAns === q.correct;
+                        q.type === "fillblank"
+                          ? (userAns || "").toString().trim().toLowerCase() ===
+                            (q.correctAnswer || "").trim().toLowerCase()
+                          : q.type === "dragdrop"
+                            ? evaluateDragDropCorrectness(q, userAns)
+                            : userAns === q.correct;
                       return (
                         <div
                           key={idx}
@@ -706,6 +724,13 @@ const PolymerChemistryApp = () => {
         question,
         selectedAnswers[currentQuestion],
       );
+    } else if (question.type === "fillblank") {
+      isCorrectForUI =
+        (selectedAnswers[currentQuestion] || "")
+          .toString()
+          .trim()
+          .toLowerCase() ===
+        (question.correctAnswer || "").trim().toLowerCase();
     } else {
       isCorrectForUI = selectedAnswers[currentQuestion] === question.correct;
     }
@@ -786,7 +811,7 @@ const PolymerChemistryApp = () => {
               )}
 
               <div className="space-y-3 mb-6">
-                {(question.type ?? "mcq") === "dragdrop" ? (
+                {question.type === "dragdrop" ? (
                   <DragDropStudentQuestion
                     question={question}
                     studentAnswer={selectedAnswers[currentQuestion] || null}
@@ -798,6 +823,24 @@ const PolymerChemistryApp = () => {
                     disabled={showResult}
                     onReadItem={speak}
                   />
+                ) : question.type === "fillblank" ? (
+                  <div>
+                    <p className="text-sm text-gray-500 mb-2">
+                      Type your answer in the blank.
+                    </p>
+                    <input
+                      type="text"
+                      value={selectedAnswers[currentQuestion] || ""}
+                      onChange={(e) => {
+                        const newAnswers = [...selectedAnswers];
+                        newAnswers[currentQuestion] = e.target.value;
+                        setSelectedAnswers(newAnswers);
+                      }}
+                      disabled={showResult}
+                      className="w-full p-4 text-left rounded-lg border-2 transition-all disabled:cursor-not-allowed disabled:bg-gray-100 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                      placeholder="Your answer..."
+                    />
+                  </div>
                 ) : (
                   question.options.map((option: string, index: number) => (
                     <button
@@ -871,6 +914,10 @@ const PolymerChemistryApp = () => {
                           question,
                           studentAns,
                         );
+                      } else if (question.type === "fillblank") {
+                        isCorrect =
+                          (studentAns || "").toString().trim().toLowerCase() ===
+                          (question.correctAnswer || "").trim().toLowerCase();
                       } else {
                         isCorrect = studentAns === question.correct;
                       }
