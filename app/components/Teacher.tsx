@@ -2639,10 +2639,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             </Button>
                           </div>
                           <div className="overflow-y-auto p-4">
-                            {/* --- Question Form --- */}
-                            {/* ...existing question form UI, use the same fields and handlers as before... */}
-                            {/* For brevity, you can move the form JSX here from the inline section, or keep the logic as-is if already modularized. */}
-                            {/* Example: */}
                             <div className="space-y-3">
                               <label className="block text-xs font-medium text-slate-700 mb-1">
                                 Question Type
@@ -2692,8 +2688,30 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
                               {questionType === "dragdrop" && (
                                 <>
-                                  {/* Drag & Drop answer bank and sections UI here, as in your current form */}
-                                  {/* ...existing code... */}
+                                  <label className="block text-xs font-medium text-slate-700 mb-1 mt-2">
+                                    Answer Bank (one per line)
+                                  </label>
+                                  <textarea
+                                    className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    rows={3}
+                                    value={ddAnswerBank.map((a) => a.text).join("\n")}
+                                    onChange={(e) => {
+                                      const lines = e.target.value.split("\n").map((t) => t.trim()).filter(Boolean);
+                                      setDdAnswerBank(lines.map((text, i) => ({ id: ddAnswerBank[i]?.id || crypto.randomUUID(), text })));
+                                    }}
+                                  />
+                                  <label className="block text-xs font-medium text-slate-700 mb-1 mt-2">
+                                    Sections (comma separated, e.g. Section 1, Section 2)
+                                  </label>
+                                  <input
+                                    className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    value={ddSections.map((s) => s.name).join(", ")}
+                                    onChange={(e) => {
+                                      const names = e.target.value.split(",").map((n) => n.trim()).filter(Boolean);
+                                      setDdSections(names.map((name, i) => ({ name, answers: ddSections[i]?.answers || [] })));
+                                    }}
+                                  />
+                                  {/* Optionally, allow assigning answers to sections here if needed */}
                                 </>
                               )}
 
