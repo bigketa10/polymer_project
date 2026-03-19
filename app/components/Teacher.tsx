@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -47,6 +48,7 @@ function formatDateTime(dt: string | number | undefined | null): string {
 type DragDropItem = { id: string; text: string };
 
 export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
+  const { user } = useUser();
   const stats = useQuery(api.teachers.getClassStats);
   const lessons = useQuery(api.lessons.getAll);
   const modules = useQuery(api.modules.getAll);
@@ -370,10 +372,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
   // --- Effects ---
   useEffect(() => {
-    void ensureDefaultModules().catch((err) => {
-      console.error("Failed to ensure default modules:", err);
-    });
-  }, [ensureDefaultModules]);
+    if (user) {
+      void ensureDefaultModules().catch((err) => {
+        console.error("Failed to ensure default modules:", err);
+      });
+    }
+  }, [ensureDefaultModules, user]);
 
   useEffect(() => {
     if (!lessons || lessons.length === 0) return;
@@ -2928,7 +2932,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                           {/* Responses Preview */}
                           {(() => {
                             const questionKey = `${selectedLesson._id}:${idx}`;
-                            const responses = lessonResponsesByQuestion.get(idx) || [];
+                            const responses =
+                              lessonResponsesByQuestion.get(idx) || [];
 
                             return (
                               <div className="mt-3 border-t pt-3">
@@ -2938,7 +2943,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                       const uniquePickersByOption = (
                                         q.options || []
                                       ).map(
-                                        (_option: string, optionIdx: number) => {
+                                        (
+                                          _option: string,
+                                          optionIdx: number,
+                                        ) => {
                                           const users = new Set<string>();
                                           for (const response of responses) {
                                             if (
@@ -2950,9 +2958,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           return users.size;
                                         },
                                       );
-                                      const uniqueNoAnswerUsers = new Set<
-                                        string
-                                      >();
+                                      const uniqueNoAnswerUsers =
+                                        new Set<string>();
                                       for (const response of responses) {
                                         if (
                                           response.selectedOption === null &&
@@ -3142,7 +3149,8 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                             ? ` - ${selectedOptionText}`
                                             : ""}
                                         </div>
-                                      ) : activeQuestion.type === "fillblank" ? (
+                                      ) : activeQuestion.type ===
+                                        "fillblank" ? (
                                         <div className="mt-1 text-slate-600">
                                           Answer:{" "}
                                           {response.textAnswer ?? "No answer"}
@@ -3154,39 +3162,39 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           </span>
                                           {response.placedSections &&
                                           response.placedSections.length > 0 ? (
-                                             <div className="flex flex-wrap gap-2">
-                                               {response.placedSections.map(
-                                                 (sec: any, secIdx: number) => (
-                                                   <div
-                                                     key={secIdx}
-                                                     className="flex-1 min-w-[100px] border border-indigo-100 rounded bg-indigo-50/30 p-1.5"
-                                                   >
-                                                     <div className="font-semibold text-[10px] text-indigo-900 border-b border-indigo-100 pb-0.5 mb-1">
-                                                       {sec.name}
-                                                     </div>
-                                                     {sec.answers &&
-                                                     sec.answers.length > 0 ? (
-                                                       <ul className="list-disc list-inside text-[11px] text-slate-700 space-y-0.5">
-                                                         {sec.answers.map(
-                                                           (
-                                                             a: string,
-                                                             aIdx: number,
-                                                           ) => (
-                                                             <li key={aIdx}>
-                                                               {a}
-                                                             </li>
-                                                           ),
-                                                         )}
-                                                       </ul>
-                                                     ) : (
-                                                       <span className="text-[10px] italic text-slate-400">
-                                                         Empty
-                                                       </span>
-                                                     )}
-                                                   </div>
-                                                 ),
-                                               )}
-                                             </div>
+                                            <div className="flex flex-wrap gap-2">
+                                              {response.placedSections.map(
+                                                (sec: any, secIdx: number) => (
+                                                  <div
+                                                    key={secIdx}
+                                                    className="flex-1 min-w-[100px] border border-indigo-100 rounded bg-indigo-50/30 p-1.5"
+                                                  >
+                                                    <div className="font-semibold text-[10px] text-indigo-900 border-b border-indigo-100 pb-0.5 mb-1">
+                                                      {sec.name}
+                                                    </div>
+                                                    {sec.answers &&
+                                                    sec.answers.length > 0 ? (
+                                                      <ul className="list-disc list-inside text-[11px] text-slate-700 space-y-0.5">
+                                                        {sec.answers.map(
+                                                          (
+                                                            a: string,
+                                                            aIdx: number,
+                                                          ) => (
+                                                            <li key={aIdx}>
+                                                              {a}
+                                                            </li>
+                                                          ),
+                                                        )}
+                                                      </ul>
+                                                    ) : (
+                                                      <span className="text-[10px] italic text-slate-400">
+                                                        Empty
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                ),
+                                              )}
+                                            </div>
                                           ) : (
                                             <span className="italic text-[11px] text-slate-400">
                                               No layout saved.
