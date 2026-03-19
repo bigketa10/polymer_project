@@ -22,7 +22,7 @@ export const getAll = query({
       [...defaults, ...publicLessons, ...users].map(async (lesson) => ({
         ...lesson,
         questions: await Promise.all(
-          (lesson.questions || []).map(async (q: any) => ({
+          (lesson.questions || []).map(async (q) => ({
             ...q,
             imageUrl: q.imageStorageId
               ? await ctx.storage.getUrl(q.imageStorageId)
