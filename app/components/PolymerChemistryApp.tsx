@@ -249,16 +249,12 @@ const PolymerChemistryApp = () => {
   };
 
   // Helper to play chime reliably after user interaction
-  const playChime = (type: "correct" | "wrong") => {
-    let audioRef = type === "correct" ? correctSound : wrongSound;
+  const playChime = (type: 'correct' | 'wrong') => {
+    let audioRef = type === 'correct' ? correctSound : wrongSound;
     let audio = audioRef.current;
     if (!audio) {
       // Try to re-query the DOM if ref is lost
-      audio = document.querySelector(
-        type === "correct"
-          ? 'audio[src="/sounds/correct.mp3"]'
-          : 'audio[src="/sounds/incorrect.mp3"]',
-      );
+      audio = document.querySelector(type === 'correct' ? 'audio[src="/sounds/correct.mp3"]' : 'audio[src="/sounds/incorrect.mp3"]');
       if (audio) {
         audioRef.current = audio as HTMLAudioElement;
       } else {
@@ -270,9 +266,7 @@ const PolymerChemistryApp = () => {
       audio.volume = 0.5;
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          /* ignore autoplay errors */
-        });
+        playPromise.catch(() => {/* ignore autoplay errors */});
       }
     } catch (e) {
       // ignore
@@ -302,9 +296,9 @@ const PolymerChemistryApp = () => {
 
     // Play chime after user interaction
     if (isCorrect) {
-      playChime("correct");
+      playChime('correct');
     } else {
-      playChime("wrong");
+      playChime('wrong');
     }
 
     const interimScore =

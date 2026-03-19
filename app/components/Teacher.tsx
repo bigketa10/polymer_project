@@ -106,13 +106,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   // --- Question Editing State ---
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [questionType, setQuestionType] = useState<
-    "mcq" | "dragdrop" | "fillblank"
-  >("mcq");
+  const [questionType, setQuestionType] = useState<"mcq" | "dragdrop">("mcq");
   const [questionText, setQuestionText] = useState("");
   const [optionsText, setOptionsText] = useState("");
   const [correctOptionNumber, setCorrectOptionNumber] = useState("");
-  const [fillCorrectAnswer, setFillCorrectAnswer] = useState("");
   const [explanation, setExplanation] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageStorageId, setImageStorageId] = useState("");
@@ -288,7 +285,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       number,
       Array<{
         userId: string;
-        textAnswer?: string;
         selectedOption: number | null;
         placedSections?: any;
         isCorrect: boolean;
@@ -313,7 +309,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
         list.push({
           userId: attempt.userId,
           selectedOption: ans.selectedOption ?? null,
-          textAnswer: (ans as any).textAnswer,
           placedSections: ans.placedSections,
           isCorrect: ans.isCorrect,
           submittedAt,
@@ -766,7 +761,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setQuestionText("");
     setOptionsText("");
     setCorrectOptionNumber("");
-    setFillCorrectAnswer("");
     setExplanation("");
     setImageUrl("");
     setImageStorageId("");
@@ -790,19 +784,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     const q = selectedLesson.questions[index] as any;
 
     setEditingIndex(index);
-    if (q.type === "dragdrop") {
-      setQuestionType("dragdrop");
-    } else if (q.type === "fillblank") {
-      setQuestionType("fillblank");
-    } else {
-      setQuestionType("mcq");
-    }
+    setQuestionType(q.type === "dragdrop" ? "dragdrop" : "mcq");
     setQuestionText(q.question || "");
     setOptionsText((q.options || []).join("\n"));
     setCorrectOptionNumber(
       typeof q.correct === "number" ? String(q.correct + 1) : "1",
     );
-    setFillCorrectAnswer(q.correctAnswer || "");
     setExplanation(q.explanation || "");
     setImageUrl(q.imageUrl || "");
     setImageStorageId(q.imageStorageId || "");
@@ -962,21 +949,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
         ...newQuestion,
         options,
         correct: correctNum - 1,
-        explanation: explanation.trim() || "No explanation provided.",
-      };
-    } else if (questionType === "fillblank") {
-      const correctAnswer = fillCorrectAnswer.trim();
-      if (!correctAnswer) {
-        alert("Correct answer is required for fill-in-the-blank questions.");
-        return;
-      }
-      if (!trimmedQuestion.includes("___")) {
-        alert("Question text must include '___' to indicate the blank.");
-        return;
-      }
-      newQuestion = {
-        ...newQuestion,
-        correctAnswer,
         explanation: explanation.trim() || "No explanation provided.",
       };
     } else if (questionType === "dragdrop") {
@@ -1521,25 +1493,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           <p className="text-sm font-medium text-slate-800">
                                             {q.question}
                                           </p>
-
-                                          {q.type === "fillblank" ? (
-                                            <>
-                                              <div className="mt-2 text-xs text-slate-600">
-                                                <span className="font-semibold">
-                                                  Student answer:
-                                                </span>{" "}
-                                                {ans?.textAnswer ?? "No answer"}
-                                              </div>
-                                              <div className="mt-1 text-xs text-slate-600">
-                                                <span className="font-semibold">
-                                                  Correct:
-                                                </span>{" "}
-                                                {q.correctAnswer ?? "-"}
-                                              </div>
-                                            </>
-                                          ) : (
-                                            <></>
-                                          )}
 
                                           {q.type !== "dragdrop" ? (
                                             <>
@@ -2881,13 +2834,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                   <span className="italic">
                                     Drag & Drop Question
                                   </span>
-                                ) : q.type === "fillblank" ? (
-                                  <>
-                                    Correct answer:{" "}
-                                    <span className="font-semibold">
-                                      {q.correctAnswer ?? "Not set"}
-                                    </span>
-                                  </>
                                 ) : (
                                   <>
                                     Correct answer:{" "}
@@ -3108,14 +3054,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                         </span>
                                       </div>
 
-                                      {activeQuestion.type === "fillblank" ? (
-                                        <div className="mt-1 text-slate-600">
-                                          Answer:{" "}
-                                          {response.textAnswer ?? "No answer"}
-                                        </div>
-                                      ) : (
-                                        <></>
-                                      )}
                                       {activeQuestion.type !== "dragdrop" ? (
                                         <div className="mt-1 text-slate-600">
                                           Answer: {selectedOptionLabel}{" "}
@@ -3241,18 +3179,12 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 value={questionType}
                                 onChange={(e) =>
                                   setQuestionType(
-                                    e.target.value as
-                                      | "mcq"
-                                      | "dragdrop"
-                                      | "fillblank",
+                                    e.target.value as "mcq" | "dragdrop",
                                   )
                                 }
                               >
                                 <option value="mcq">Multiple Choice</option>
                                 <option value="dragdrop">Drag & Drop</option>
-                                <option value="fillblank">
-                                  Fill in the Blank
-                                </option>
                               </select>
                             </div>
                             <div className="flex flex-col gap-1">
@@ -3302,39 +3234,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                       }
                                     />
                                   </div>
-                                </div>
-                              </>
-                            )}
-
-                            {questionType === "fillblank" && (
-                              <>
-                                <div className="flex flex-col gap-1">
-                                  <label className="text-xs font-medium text-slate-700">
-                                    Question with blank (use "___")
-                                  </label>
-                                  <textarea
-                                    rows={3}
-                                    className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    value={questionText}
-                                    onChange={(e) =>
-                                      setQuestionText(e.target.value)
-                                    }
-                                    placeholder="A polymer is a large ___ made of repeating subunits."
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                  <label className="text-xs font-medium text-slate-700">
-                                    Correct Answer
-                                  </label>
-                                  <input
-                                    type="text"
-                                    className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    value={fillCorrectAnswer}
-                                    onChange={(e) =>
-                                      setFillCorrectAnswer(e.target.value)
-                                    }
-                                    placeholder="molecule"
-                                  />
                                 </div>
                               </>
                             )}
