@@ -2928,80 +2928,60 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                           {/* Responses Preview */}
                           {(() => {
                             const questionKey = `${selectedLesson._id}:${idx}`;
-                            const responses = lessonResponsesByQuestion.get(idx) || [];
+                            const responses =
+                              lessonResponsesByQuestion.get(idx) || [];
+                            const uniquePickersByOption = (q.options || []).map(
+                              (_option: string, optionIdx: number) => {
+                                const users = new Set<string>();
+                                for (const response of responses) {
+                                  if (response.selectedOption === optionIdx)
+                                    users.add(response.userId);
+                                }
+                                return users.size;
+                              },
+                            );
+                            const uniqueNoAnswerUsers = new Set<string>();
+                            for (const response of responses) {
+                              if (
+                                response.selectedOption === null &&
+                                !response.placedSections
+                              )
+                                uniqueNoAnswerUsers.add(response.userId);
+                            }
 
                             return (
                               <div className="mt-3 border-t pt-3">
-                                {q.type === "mcq" ? (
+                                {q.type !== "dragdrop" ? (
                                   <div className="mb-2 space-y-1">
-                                    {(() => {
-                                      const uniquePickersByOption = (
-                                        q.options || []
-                                      ).map(
-                                        (_option: string, optionIdx: number) => {
-                                          const users = new Set<string>();
-                                          for (const response of responses) {
-                                            if (
-                                              response.selectedOption ===
-                                              optionIdx
-                                            )
-                                              users.add(response.userId);
-                                          }
-                                          return users.size;
-                                        },
-                                      );
-                                      const uniqueNoAnswerUsers = new Set<
-                                        string
-                                      >();
-                                      for (const response of responses) {
-                                        if (
-                                          response.selectedOption === null &&
-                                          !response.placedSections
-                                        )
-                                          uniqueNoAnswerUsers.add(
-                                            response.userId,
-                                          );
-                                      }
-                                      return (
-                                        <>
-                                          {(q.options || []).map(
-                                            (
-                                              option: string,
-                                              optionIdx: number,
-                                            ) => (
-                                              <p
-                                                key={`${questionKey}:count:${optionIdx}`}
-                                                className="text-xs text-slate-600"
-                                              >
-                                                <span className="font-semibold">
-                                                  Option {optionIdx + 1}:
-                                                </span>{" "}
-                                                {uniquePickersByOption[
-                                                  optionIdx
-                                                ] || 0}{" "}
-                                                {uniquePickersByOption[
-                                                  optionIdx
-                                                ] === 1
-                                                  ? "person"
-                                                  : "people"}
-                                                <span className="text-slate-500">{` (${option})`}</span>
-                                              </p>
-                                            ),
-                                          )}
-                                          {uniqueNoAnswerUsers.size > 0 && (
-                                            <p className="text-xs text-slate-600">
-                                              <span className="font-semibold">
-                                                No answer:
-                                              </span>{" "}
-                                              {uniqueNoAnswerUsers.size}{" "}
-                                              {uniqueNoAnswerUsers.size === 1
-                                                ? "person"
-                                                : "people"}
-                                            </p>
-                                          )}
-                                        </>
-                                      );
-                                    })()}
+                                    {(q.options || []).map(
+                                      (option: string, optionIdx: number) => (
+                                        <p
+                                          key={`${questionKey}:count:${optionIdx}`}
+                                          className="text-xs text-slate-600"
+                                        >
+                                          <span className="font-semibold">
+                                            Option {optionIdx + 1}:
+                                          </span>{" "}
+                                          {uniquePickersByOption[optionIdx]}{" "}
+                                          {uniquePickersByOption[optionIdx] ===
+                                          1
+                                            ? "person"
+                                            : "people"}
+                                          <span className="text-slate-500">{` (${option})`}</span>
+                                        </p>
+                                      ),
+                                    )}
+                                    {uniqueNoAnswerUsers.size > 0 && (
+                                      <p className="text-xs text-slate-600">
+                                        <span className="font-semibold">
+                                          No answer:
+                                        </span>{" "}
+                                        {uniqueNoAnswerUsers.size}{" "}
+                                        {uniqueNoAnswerUsers.size === 1
+                                          ? "person"
+                                          : "people"}
+                                      </p>
+                                    )}
                                   </div>
                                 ) : (
                                   <div className="mb-2 space-y-1">
@@ -3135,17 +3115,20 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                         </span>
                                       </div>
 
-                                      {activeQuestion.type === "mcq" ? (
+                                      {activeQuestion.type === "fillblank" ? (
+                                        <div className="mt-1 text-slate-600">
+                                          Answer:{" "}
+                                          {response.textAnswer ?? "No answer"}
+                                        </div>
+                                      ) : (
+                                        <></>
+                                      )}
+                                      {activeQuestion.type !== "dragdrop" ? (
                                         <div className="mt-1 text-slate-600">
                                           Answer: {selectedOptionLabel}{" "}
                                           {selectedOptionLabel !== "No answer"
                                             ? ` - ${selectedOptionText}`
                                             : ""}
-                                        </div>
-                                      ) : activeQuestion.type === "fillblank" ? (
-                                        <div className="mt-1 text-slate-600">
-                                          Answer:{" "}
-                                          {response.textAnswer ?? "No answer"}
                                         </div>
                                       ) : (
                                         <div className="mt-2 text-slate-600 bg-white p-2 rounded border border-slate-200">
@@ -3154,39 +3137,39 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           </span>
                                           {response.placedSections &&
                                           response.placedSections.length > 0 ? (
-                                             <div className="flex flex-wrap gap-2">
-                                               {response.placedSections.map(
-                                                 (sec: any, secIdx: number) => (
-                                                   <div
-                                                     key={secIdx}
-                                                     className="flex-1 min-w-[100px] border border-indigo-100 rounded bg-indigo-50/30 p-1.5"
-                                                   >
-                                                     <div className="font-semibold text-[10px] text-indigo-900 border-b border-indigo-100 pb-0.5 mb-1">
-                                                       {sec.name}
-                                                     </div>
-                                                     {sec.answers &&
-                                                     sec.answers.length > 0 ? (
-                                                       <ul className="list-disc list-inside text-[11px] text-slate-700 space-y-0.5">
-                                                         {sec.answers.map(
-                                                           (
-                                                             a: string,
-                                                             aIdx: number,
-                                                           ) => (
-                                                             <li key={aIdx}>
-                                                               {a}
-                                                             </li>
-                                                           ),
-                                                         )}
-                                                       </ul>
-                                                     ) : (
-                                                       <span className="text-[10px] italic text-slate-400">
-                                                         Empty
-                                                       </span>
-                                                     )}
-                                                   </div>
-                                                 ),
-                                               )}
-                                             </div>
+                                            <div className="flex flex-wrap gap-2">
+                                              {response.placedSections.map(
+                                                (sec: any, secIdx: number) => (
+                                                  <div
+                                                    key={secIdx}
+                                                    className="flex-1 min-w-[100px] border border-indigo-100 rounded bg-indigo-50/30 p-1.5"
+                                                  >
+                                                    <div className="font-semibold text-[10px] text-indigo-900 border-b border-indigo-100 pb-0.5 mb-1">
+                                                      {sec.name}
+                                                    </div>
+                                                    {sec.answers &&
+                                                    sec.answers.length > 0 ? (
+                                                      <ul className="list-disc list-inside text-[11px] text-slate-700 space-y-0.5">
+                                                        {sec.answers.map(
+                                                          (
+                                                            a: string,
+                                                            aIdx: number,
+                                                          ) => (
+                                                            <li key={aIdx}>
+                                                              {a}
+                                                            </li>
+                                                          ),
+                                                        )}
+                                                      </ul>
+                                                    ) : (
+                                                      <span className="text-[10px] italic text-slate-400">
+                                                        Empty
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                ),
+                                              )}
+                                            </div>
                                           ) : (
                                             <span className="italic text-[11px] text-slate-400">
                                               No layout saved.
