@@ -110,7 +110,44 @@ export const updateLesson = mutation({
 export const updateQuestions = mutation({
   args: {
     lessonId: v.id("lessons"),
-    questions: v.array(v.any()),
+    questions: v.array(
+      v.union(
+        // 1. The Multiple Choice Format (existing)
+        v.object({
+          type: v.optional(v.union(v.literal("mcq"), v.string())), // Optional so old questions don't break
+          question: v.string(),
+          options: v.array(v.string()),
+          correct: v.float64(), // or v.number()
+          explanation: v.string(),
+          imageUrl: v.optional(v.string()),
+          imageStorageId: v.optional(v.id("_storage")),
+        }),
+        // 2. The NEW Drag & Drop Format
+        v.object({
+          type: v.literal("dragdrop"),
+          question: v.string(),
+          answerBank: v.array(v.string()),
+          sections: v.array(
+            v.object({
+              name: v.string(),
+              answers: v.array(v.string()),
+            }),
+          ),
+          explanation: v.string(),
+          imageUrl: v.optional(v.string()),
+          imageStorageId: v.optional(v.id("_storage")),
+        }),
+        // 3. The Fill in the Blank Format
+        v.object({
+          type: v.literal("fillblank"),
+          question: v.string(),
+          correctAnswer: v.string(),
+          explanation: v.string(),
+          imageUrl: v.optional(v.string()),
+          imageStorageId: v.optional(v.id("_storage")),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, { lessonId, questions }) => {
     const identity = await ctx.auth.getUserIdentity();
