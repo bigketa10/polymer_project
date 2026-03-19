@@ -50,6 +50,7 @@ type DragDropItem = { id: string; text: string };
 export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const { user } = useUser();
   const stats = useQuery(api.teachers.getClassStats, user ? {} : "skip");
+  const stats = useQuery(api.teachers.getClassStats);
   const lessons = useQuery(api.lessons.getAll);
   const modules = useQuery(api.modules.getAll);
   const ensureDefaultModules = useMutation(api.modules.ensureDefaultModules);
@@ -109,9 +110,13 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [questionType, setQuestionType] = useState<"mcq" | "dragdrop">("mcq");
+  const [questionType, setQuestionType] = useState<
+    "mcq" | "dragdrop" | "fillblank"
+  >("mcq");
   const [questionText, setQuestionText] = useState("");
   const [optionsText, setOptionsText] = useState("");
   const [correctOptionNumber, setCorrectOptionNumber] = useState("");
+  const [fillCorrectAnswer, setFillCorrectAnswer] = useState("");
   const [explanation, setExplanation] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageStorageId, setImageStorageId] = useState("");
@@ -164,6 +169,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const studentAttempts = useQuery(
     api.lessonAttempts.getByUser,
     selectedStudentUserId && user ? { userId: selectedStudentUserId } : "skip",
+    selectedStudentUserId ? { userId: selectedStudentUserId } : "skip",
   );
 
   const selectedLessonAttempts = useQuery(
@@ -171,6 +177,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     selectedLessonId && user
       ? { lessonId: selectedLessonId as Id<"lessons"> }
       : "skip",
+    selectedLessonId ? { lessonId: selectedLessonId as Id<"lessons"> } : "skip",
   );
 
   const storagePreviewUrl = useQuery(
@@ -289,6 +296,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       number,
       Array<{
         userId: string;
+        textAnswer?: string;
         selectedOption: number | null;
         placedSections?: any;
         isCorrect: boolean;
@@ -313,6 +321,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
         list.push({
           userId: attempt.userId,
           selectedOption: ans.selectedOption ?? null,
+          textAnswer: (ans as any).textAnswer,
           placedSections: ans.placedSections,
           isCorrect: ans.isCorrect,
           submittedAt,
@@ -375,6 +384,10 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
       });
     }
   }, [ensureDefaultModules, user]);
+    void ensureDefaultModules().catch((err) => {
+      console.error("Failed to ensure default modules:", err);
+    });
+  }, [ensureDefaultModules]);
 
   useEffect(() => {
     if (!lessons || lessons.length === 0) return;
@@ -767,6 +780,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setQuestionText("");
     setOptionsText("");
     setCorrectOptionNumber("");
+    setFillCorrectAnswer("");
     setExplanation("");
     setImageUrl("");
     setImageStorageId("");
@@ -791,11 +805,19 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
     setEditingIndex(index);
     setQuestionType(q.type === "dragdrop" ? "dragdrop" : "mcq");
+    if (q.type === "dragdrop") {
+      setQuestionType("dragdrop");
+    } else if (q.type === "fillblank") {
+      setQuestionType("fillblank");
+    } else {
+      setQuestionType("mcq");
+    }
     setQuestionText(q.question || "");
     setOptionsText((q.options || []).join("\n"));
     setCorrectOptionNumber(
       typeof q.correct === "number" ? String(q.correct + 1) : "1",
     );
+    setFillCorrectAnswer(q.correctAnswer || "");
     setExplanation(q.explanation || "");
     setImageUrl(q.imageUrl || "");
     setImageStorageId(q.imageStorageId || "");
@@ -955,6 +977,21 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
         ...newQuestion,
         options,
         correct: correctNum - 1,
+        explanation: explanation.trim() || "No explanation provided.",
+      };
+    } else if (questionType === "fillblank") {
+      const correctAnswer = fillCorrectAnswer.trim();
+      if (!correctAnswer) {
+        alert("Correct answer is required for fill-in-the-blank questions.");
+        return;
+      }
+      if (!trimmedQuestion.includes("___")) {
+        alert("Question text must include '___' to indicate the blank.");
+        return;
+      }
+      newQuestion = {
+        ...newQuestion,
+        correctAnswer,
         explanation: explanation.trim() || "No explanation provided.",
       };
     } else if (questionType === "dragdrop") {
@@ -1499,6 +1536,25 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           <p className="text-sm font-medium text-slate-800">
                                             {q.question}
                                           </p>
+
+                                          {q.type === "fillblank" ? (
+                                            <>
+                                              <div className="mt-2 text-xs text-slate-600">
+                                                <span className="font-semibold">
+                                                  Student answer:
+                                                </span>{" "}
+                                                {ans?.textAnswer ?? "No answer"}
+                                              </div>
+                                              <div className="mt-1 text-xs text-slate-600">
+                                                <span className="font-semibold">
+                                                  Correct:
+                                                </span>{" "}
+                                                {q.correctAnswer ?? "-"}
+                                              </div>
+                                            </>
+                                          ) : (
+                                            <></>
+                                          )}
 
                                           {q.type !== "dragdrop" ? (
                                             <>
@@ -2840,6 +2896,13 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                   <span className="italic">
                                     Drag & Drop Question
                                   </span>
+                                ) : q.type === "fillblank" ? (
+                                  <>
+                                    Correct answer:{" "}
+                                    <span className="font-semibold">
+                                      {q.correctAnswer ?? "Not set"}
+                                    </span>
+                                  </>
                                 ) : (
                                   <>
                                     Correct answer:{" "}
@@ -2875,10 +2938,29 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                             const questionKey = `${selectedLesson._id}:${idx}`;
                             const responses =
                               lessonResponsesByQuestion.get(idx) || [];
+                            const uniquePickersByOption = (q.options || []).map(
+                              (_option: string, optionIdx: number) => {
+                                const users = new Set<string>();
+                                for (const response of responses) {
+                                  if (response.selectedOption === optionIdx)
+                                    users.add(response.userId);
+                                }
+                                return users.size;
+                              },
+                            );
+                            const uniqueNoAnswerUsers = new Set<string>();
+                            for (const response of responses) {
+                              if (
+                                response.selectedOption === null &&
+                                !response.placedSections
+                              )
+                                uniqueNoAnswerUsers.add(response.userId);
+                            }
 
                             return (
                               <div className="mt-3 border-t pt-3">
                                 {q.type === "mcq" ? (
+                                {q.type !== "dragdrop" ? (
                                   <div className="mb-2 space-y-1">
                                     {(() => {
                                       const uniquePickersByOption = (
@@ -2950,6 +3032,35 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                         </>
                                       );
                                     })()}
+                                    {(q.options || []).map(
+                                      (option: string, optionIdx: number) => (
+                                        <p
+                                          key={`${questionKey}:count:${optionIdx}`}
+                                          className="text-xs text-slate-600"
+                                        >
+                                          <span className="font-semibold">
+                                            Option {optionIdx + 1}:
+                                          </span>{" "}
+                                          {uniquePickersByOption[optionIdx]}{" "}
+                                          {uniquePickersByOption[optionIdx] ===
+                                          1
+                                            ? "person"
+                                            : "people"}
+                                          <span className="text-slate-500">{` (${option})`}</span>
+                                        </p>
+                                      ),
+                                    )}
+                                    {uniqueNoAnswerUsers.size > 0 && (
+                                      <p className="text-xs text-slate-600">
+                                        <span className="font-semibold">
+                                          No answer:
+                                        </span>{" "}
+                                        {uniqueNoAnswerUsers.size}{" "}
+                                        {uniqueNoAnswerUsers.size === 1
+                                          ? "person"
+                                          : "people"}
+                                      </p>
+                                    )}
                                   </div>
                                 ) : (
                                   <div className="mb-2 space-y-1">
@@ -3136,6 +3247,39 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                                 ),
                                               )}
                                             </div>
+                                             <div className="flex flex-wrap gap-2">
+                                               {response.placedSections.map(
+                                                 (sec: any, secIdx: number) => (
+                                                   <div
+                                                     key={secIdx}
+                                                     className="flex-1 min-w-[100px] border border-indigo-100 rounded bg-indigo-50/30 p-1.5"
+                                                   >
+                                                     <div className="font-semibold text-[10px] text-indigo-900 border-b border-indigo-100 pb-0.5 mb-1">
+                                                       {sec.name}
+                                                     </div>
+                                                     {sec.answers &&
+                                                     sec.answers.length > 0 ? (
+                                                       <ul className="list-disc list-inside text-[11px] text-slate-700 space-y-0.5">
+                                                         {sec.answers.map(
+                                                           (
+                                                             a: string,
+                                                             aIdx: number,
+                                                           ) => (
+                                                             <li key={aIdx}>
+                                                               {a}
+                                                             </li>
+                                                           ),
+                                                         )}
+                                                       </ul>
+                                                     ) : (
+                                                       <span className="text-[10px] italic text-slate-400">
+                                                         Empty
+                                                       </span>
+                                                     )}
+                                                   </div>
+                                                 ),
+                                               )}
+                                             </div>
                                           ) : (
                                             <span className="italic text-[11px] text-slate-400">
                                               No layout saved.
@@ -3215,11 +3359,18 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 onChange={(e) =>
                                   setQuestionType(
                                     e.target.value as "mcq" | "dragdrop",
+                                    e.target.value as
+                                      | "mcq"
+                                      | "dragdrop"
+                                      | "fillblank",
                                   )
                                 }
                               >
                                 <option value="mcq">Multiple Choice</option>
                                 <option value="dragdrop">Drag & Drop</option>
+                                <option value="fillblank">
+                                  Fill in the Blank
+                                </option>
                               </select>
                             </div>
                             <div className="flex flex-col gap-1">
@@ -3269,6 +3420,39 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                       }
                                     />
                                   </div>
+                                </div>
+                              </>
+                            )}
+
+                            {questionType === "fillblank" && (
+                              <>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs font-medium text-slate-700">
+                                    Question with blank (use "___")
+                                  </label>
+                                  <textarea
+                                    rows={3}
+                                    className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    value={questionText}
+                                    onChange={(e) =>
+                                      setQuestionText(e.target.value)
+                                    }
+                                    placeholder="A polymer is a large ___ made of repeating subunits."
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-xs font-medium text-slate-700">
+                                    Correct Answer
+                                  </label>
+                                  <input
+                                    type="text"
+                                    className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    value={fillCorrectAnswer}
+                                    onChange={(e) =>
+                                      setFillCorrectAnswer(e.target.value)
+                                    }
+                                    placeholder="molecule"
+                                  />
                                 </div>
                               </>
                             )}

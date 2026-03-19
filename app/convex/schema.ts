@@ -56,6 +56,15 @@ export default defineSchema({
           imageUrl: v.optional(v.string()),
           imageStorageId: v.optional(v.id("_storage")),
         }),
+        // 3. The Fill in the Blank Format
+        v.object({
+          type: v.literal("fillblank"),
+          question: v.string(),
+          correctAnswer: v.string(),
+          explanation: v.string(),
+          imageUrl: v.optional(v.string()),
+          imageStorageId: v.optional(v.id("_storage")),
+        }),
       ),
     ),
   })
@@ -103,6 +112,8 @@ export default defineSchema({
             }),
           ),
         ),
+        // For Fill-in-the-blank answers:
+        textAnswer: v.optional(v.string()),
         // ✅ ADD THIS LINE:
         answeredAt: v.optional(v.string()),
       }),
