@@ -30,7 +30,12 @@ export const getByLesson = query({
     if (!identity) {
       return [];
     }
-    // In a real app, you'd want to check for teacher/admin role here
+    // Only allow admins (teachers) to see all attempts for a lesson.
+    const role = (identity.publicMetadata as any)?.role;
+    if (role !== "admin") {
+      return [];
+    }
+
     return await ctx.db
       .query("lessonAttempts")
       .withIndex("by_lesson", (q) => q.eq("lessonId", lessonId))
