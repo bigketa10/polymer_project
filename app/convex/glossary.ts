@@ -80,3 +80,49 @@ export const deleteTerm = mutation({
     await ctx.db.delete(id);
   },
 });
+
+// --- ONE-TIME MIGRATION ---
+// Run this once from the Convex dashboard to import your old static terms.
+export const seedInitialTerms = mutation({
+  handler: async (ctx) => {
+    const initialTerms = {
+      polymer: {
+        definition:
+          "A large molecule composed of many repeated subunits (monomers).",
+      },
+      monomer: {
+        definition:
+          "A small molecule that can react with others to form a long polymer chain.",
+      },
+      tg: {
+        definition:
+          "Glass Transition Temperature: the point where a polymer turns from hard/glassy to soft/rubbery.",
+      },
+      atrp: {
+        definition:
+          "Atom Transfer Radical Polymerization: a method for controlled polymer growth.",
+      },
+    };
+
+    let addedCount = 0;
+    for (const [term, { definition }] of Object.entries(initialTerms)) {
+      const cleanTerm = term.trim().toLowerCase();
+
+      // Check if the term already exists to prevent duplicates
+      const existing = await ctx.db
+        .query("glossary")
+        .withIndex("by_term", (q) => q.eq("term", cleanTerm))
+        .first();
+
+      if (!existing) {
+        await ctx.db.insert("glossary", {
+          term: cleanTerm,
+          definition: definition.trim(),
+        });
+        addedCount++;
+      }
+    }
+
+    return `Seeding complete. Added ${addedCount} new terms.`;
+  },
+});
