@@ -100,6 +100,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
   const moduleFilterDropdownRef = useRef<HTMLDivElement | null>(null);
 
   // --- Question Editing State ---
+  const [showQuestionModal, setShowQuestionModal] = useState(false); // Add this line
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [questionType, setQuestionType] = useState<"mcq" | "dragdrop">("mcq");
   const [questionText, setQuestionText] = useState("");
@@ -700,22 +701,16 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
     setImageUrl("");
     setImageStorageId("");
     setImageFileName("");
-    setDdAnswerBank([
-      // ...existing code...
-    ]);
+    setDdAnswerBank([]);
     setDdSections([
       { name: "Section 1", answers: [] },
       { name: "Section 2", answers: [] },
     ]);
   };
 
-  // --- Add Question Modal State ---
-  const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
-
   const startAddNewQuestion = () => {
     setEditingIndex(null);
     resetForm();
-    setShowAddQuestionModal(true);
   };
 
   const startEditQuestion = (index: number) => {
@@ -761,6 +756,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
         { name: "Section 2", answers: [] },
       ]);
     }
+    setShowQuestionModal(true); // Open the modal when editing
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -934,6 +930,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
 
     setEditingIndex(null);
     resetForm();
+    setShowQuestionModal(false); // Close the modal after save
     alert("Question set saved for this lesson.");
   };
 
@@ -1466,7 +1463,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                             {ans ? (
                                               <span
                                                 className={`text-xs px-2 py-1 rounded-full font-bold ${isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-                                              >
+                                                >
                                                 {isCorrect
                                                   ? "Correct"
                                                   : "Incorrect"}
@@ -2035,6 +2032,9 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                                         <div className="font-medium truncate">
                                                           {m.code} — {m.title}
                                                         </div>
+                                                        <div className="text-xs text-slate-500 truncate mt-0.5">
+                                                          {m.description}
+                                                        </div>
                                                       </button>
                                                     );
                                                   })}
@@ -2117,6 +2117,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                           onChange={(e) =>
                                             setNewLessonOrder(e.target.value)
                                           }
+                                          placeholder="Auto"
                                         />
                                       </div>
                                     </div>
@@ -2610,149 +2611,6 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                     </Button>
                   </div>
 
-                  {/* Add Question Modal */}
-                  {showAddQuestionModal &&
-                    createPortal(
-                      <div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-                        onPointerDown={(e) => {
-                          if (e.target === e.currentTarget) {
-                            setShowAddQuestionModal(false);
-                            resetForm();
-                          }
-                        }}
-                      >
-                        <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-                          <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-                            <h2 className="text-sm font-semibold text-slate-800">
-                              Add New Question
-                            </h2>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setShowAddQuestionModal(false);
-                                resetForm();
-                              }}
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          <div className="overflow-y-auto p-4">
-                            <div className="space-y-3">
-                              <label className="block text-xs font-medium text-slate-700 mb-1">
-                                Question Type
-                              </label>
-                              <select
-                                className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                value={questionType}
-                                onChange={(e) => setQuestionType(e.target.value as any)}
-                              >
-                                <option value="mcq">Multiple Choice</option>
-                                <option value="dragdrop">Drag & Drop</option>
-                              </select>
-
-                              <label className="block text-xs font-medium text-slate-700 mb-1 mt-2">
-                                Question Text
-                              </label>
-                              <textarea
-                                className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                rows={2}
-                                value={questionText}
-                                onChange={(e) => setQuestionText(e.target.value)}
-                              />
-
-                              {questionType === "mcq" && (
-                                <>
-                                  <label className="block text-xs font-medium text-slate-700 mb-1 mt-2">
-                                    Answer Options (one per line)
-                                  </label>
-                                  <textarea
-                                    className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    rows={3}
-                                    value={optionsText}
-                                    onChange={(e) => setOptionsText(e.target.value)}
-                                  />
-                                  <label className="block text-xs font-medium text-slate-700 mb-1 mt-2">
-                                    Correct Option Number
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    value={correctOptionNumber}
-                                    onChange={(e) => setCorrectOptionNumber(e.target.value)}
-                                  />
-                                </>
-                              )}
-
-                              {questionType === "dragdrop" && (
-                                <>
-                                  <label className="block text-xs font-medium text-slate-700 mb-1 mt-2">
-                                    Answer Bank (one per line)
-                                  </label>
-                                  <textarea
-                                    className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    rows={3}
-                                    value={ddAnswerBank.map((a) => a.text).join("\n")}
-                                    onChange={(e) => {
-                                      const lines = e.target.value.split("\n").map((t) => t.trim()).filter(Boolean);
-                                      setDdAnswerBank(lines.map((text, i) => ({ id: ddAnswerBank[i]?.id || crypto.randomUUID(), text })));
-                                    }}
-                                  />
-                                  <label className="block text-xs font-medium text-slate-700 mb-1 mt-2">
-                                    Sections (comma separated, e.g. Section 1, Section 2)
-                                  </label>
-                                  <input
-                                    className="w-full h-9 rounded-md border border-slate-200 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    value={ddSections.map((s) => s.name).join(", ")}
-                                    onChange={(e) => {
-                                      const names = e.target.value.split(",").map((n) => n.trim()).filter(Boolean);
-                                      setDdSections(names.map((name, i) => ({ name, answers: ddSections[i]?.answers || [] })));
-                                    }}
-                                  />
-                                  {/* Optionally, allow assigning answers to sections here if needed */}
-                                </>
-                              )}
-
-                              <label className="block text-xs font-medium text-slate-700 mb-1 mt-2">
-                                Explanation (optional)
-                              </label>
-                              <textarea
-                                className="w-full rounded-md border border-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                rows={2}
-                                value={explanation}
-                                onChange={(e) => setExplanation(e.target.value)}
-                              />
-
-                              {/* Image upload UI if needed */}
-                              {/* ...existing code... */}
-
-                              <div className="flex justify-end gap-2 pt-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setShowAddQuestionModal(false);
-                                    resetForm();
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                                <Button size="sm" onClick={async () => {
-                                  await handleSaveQuestion();
-                                  setShowAddQuestionModal(false);
-                                }}>
-                                  Save question
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>,
-                      document.body,
-                    )}
-
                   {selectedLesson.questions?.length > 0 ? (
                     <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                       {selectedLesson.questions.map((q: any, idx: number) => (
@@ -3200,7 +3058,7 @@ export const TeacherDashboard = ({ onClose }: { onClose: () => void }) => {
                                 {ans.text}
                                 <button
                                   type="button"
-                                  className="ml-2 text-xs text-red-500 hover:text-red-700"
+                                  className="ml-2 text-xs text-red-500 hover:text-red-700 shrink-0"
                                   onClick={() =>
                                     setDdAnswerBank(
                                       ddAnswerBank.filter(
