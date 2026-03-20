@@ -697,7 +697,8 @@ export function ContentManager() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50 p-4 lg:p-6 font-sans">
+    <div className="bg-slate-50 p-3 lg:p-4 font-sans">
+
       {/* ── Confirm Dialog ── */}
       <ConfirmDialog
         open={pendingAction !== null}
@@ -711,7 +712,7 @@ export function ContentManager() {
         onCancel={() => setPendingAction(null)}
       />
 
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="space-y-4">
         {/* ── Header ── */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Content Manager</h1>

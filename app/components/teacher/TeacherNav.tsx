@@ -14,7 +14,7 @@ export function TeacherNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-row lg:flex-col lg:w-64 lg:min-h-screen bg-gray-900 text-white">
+    <nav className="flex flex-row lg:flex-col lg:w-52 lg:min-h-screen bg-gray-900 text-white shrink-0">
       {/* Logo / brand area — visible on sidebar only */}
       <div className="hidden lg:flex items-center px-6 py-5 border-b border-gray-700">
         <span className="font-semibold text-lg tracking-tight">PolymerLingo</span>

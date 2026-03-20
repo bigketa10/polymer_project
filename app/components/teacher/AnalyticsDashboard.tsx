@@ -222,7 +222,7 @@ export function AnalyticsDashboard() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 lg:p-4 space-y-4">
 
 
       {/* ── Class Stats ──────────────────────────────────────────────────────── */}
