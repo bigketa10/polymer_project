@@ -947,9 +947,8 @@ export function ContentManager() {
           </CardContent>
         </Card>
 
-        {/* ── Two-column layout: module/lesson list (left) + question editor (right) ── */}
-        {/* Requirements 6.2, 6.4: two-column on ≥1024px, stacked on <768px */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── Full-width: module/lesson management + question set ── */}
+        <div className="space-y-4">
 
           {/* ── LEFT COLUMN: Manage modules & lessons ── */}
           <div className="space-y-4">
@@ -1155,47 +1154,18 @@ export function ContentManager() {
               </Card>
             )}
 
-            {/* Selected lesson info */}
+            {/* Selected lesson info + question set */}
             {selectedLesson && !showManageModules && !showManageLessons && (
               <Card className="shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
                       <p className="font-semibold text-slate-800">{selectedLesson.title}</p>
-                      <p className="text-xs text-slate-500 mt-1">{selectedLesson.description}</p>
-                    </div>
-                    <div className="flex gap-3 text-xs text-slate-600">
-                      <span>Difficulty: <span className="font-semibold">{selectedLesson.difficulty}</span></span>
-                      <span>XP: <span className="font-semibold">{selectedLesson.xpReward}</span></span>
-                      <span>Questions: <span className="font-semibold">{selectedLesson.questions?.length || 0}</span></span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {!selectedLesson && !showManageModules && !showManageLessons && (
-              <Card className="shadow-sm">
-                <CardContent className="p-6">
-                  <p className="text-sm text-slate-500">
-                    {lessons && lessons.length === 0
-                      ? "No lessons found. Use the tools above to create content."
-                      : "Select a lesson to view its question set."}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* ── RIGHT COLUMN: Question editor ── */}
-          <div>
-            {selectedLesson && (
-              <Card className="shadow-sm">
-                <CardHeader className="pb-3 border-b border-slate-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-base">Question set</CardTitle>
-                      <CardDescription>{selectedLesson.title}</CardDescription>
+                      <div className="flex gap-3 text-xs text-slate-500 mt-1">
+                        <span>Difficulty: <span className="font-semibold text-slate-700">{selectedLesson.difficulty}</span></span>
+                        <span>XP: <span className="font-semibold text-slate-700">{selectedLesson.xpReward}</span></span>
+                        <span>Questions: <span className="font-semibold text-slate-700">{selectedLesson.questions?.length || 0}</span></span>
+                      </div>
                     </div>
                     <Button variant="outline" size="sm" onClick={startAddNewQuestion}>
                       <PlusCircle className="w-4 h-4 mr-1" /> Add question
@@ -1232,6 +1202,18 @@ export function ContentManager() {
                   ) : (
                     <p className="text-xs text-slate-500 italic p-2">This lesson has no questions yet.</p>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {!selectedLesson && !showManageModules && !showManageLessons && (
+              <Card className="shadow-sm">
+                <CardContent className="p-6">
+                  <p className="text-sm text-slate-500">
+                    {lessons && lessons.length === 0
+                      ? "No lessons found. Use the tools above to create content."
+                      : "Select a lesson to view its question set."}
+                  </p>
                 </CardContent>
               </Card>
             )}
