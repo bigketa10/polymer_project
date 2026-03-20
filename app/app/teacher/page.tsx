@@ -1,22 +1,10 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useRouter } from "next/navigation";
-import { TeacherDashboard } from "@/components/Teacher";
-// Note: Double check the path above!
-// If your Teacher.tsx is in 'components/', use '@/components/Teacher'
-// If it is in 'app/', use '@/app/Teacher'
-
+/**
+ * Teacher dashboard entry point.
+ * Immediately redirects to `/teacher/content` as the default sub-page.
+ * This is a Server Component — no client-side logic needed.
+ */
 export default function TeacherPage() {
-  const router = useRouter();
-
-  // This handles what happens when you click 'Exit' in the dashboard
-  const handleClose = () => {
-    router.push("/");
-  };
-
-  return (
-    <main className="min-h-screen bg-slate-50">
-      <TeacherDashboard onClose={handleClose} />
-    </main>
-  );
+  redirect("/teacher/content");
 }

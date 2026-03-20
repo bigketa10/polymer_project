@@ -1,3 +1,16 @@
+# PolymerLingo
+
+A gamified polymer chemistry learning platform for students and teachers.
+
+## Routes
+
+| Route | Description |
+|---|---|
+| `/` | Student app (authenticated) or landing page |
+| `/teacher` | Redirects to `/teacher/content` |
+| `/teacher/content` | Content Manager — manage modules, lessons, questions, glossary |
+| `/teacher/analytics` | Analytics Dashboard — class stats, leaderboard, student reports |
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
