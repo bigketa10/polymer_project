@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
@@ -14,7 +14,7 @@ import {
   ChevronDown,
   ChevronRight,
   XCircle,
-  Flame,
+  RotateCcw,
 } from "lucide-react";
 import {
   Card,
@@ -25,6 +25,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { sortLeaderboard, filterStudents, buildStudentReport } from "@/lib/teacherUtils";
+import { useToast } from "@/components/teacher/useToast";
+import { ToastContainer } from "@/components/teacher/InlineToast";
+import { ConfirmDialog } from "@/components/teacher/ConfirmDialog";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -66,9 +69,16 @@ function formatResponseTimestamp(timestamp: string): string {
  * count), a searchable/sortable student leaderboard, a per-student report panel
  * with expandable question-level detail, and a per-lesson aggregate response
  * distribution view. Fetches all data via Convex hooks; accepts no props.
+ *
+ * Uses `useToast` + `ToastContainer` for inline success/error feedback and
+ * `ConfirmDialog` for the destructive "Reset all progress" action — no
+ * `window.alert` or `window.confirm` calls.
  */
 export function AnalyticsDashboard() {
   const { user } = useUser();
+  const { toasts, toast, dismiss } = useToast();
+
+  const resetAllProgress = useMutation(api.teachers.resetAllStudentProgress);
 
   const stats = useQuery(api.teachers.getClassStats, user ? {} : "skip");
   const lessons = useQuery(api.lessons.getAll);
@@ -80,6 +90,7 @@ export function AnalyticsDashboard() {
   const [expandedReportLessons, setExpandedReportLessons] = useState<Set<string>>(new Set());
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [responseModalQuestionIndex, setResponseModalQuestionIndex] = useState<number | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const studentAttempts = useQuery(
     api.lessonAttempts.getByUser,
@@ -206,6 +217,17 @@ export function AnalyticsDashboard() {
     return `${name} (${userId.slice(0, 8)}...)`;
   };
 
+  const handleResetAllProgress = async () => {
+    try {
+      await resetAllProgress({});
+      setSelectedStudentUserId(null);
+      setSelectedStudentName("");
+      toast("success", "All student progress has been reset.");
+    } catch (e: any) {
+      toast("error", e?.message || "Failed to reset progress.");
+    }
+  };
+
   // ── Loading ───────────────────────────────────────────────────────────────────
 
   if (!stats) {
@@ -224,8 +246,22 @@ export function AnalyticsDashboard() {
   return (
     <div className="p-3 lg:p-4 space-y-4">
 
+      <ConfirmDialog
+        open={confirmReset}
+        title="Reset all student progress"
+        description="This will permanently delete all XP, streaks, completed lessons, and attempt history for every student. This cannot be undone."
+        destructive
+        onConfirm={() => { setConfirmReset(false); void handleResetAllProgress(); }}
+        onCancel={() => setConfirmReset(false)}
+      />
 
       {/* ── Class Stats ──────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h1 className="text-lg font-bold text-slate-900">Analytics</h1>
+        <Button variant="destructive" size="sm" onClick={() => setConfirmReset(true)}>
+          <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reset all progress
+        </Button>
+      </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card className="border-l-4 border-l-indigo-500 shadow-sm">
           <CardContent className="p-3">
@@ -600,6 +636,8 @@ export function AnalyticsDashboard() {
           </div>
         </Card>
       )}
+
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }
