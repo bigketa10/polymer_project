@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Auto-Document Website",
+  "description": "When a component, page, or Convex backend file is saved, automatically review the changes and update or generate relevant documentation comments and README content.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "app/components/**/*.tsx",
+      "app/app/**/*.tsx",
+      "app/convex/**/*.ts"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A source file was just edited. Review the changes and do the following:\n1. If the file is a React component or page, ensure it has a brief JSDoc comment describing its purpose, props, and any key behaviors.\n2. If the file is a Convex backend function (query/mutation), ensure each exported function has a JSDoc comment describing what it does, its arguments, and return value.\n3. If the changes introduce new features, routes, or schema changes, update the relevant section in app/README.md to reflect them.\nKeep documentation concise and accurate. Only update what's necessary based on the actual changes made."
+  },
+  "workspaceFolderName": "polymer_project",
+  "shortName": "auto-document-website"
+}
