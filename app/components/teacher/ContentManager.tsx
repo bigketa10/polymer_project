@@ -1204,7 +1204,7 @@ export function ContentManager() {
                 </CardHeader>
                 <CardContent className="p-3">
                   {selectedLesson.questions?.length > 0 ? (
-                    <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                    <div className="space-y-2 h-64 overflow-y-auto pr-1">
                       {selectedLesson.questions.map((q: any, idx: number) => (
                         <div key={idx} className="border rounded-md p-3 bg-white">
                           <div className="flex justify-between gap-3">
