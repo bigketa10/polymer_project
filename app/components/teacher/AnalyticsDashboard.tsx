@@ -226,48 +226,48 @@ export function AnalyticsDashboard() {
 
 
       {/* ── Class Stats ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card className="border-l-4 border-l-indigo-500 shadow-sm">
-          <CardContent className="p-5">
+          <CardContent className="p-3">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs font-medium text-slate-500">Total Students</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.totalStudents}</p>
+                <p className="text-xs font-medium text-slate-500">Students</p>
+                <p className="text-2xl font-bold text-slate-900 mt-0.5">{stats.totalStudents}</p>
               </div>
-              <div className="p-2 bg-indigo-50 rounded-lg"><Users className="w-5 h-5 text-indigo-600" /></div>
+              <div className="p-1.5 bg-indigo-50 rounded-lg"><Users className="w-4 h-4 text-indigo-600" /></div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-emerald-500 shadow-sm">
-          <CardContent className="p-5">
+          <CardContent className="p-3">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs font-medium text-slate-500">Average XP</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.avgXP}</p>
+                <p className="text-xs font-medium text-slate-500">Avg XP</p>
+                <p className="text-2xl font-bold text-slate-900 mt-0.5">{stats.avgXP}</p>
               </div>
-              <div className="p-2 bg-emerald-50 rounded-lg"><TrendingUp className="w-5 h-5 text-emerald-600" /></div>
+              <div className="p-1.5 bg-emerald-50 rounded-lg"><TrendingUp className="w-4 h-4 text-emerald-600" /></div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-amber-500 shadow-sm">
-          <CardContent className="p-5">
+          <CardContent className="p-3">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs font-medium text-slate-500">At Risk (&lt;100 XP)</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.strugglingStudents}</p>
+                <p className="text-xs font-medium text-slate-500">At Risk</p>
+                <p className="text-2xl font-bold text-slate-900 mt-0.5">{stats.strugglingStudents}</p>
               </div>
-              <div className="p-2 bg-amber-50 rounded-lg"><AlertTriangle className="w-5 h-5 text-amber-600" /></div>
+              <div className="p-1.5 bg-amber-50 rounded-lg"><AlertTriangle className="w-4 h-4 text-amber-600" /></div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-violet-500 shadow-sm">
-          <CardContent className="p-5">
+          <CardContent className="p-3">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs font-medium text-slate-500">Total Lessons</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.totalLessonsCount}</p>
+                <p className="text-xs font-medium text-slate-500">Lessons</p>
+                <p className="text-2xl font-bold text-slate-900 mt-0.5">{stats.totalLessonsCount}</p>
               </div>
-              <div className="p-2 bg-violet-50 rounded-lg"><BookOpen className="w-5 h-5 text-violet-600" /></div>
+              <div className="p-1.5 bg-violet-50 rounded-lg"><BookOpen className="w-4 h-4 text-violet-600" /></div>
             </div>
           </CardContent>
         </Card>
@@ -300,11 +300,11 @@ export function AnalyticsDashboard() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b">
                 <tr>
-                  <th className="px-4 py-3 font-medium">#</th>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">XP</th>
-                  <th className="px-4 py-3 font-medium">Streak</th>
-                  <th className="px-4 py-3 font-medium">Progress</th>
+                  <th className="px-2 py-2 font-medium">#</th>
+                  <th className="px-2 py-2 font-medium">Name</th>
+                  <th className="px-2 py-2 font-medium">XP</th>
+                  <th className="px-2 py-2 font-medium">🔥</th>
+                  <th className="px-2 py-2 font-medium">Progress</th>
                 </tr>
               </thead>
               <tbody>
@@ -323,17 +323,13 @@ export function AnalyticsDashboard() {
                       onClick={() => selectStudent(student.userId, student.userName)}
                       className={`border-b cursor-pointer transition-colors hover:bg-slate-50 ${isSelected ? "bg-indigo-50" : "bg-white"}`}
                     >
-                      <td className="px-4 py-3 text-slate-400 text-xs font-mono">{rank + 1}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-800">{student.userName}</td>
-                      <td className="px-4 py-3 font-bold text-indigo-600">{student.xp}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 text-slate-600">
-                          <Flame className="w-3.5 h-3.5 text-orange-500" />{student.streak}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="w-full bg-slate-100 rounded-full h-2 max-w-[100px]">
-                          <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${student.progressPercent}%` }} />
+                      <td className="px-2 py-2 text-slate-400 text-xs font-mono">{rank + 1}</td>
+                      <td className="px-2 py-2 font-semibold text-slate-800 text-xs">{student.userName}</td>
+                      <td className="px-2 py-2 font-bold text-indigo-600 text-xs">{student.xp}</td>
+                      <td className="px-2 py-2 text-xs text-slate-600">{student.streak}</td>
+                      <td className="px-2 py-2">
+                        <div className="w-full bg-slate-100 rounded-full h-1.5 max-w-[60px]">
+                          <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${student.progressPercent}%` }} />
                         </div>
                         <span className="text-xs text-slate-400 mt-0.5 inline-block">
                           {student.completedCount}/{stats.totalLessonsCount}

@@ -23,6 +23,18 @@ type DragDropItem = { id: string; text: string };
 type FieldErrors = Record<string, string>;
 
 // ── Component ─────────────────────────────────────────────────────────────────
+/**
+ * ContentManager — teacher content management page rendered at `/teacher/content`.
+ *
+ * Manages modules, lessons, questions (MCQ, drag-and-drop, fill-in-the-blank),
+ * and glossary terms. All mutations are performed via Convex hooks. Destructive
+ * actions use `ConfirmDialog` instead of `window.confirm`, and feedback is
+ * delivered via `useToast` / `InlineToast` instead of `window.alert`. Inline
+ * field validation errors are shown adjacent to invalid inputs without blocking
+ * the UI with browser dialogs.
+ *
+ * Accepts no props — fetches all data internally.
+ */
 export function ContentManager() {
   const { user } = useUser();
   const { toasts, toast, dismiss } = useToast();
@@ -721,50 +733,52 @@ export function ContentManager() {
 
         {/* ── Action bar ── */}
         <Card className="shadow-sm">
-          <CardHeader className="bg-white border-b border-slate-100 pb-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <CardTitle>Lesson Question Sets</CardTitle>
-                <CardDescription>View, add, edit, and manage questions for each lesson.</CardDescription>
+          <CardHeader className="bg-white border-b border-slate-100 pb-3">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-base">Lesson Question Sets</CardTitle>
               </div>
-              <div className="flex flex-wrap items-end gap-2 w-full lg:w-auto">
-                <Button variant="outline" size="sm" onClick={() => { setShowAddModule((v) => !v); setEditingModuleId(null); resetNewModuleForm(); setShowAddLesson(false); }} className="bg-white">
-                  <PlusCircle className="w-4 h-4 mr-1" /> Add module
+              {/* Button row */}
+              <div className="flex flex-wrap gap-1.5">
+                <Button variant="outline" size="sm" onClick={() => { setShowAddModule((v) => !v); setEditingModuleId(null); resetNewModuleForm(); setShowAddLesson(false); }} className="bg-white text-xs h-7 px-2">
+                  <PlusCircle className="w-3 h-3 mr-1" /> Module
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setShowAddLesson((v) => !v); setEditingLessonId(null); resetNewLessonForm(); setShowAddModule(false); }} className="bg-white">
-                  <PlusCircle className="w-4 h-4 mr-1" /> Add lesson
+                <Button variant="outline" size="sm" onClick={() => { setShowAddLesson((v) => !v); setEditingLessonId(null); resetNewLessonForm(); setShowAddModule(false); }} className="bg-white text-xs h-7 px-2">
+                  <PlusCircle className="w-3 h-3 mr-1" /> Lesson
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setShowManageModules((v) => { const n = !v; if (n) setShowManageLessons(false); return n; }); }} className="bg-white">
-                  {showManageModules ? "Hide modules" : "Manage modules"}
+                <Button variant="outline" size="sm" onClick={() => { setShowManageModules((v) => { const n = !v; if (n) setShowManageLessons(false); return n; }); }} className="bg-white text-xs h-7 px-2">
+                  {showManageModules ? "Hide modules" : "Modules"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setShowManageLessons((v) => { const n = !v; if (n) setShowManageModules(false); return n; }); }} className="bg-white">
-                  {showManageLessons ? "Hide lessons" : "Manage lessons"}
+                <Button variant="outline" size="sm" onClick={() => { setShowManageLessons((v) => { const n = !v; if (n) setShowManageModules(false); return n; }); }} className="bg-white text-xs h-7 px-2">
+                  {showManageLessons ? "Hide lessons" : "Lessons"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setShowGlossaryModal(true); resetGlossaryForm(); }} className="bg-white">
-                  Manage Glossary
+                <Button variant="outline" size="sm" onClick={() => { setShowGlossaryModal(true); resetGlossaryForm(); }} className="bg-white text-xs h-7 px-2">
+                  Glossary
                 </Button>
-
+              </div>
+              {/* Selectors row */}
+              <div className="grid grid-cols-2 gap-2">
                 {/* Module filter dropdown */}
-                <label className="text-sm text-slate-600 flex flex-col gap-1 w-full sm:w-auto sm:min-w-[210px]">
-                  <span className="font-medium">Module:</span>
-                  <div ref={moduleFilterDropdownRef} className="relative w-full sm:w-[240px]">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-slate-600">Module</span>
+                  <div ref={moduleFilterDropdownRef} className="relative">
                     <button type="button" onClick={() => setModuleFilterDropdownOpen((v) => !v)}
-                      className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-left">
+                      className="h-8 w-full rounded-md border border-slate-200 bg-white text-xs pl-2 pr-7 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-left">
                       <span className="truncate text-slate-800">
                         {lessonModuleFilter === "all" ? "All modules" : (() => {
                           const m = (modules || []).find((mod: any) => mod.moduleKey === lessonModuleFilter);
-                          return m ? `${m.code} — ${m.title}` : "All modules";
+                          return m ? `${m.code}` : "All";
                         })()}
                       </span>
-                      <ChevronDown className="ml-2 h-4 w-4 text-slate-400 flex-shrink-0" />
+                      <ChevronDown className="ml-1 h-3 w-3 text-slate-400 flex-shrink-0" />
                     </button>
                     {moduleFilterDropdownOpen && (
                       <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
-                        <div className="max-h-64 overflow-y-auto py-1">
+                        <div className="max-h-48 overflow-y-auto py-1">
                           {[{ key: "all", label: "All modules" }, ...(modules || []).map((m: any) => ({ key: m.moduleKey, label: `${m.code} — ${m.title}` }))].map((opt) => (
                             <button key={opt.key} type="button"
                               onClick={() => { setLessonModuleFilter(opt.key); setModuleFilterDropdownOpen(false); }}
-                              className={`w-full px-3 py-2 text-sm text-left transition-colors ${lessonModuleFilter === opt.key ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}>
+                              className={`w-full px-3 py-2 text-xs text-left transition-colors ${lessonModuleFilter === opt.key ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}>
                               <div className="font-medium truncate">{opt.label}</div>
                             </button>
                           ))}
@@ -772,27 +786,27 @@ export function ContentManager() {
                       </div>
                     )}
                   </div>
-                </label>
+                </div>
 
                 {/* Lesson selector dropdown */}
-                <label className="text-sm text-slate-600 flex flex-col gap-1 w-full sm:w-auto sm:min-w-[240px]">
-                  <span className="font-medium">Select lesson:</span>
-                  <div ref={lessonDropdownRef} className="relative w-full sm:w-[280px]">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-slate-600">Lesson</span>
+                  <div ref={lessonDropdownRef} className="relative">
                     <button type="button" disabled={!filteredLessons || filteredLessons.length === 0}
                       onClick={() => setLessonDropdownOpen((v) => !v)}
-                      className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left">
+                      className="h-8 w-full rounded-md border border-slate-200 bg-white text-xs pl-2 pr-7 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left">
                       <span className="truncate text-slate-800">
-                        {!lessons ? "Loading lessons..." : filteredLessons.length === 0 ? "No lessons for this module" : selectedLesson?.title || "Select a lesson"}
+                        {!lessons ? "Loading..." : filteredLessons.length === 0 ? "No lessons" : selectedLesson?.title || "Select"}
                       </span>
-                      <ChevronDown className="ml-2 h-4 w-4 text-slate-400 flex-shrink-0" />
+                      <ChevronDown className="ml-1 h-3 w-3 text-slate-400 flex-shrink-0" />
                     </button>
                     {lessonDropdownOpen && filteredLessons && filteredLessons.length > 0 && (
                       <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
-                        <div className="max-h-64 overflow-y-auto py-1">
+                        <div className="max-h-48 overflow-y-auto py-1">
                           {filteredLessons.map((lesson: any) => (
                             <button key={lesson._id} type="button"
                               onClick={() => { setSelectedLessonId(lesson._id); setLessonDropdownOpen(false); setEditingIndex(null); resetQuestionForm(); }}
-                              className={`w-full px-3 py-2 text-sm text-left transition-colors ${lesson._id === selectedLessonId ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}>
+                              className={`w-full px-3 py-2 text-xs text-left transition-colors ${lesson._id === selectedLessonId ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}>
                               <div className="font-medium truncate">{lesson.title}</div>
                             </button>
                           ))}
@@ -800,7 +814,7 @@ export function ContentManager() {
                       </div>
                     )}
                   </div>
-                </label>
+                </div>
               </div>
             </div>
           </CardHeader>
