@@ -6,10 +6,17 @@ A gamified polymer chemistry learning platform for students and teachers.
 
 | Route | Description |
 |---|---|
-| `/` | Student app (authenticated) or landing page |
+| `/` | Student app (authenticated) or landing page (with curriculum preview) |
 | `/teacher` | Redirects to `/teacher/content` |
 | `/teacher/content` | Content Manager — manage modules, lessons, questions, glossary |
 | `/teacher/analytics` | Analytics Dashboard — class stats, leaderboard, student reports |
+
+## Key Features
+
+- **Student leaderboard** — shows top-10 students by XP; the current user's row is always visible (highlighted in-list if top 10, or appended with their actual rank if outside top 10) via `getTopStudentsWithCurrentUser`
+- **Curriculum preview** — public homepage section showing available modules and lesson counts without requiring sign-in
+- **Glossary view** — searchable, read-only glossary accessible from student navigation
+- **Review screen** — post-quiz answer breakdowns showing student answer, correct answer, and explanation per question
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 

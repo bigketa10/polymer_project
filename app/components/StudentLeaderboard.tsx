@@ -4,10 +4,24 @@ import { api } from "../convex/_generated/api";
 import { Trophy, Medal, Crown, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+/**
+ * StudentLeaderboard — modal overlay showing the global XP leaderboard.
+ *
+ * Fetches data via `getTopStudentsWithCurrentUser`, which returns the top-10
+ * students plus the current user's rank and XP in a single query. If the
+ * current user is already in the top 10 their row is highlighted with an
+ * indigo ring; if they fall outside the top 10 a separator ("…") and a
+ * dedicated "you" row are appended below the list showing their actual rank.
+ * Renders nothing while the query is loading.
+ *
+ * @param onClose - callback invoked when the user dismisses the modal
+ */
 export const StudentLeaderboard = ({ onClose }: { onClose: () => void }) => {
-  const topStudents = useQuery(api.userProgress.getTopStudents);
+  const result = useQuery(api.userProgress.getTopStudentsWithCurrentUser);
 
-  if (!topStudents) return null;
+  if (!result) return null;
+
+  const { topStudents, currentUser } = result;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -38,8 +52,6 @@ export const StudentLeaderboard = ({ onClose }: { onClose: () => void }) => {
         <CardContent className="p-0">
           <div className="max-h-[60vh] overflow-y-auto px-6 pb-6 space-y-3">
             {topStudents.map((student, index) => {
-              // --- FIX IS HERE ---
-              // We explicitly tell TypeScript this can be an Element OR null
               let rankNum: React.ReactNode = (
                 <span className="font-bold text-slate-400 w-6 text-center">
                   {index + 1}
@@ -54,23 +66,27 @@ export const StudentLeaderboard = ({ onClose }: { onClose: () => void }) => {
                 rankIcon = <Crown className="w-5 h-5 text-yellow-600" />;
                 rowStyle = "bg-yellow-50 border-yellow-200 shadow-sm";
                 textStyle = "text-yellow-900 font-bold";
-                rankNum = null; // Now valid because we typed it as ReactNode
+                rankNum = null;
               } else if (index === 1) {
                 rankIcon = <Medal className="w-5 h-5 text-slate-400" />;
                 rowStyle = "bg-slate-50 border-slate-200";
                 textStyle = "text-slate-700 font-semibold";
                 rankNum = null;
               } else if (index === 2) {
-                rankIcon = <Medal className="w-5 h-5 text-orange-400" />; // Bronze
+                rankIcon = <Medal className="w-5 h-5 text-orange-400" />;
                 rowStyle = "bg-orange-50 border-orange-100";
                 textStyle = "text-orange-800 font-semibold";
                 rankNum = null;
               }
 
+              const currentUserRing = student.isCurrentUser
+                ? "ring-2 ring-indigo-400"
+                : "";
+
               return (
                 <div
                   key={student.id}
-                  className={`flex items-center p-4 rounded-xl border ${rowStyle} transition-transform hover:scale-[1.02]`}
+                  className={`flex items-center p-4 rounded-xl border ${rowStyle} ${currentUserRing} transition-transform hover:scale-[1.02]`}
                 >
                   {/* Rank Column */}
                   <div className="mr-4 flex-shrink-0 flex items-center justify-center w-8">
@@ -91,6 +107,35 @@ export const StudentLeaderboard = ({ onClose }: { onClose: () => void }) => {
                 </div>
               );
             })}
+
+            {/* Current user row when outside top 10 */}
+            {currentUser !== null && currentUser.inTopTen === false && (
+              <>
+                <div className="text-center text-slate-400 text-sm py-1 select-none">
+                  …
+                </div>
+                <div className="flex items-center p-4 rounded-xl border bg-indigo-50 border-indigo-200 ring-2 ring-indigo-400 transition-transform hover:scale-[1.02]">
+                  {/* Rank Column */}
+                  <div className="mr-4 flex-shrink-0 flex items-center justify-center w-8">
+                    <span className="font-bold text-indigo-500 w-6 text-center text-xs">
+                      #{currentUser.rank}
+                    </span>
+                  </div>
+
+                  {/* Name Column */}
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm text-indigo-800 font-semibold">
+                      {currentUser.name}
+                    </p>
+                  </div>
+
+                  {/* XP Column */}
+                  <div className="font-mono font-bold text-indigo-600 bg-white/50 px-2 py-1 rounded text-sm">
+                    {currentUser.xp} XP
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

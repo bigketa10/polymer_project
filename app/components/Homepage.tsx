@@ -14,18 +14,20 @@ import {
   BookOpen,
   Beaker,
 } from "lucide-react";
-import { sortModulesByOrder, buildCurriculumData } from "@/lib/studentUtils";
+import { sortModulesByOrder } from "@/lib/studentUtils";
 
+/**
+ * Homepage — public landing page rendered at `/` for unauthenticated visitors.
+ *
+ * Fetches the public curriculum via `api.modules.getPublicCurriculum` (no auth
+ * required) and displays a sortable grid of module cards with lesson counts.
+ * The "View Curriculum" button and the navbar "Curriculum" link both scroll
+ * smoothly to the curriculum section via `curriculumRef`. Shows skeleton
+ * placeholders while loading and a "coming soon" message when no modules exist.
+ */
 export default function Homepage() {
   const curriculumRef = useRef<HTMLDivElement>(null);
   const rawModules = useQuery(api.modules.getPublicCurriculum);
-
-  const curriculum =
-    rawModules !== undefined
-      ? buildCurriculumData(sortModulesByOrder(rawModules as any[]), [])
-          // lessonCount already computed server-side; just sort
-          .map((m: any) => m)
-      : undefined;
 
   // getPublicCurriculum already returns lessonCount — use it directly
   const modules = rawModules !== undefined ? sortModulesByOrder(rawModules as any[]) : undefined;
