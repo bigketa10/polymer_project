@@ -192,6 +192,27 @@ export const deleteModule = mutation({
   },
 });
 
+/**
+ * Public query — no auth required.
+ * Returns all modules sorted ascending by `order`, each annotated with a
+ * `lessonCount` equal to the number of lessons whose `section` matches the
+ * module's `moduleKey`. Used by the homepage curriculum preview section.
+ */
+export const getPublicCurriculum = query({
+  args: {},
+  handler: async (ctx) => {
+    const modules = await ctx.db.query("modules").collect();
+    const lessons = await ctx.db.query("lessons").collect();
+    return modules
+      .slice()
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map((m) => ({
+        ...m,
+        lessonCount: lessons.filter((l) => (l.section || "") === m.moduleKey).length,
+      }));
+  },
+});
+
 export const reorderModules = mutation({
   args: { moduleIds: v.array(v.id("modules")) },
   handler: async (ctx, args) => {

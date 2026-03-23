@@ -1,7 +1,10 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// Get user progress
+/**
+ * Returns the current authenticated user's progress record (XP, streak, completed lessons).
+ * Throws if the caller is not authenticated.
+ */
 export const get = query({
   args: {},
   handler: async (ctx) => {
@@ -19,7 +22,14 @@ export const get = query({
   },
 });
 
-// Update user progress
+/**
+ * Upserts the current user's progress record with the provided XP, streak, and completed lesson IDs.
+ * Creates a new record if one does not exist. Throws if the caller is not authenticated.
+ *
+ * @param xp - Total XP to set
+ * @param streak - Current streak count to set
+ * @param completedLessonIds - Full array of completed lesson IDs
+ */
 export const update = mutation({
   args: {
     xp: v.number(),
@@ -56,7 +66,10 @@ export const update = mutation({
   },
 });
 
-// Reset progress
+/**
+ * Resets the current authenticated user's XP, streak, and completed lessons to zero/empty.
+ * No-op if the user has no existing progress record.
+ */
 export const reset = mutation({
   args: {},
   handler: async (ctx) => {
@@ -82,7 +95,14 @@ export const reset = mutation({
   },
 });
 
-// Initialize or update user
+/**
+ * Creates a new user progress record or updates the display name on an existing one.
+ * Called on first login and whenever the user's name may have changed.
+ *
+ * @param userId - Clerk subject ID (`identity.subject`)
+ * @param userName - Optional display name to store
+ * @returns The existing or newly created progress record
+ */
 export const initializeUser = mutation({
   args: {
     userId: v.string(),
@@ -115,7 +135,64 @@ export const initializeUser = mutation({
   },
 });
 
-// NEW: Public Leaderboard Query
+/**
+ * Returns the top 10 students by XP alongside the current user's rank and XP.
+ * Used by `StudentLeaderboard` to always surface the current user's position even
+ * when they fall outside the top 10.
+ *
+ * @returns `{ topStudents, currentUser }` where:
+ *   - `topStudents` — up to 10 entries with `{ id, name, xp, isCurrentUser }`
+ *   - `currentUser` — `{ rank, name, xp, inTopTen }` for the authenticated caller,
+ *     or `null` if the caller is unauthenticated. Rank is computed as the count of
+ *     users with strictly greater XP plus one. If the user has no progress record,
+ *     `xp` is 0 and `rank` is `totalStudents + 1`.
+ */
+export const getTopStudentsWithCurrentUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const allProgress = await ctx.db.query("userProgress").collect();
+    const sorted = allProgress.slice().sort((a, b) => b.xp - a.xp);
+
+    const identity = await ctx.auth.getUserIdentity();
+
+    const topStudents = sorted.slice(0, 10).map((student) => ({
+      id: student._id,
+      name: student.userName || "Anonymous",
+      xp: student.xp,
+      isCurrentUser: identity ? student.userId === identity.subject : false,
+    }));
+
+    let currentUser: { rank: number; name: string; xp: number; inTopTen: boolean } | null = null;
+
+    if (identity) {
+      const record = allProgress.find((r) => r.userId === identity.subject);
+      if (!record) {
+        currentUser = {
+          rank: allProgress.length + 1,
+          name: identity.name ?? "You",
+          xp: 0,
+          inTopTen: false,
+        };
+      } else {
+        const rank = allProgress.filter((r) => r.xp > record.xp).length + 1;
+        currentUser = {
+          rank,
+          name: record.userName || identity.name || "You",
+          xp: record.xp,
+          inTopTen: rank <= 10,
+        };
+      }
+    }
+
+    return { topStudents, currentUser };
+  },
+});
+
+/**
+ * Returns the top 10 students by XP as a simple public list.
+ * @deprecated Prefer `getTopStudentsWithCurrentUser` which also returns the caller's rank.
+ * @returns Array of `{ id, name, xp }` sorted by XP descending
+ */
 export const getTopStudents = query({
   args: {},
   handler: async (ctx) => {

@@ -38,7 +38,9 @@ import {
   Home,
   Crown,
   ArrowRight,
+  Search,
 } from "lucide-react";
+import { filterGlossaryTerms } from "@/lib/studentUtils";
 
 const PolymerChemistryApp = () => {
   // ========================================
@@ -88,6 +90,7 @@ const PolymerChemistryApp = () => {
   const [showReview, setShowReview] = useState(false);
   const [reviewAnimate, setReviewAnimate] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showGlossary, setShowGlossary] = useState(false);
 
   // ========================================
   // 3. BACKEND INTEGRATION (Convex)
@@ -95,6 +98,7 @@ const PolymerChemistryApp = () => {
   const userProgress = useQuery(api.userProgress.get);
   const lessons = useQuery(api.lessons.getAll);
   const modules = useQuery(api.modules.getAll);
+  const glossaryTerms = useQuery(api.glossary.getAll);
 
   const updateProgress = useMutation(api.userProgress.update);
   const resetProgress = useMutation(api.userProgress.reset);
@@ -628,6 +632,16 @@ const PolymerChemistryApp = () => {
     );
   }
 
+  // --- GLOSSARY ---
+  if (showGlossary) {
+    return (
+      <GlossaryView
+        terms={glossaryTerms}
+        onClose={() => setShowGlossary(false)}
+      />
+    );
+  }
+
   // --- LESSON/QUIZ ---
   if (currentLesson) {
     if (showReview) {
@@ -691,26 +705,13 @@ const PolymerChemistryApp = () => {
                                 .toLowerCase()
                             : userAns === q.correct;
                       return (
-                        <div
+                        <AnswerBreakdownCard
                           key={idx}
-                          className="p-3 border rounded-lg bg-gray-50"
-                        >
-                          <p className="font-medium text-sm mb-1">
-                            Q: {q.question}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            {isCorrect ? (
-                              <CheckCircle2 className="w-5 h-5 text-green-500" />
-                            ) : (
-                              <XCircle className="w-5 h-5 text-red-500" />
-                            )}
-                            <span
-                              className={`text-sm ${isCorrect ? "text-green-700" : "text-red-700"}`}
-                            >
-                              {isCorrect ? "Correct" : "Incorrect"}
-                            </span>
-                          </div>
-                        </div>
+                          index={idx}
+                          question={q}
+                          studentAnswer={userAns}
+                          isCorrect={isCorrect}
+                        />
                       );
                     })}
                   </div>
@@ -999,6 +1000,14 @@ const PolymerChemistryApp = () => {
             >
               <Settings className="w-6 h-6" />
             </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setShowGlossary(true)}
+              className="hidden md:block absolute right-12"
+              title="Glossary"
+            >
+              <Book className="w-6 h-6" />
+            </Button>
           </div>
           <p className="text-gray-600 text-sm md:text-base">
             Queen Mary University of London
@@ -1202,6 +1211,13 @@ const PolymerChemistryApp = () => {
             <span className="text-xs font-medium">Home</span>
           </button>
           <button
+            onClick={() => setShowGlossary(true)}
+            className="flex flex-col items-center text-gray-500 hover:text-indigo-600"
+          >
+            <Book className="w-6 h-6" />
+            <span className="text-xs font-medium">Glossary</span>
+          </button>
+          <button
             onClick={() => setShowSettings(true)}
             className="flex flex-col items-center text-gray-500 hover:text-indigo-600"
           >
@@ -1213,4 +1229,189 @@ const PolymerChemistryApp = () => {
     </div>
   );
 };
+// ── GlossaryView ─────────────────────────────────────────────────────────────
+
+/**
+ * Read-only glossary screen. Fetches all terms via `api.glossary.getAll` and
+ * filters them client-side. Alphabetical order is preserved from the backend
+ * `by_term` index. Shows a loading spinner while data is loading and a
+ * "No terms found" message when the filtered list is empty.
+ */
+function GlossaryView({
+  terms,
+  onClose,
+}: {
+  terms: any[] | undefined;
+  onClose: () => void;
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const filtered = terms !== undefined ? filterGlossaryTerms(terms, searchQuery) : undefined;
+
+  return (
+    <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-6 flex items-center justify-between">
+          <Button variant="outline" onClick={onClose}>
+            ← Back to Lessons
+          </Button>
+          <h1 className="text-xl font-bold text-indigo-900 flex items-center gap-2">
+            <Book className="w-5 h-5" /> Glossary
+          </h1>
+          <div className="w-28" /> {/* spacer */}
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search terms..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 h-10 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        {/* Loading */}
+        {terms === undefined && (
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          </div>
+        )}
+
+        {/* No terms found */}
+        {filtered !== undefined && filtered.length === 0 && (
+          <div className="text-center py-16 text-slate-400">
+            <Book className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">No terms found.</p>
+          </div>
+        )}
+
+        {/* Term list */}
+        {filtered !== undefined && filtered.length > 0 && (
+          <div className="space-y-2">
+            {filtered.map((t: any) => (
+              <div key={t._id} className="rounded-lg border border-slate-100 bg-white p-4">
+                <p className="font-semibold text-slate-800 text-sm">{t.term}</p>
+                <p className="text-slate-500 text-sm mt-1 leading-relaxed">{t.definition}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── AnswerBreakdownCard ───────────────────────────────────────────────────────
+
+interface AnswerBreakdownCardProps {
+  index: number;
+  question: any;
+  studentAnswer: any;
+  isCorrect: boolean;
+}
+
+/**
+ * Renders a single per-question card on the Review Screen.
+ * Shows: question number + text, correct/incorrect status, student answer,
+ * correct answer, and explanation (omitted when empty/missing).
+ * Supports mcq, fillblank, and dragdrop question types.
+ */
+function AnswerBreakdownCard({ index, question, studentAnswer, isCorrect }: AnswerBreakdownCardProps) {
+  // ── Student answer display ──────────────────────────────────────────────────
+  let studentAnswerDisplay: React.ReactNode;
+  if (question.type === "fillblank") {
+    const text = String(studentAnswer ?? "").trim();
+    studentAnswerDisplay = text || <span className="italic text-slate-400">No answer submitted</span>;
+  } else if (question.type === "dragdrop") {
+    if (!studentAnswer || !Array.isArray(studentAnswer)) {
+      studentAnswerDisplay = <span className="italic text-slate-400">No answer submitted</span>;
+    } else {
+      studentAnswerDisplay = (
+        <ul className="space-y-0.5">
+          {(studentAnswer as any[]).map((sec: any, i: number) => (
+            <li key={i} className="text-xs">
+              <span className="font-semibold">{sec.name}:</span>{" "}
+              {(sec.answers || []).map((a: any) => (typeof a === "string" ? a : a.text)).join(", ") || <span className="italic text-slate-400">empty</span>}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+  } else {
+    // mcq
+    studentAnswerDisplay =
+      studentAnswer !== null && studentAnswer !== undefined
+        ? question.options?.[studentAnswer as number] ?? <span className="italic text-slate-400">No answer submitted</span>
+        : <span className="italic text-slate-400">No answer submitted</span>;
+  }
+
+  // ── Correct answer display ──────────────────────────────────────────────────
+  let correctAnswerDisplay: React.ReactNode;
+  if (question.type === "fillblank") {
+    correctAnswerDisplay = question.correctAnswer ?? "-";
+  } else if (question.type === "dragdrop") {
+    correctAnswerDisplay = (
+      <ul className="space-y-0.5">
+        {(question.sections || []).map((sec: any, i: number) => (
+          <li key={i} className="text-xs">
+            <span className="font-semibold">{sec.name}:</span>{" "}
+            {(sec.answers || []).join(", ")}
+          </li>
+        ))}
+      </ul>
+    );
+  } else {
+    correctAnswerDisplay = question.options?.[question.correct] ?? "-";
+  }
+
+  const explanation = question.explanation?.trim();
+
+  return (
+    <div className="p-4 border rounded-lg bg-gray-50 space-y-3">
+      {/* 1. Question number + text */}
+      <p className="font-semibold text-sm text-slate-800">
+        <span className="text-slate-400 font-normal mr-1">Q{index + 1}.</span>
+        {question.question}
+      </p>
+
+      {/* 2. Status icon */}
+      <div className="flex items-center gap-2">
+        {isCorrect ? (
+          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+        ) : (
+          <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+        )}
+        <span className={`text-xs font-semibold ${isCorrect ? "text-green-700" : "text-red-700"}`}>
+          {isCorrect ? "Correct" : "Incorrect"}
+        </span>
+      </div>
+
+      {/* 3. Student answer */}
+      <div className={`rounded-md px-3 py-2 text-sm border ${isCorrect ? "bg-green-50 border-green-200 text-green-900" : "bg-red-50 border-red-200 text-red-900"}`}>
+        <p className="text-xs font-semibold mb-0.5 opacity-70">Your answer</p>
+        {studentAnswerDisplay}
+      </div>
+
+      {/* 4. Correct answer */}
+      <div className="rounded-md px-3 py-2 text-sm border bg-green-50 border-green-200 text-green-900">
+        <p className="text-xs font-semibold mb-0.5 opacity-70 flex items-center gap-1">
+          <CheckCircle2 className="w-3 h-3" /> Correct answer
+        </p>
+        {correctAnswerDisplay}
+      </div>
+
+      {/* 5. Explanation — omitted when empty */}
+      {explanation && (
+        <div className="rounded-md px-3 py-2 text-sm border bg-indigo-50 border-indigo-100 text-indigo-900">
+          <p className="text-xs font-semibold mb-0.5 opacity-70">Explanation</p>
+          {explanation}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default PolymerChemistryApp;
+

@@ -1,5 +1,9 @@
-import React from "react";
+"use client";
+
+import React, { useRef } from "react";
 import { SignInButton } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
   Atom,
@@ -7,9 +11,29 @@ import {
   Trophy,
   ArrowRight,
   FlaskConical,
+  BookOpen,
+  Beaker,
 } from "lucide-react";
+import { sortModulesByOrder, buildCurriculumData } from "@/lib/studentUtils";
 
 export default function Homepage() {
+  const curriculumRef = useRef<HTMLDivElement>(null);
+  const rawModules = useQuery(api.modules.getPublicCurriculum);
+
+  const curriculum =
+    rawModules !== undefined
+      ? buildCurriculumData(sortModulesByOrder(rawModules as any[]), [])
+          // lessonCount already computed server-side; just sort
+          .map((m: any) => m)
+      : undefined;
+
+  // getPublicCurriculum already returns lessonCount — use it directly
+  const modules = rawModules !== undefined ? sortModulesByOrder(rawModules as any[]) : undefined;
+
+  const scrollToCurriculum = () => {
+    curriculumRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="h-screen w-full overflow-y-auto scroll-smooth bg-white font-sans text-slate-900 overflow-x-hidden">
       {/* NAVBAR */}
@@ -25,12 +49,12 @@ export default function Homepage() {
           >
             Features
           </a>
-          <a
-            href="#about"
+          <button
+            onClick={scrollToCurriculum}
             className="text-slate-600 hover:text-indigo-600 font-medium transition-colors"
           >
-            About
-          </a>
+            Curriculum
+          </button>
         </div>
         <SignInButton mode="modal">
           <Button
@@ -73,6 +97,7 @@ export default function Homepage() {
             </SignInButton>
             <Button
               variant="ghost"
+              onClick={scrollToCurriculum}
               className="text-slate-600 hover:text-indigo-600 font-bold gap-2"
             >
               View Curriculum <ArrowRight className="w-4 h-4" />
@@ -80,13 +105,11 @@ export default function Homepage() {
           </div>
         </div>
 
-        {/* HERO IMAGE / VISUAL */}
+        {/* HERO VISUAL */}
         <div className="mt-16 relative w-full max-w-4xl mx-auto">
-          {/* Abstract molecule background blobs */}
           <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
           <div className="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
           <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-
           <img
             src="https://placehold.co/1200x600/png?text=Interactive+Polymer+Cards+Preview"
             alt="App Preview"
@@ -106,7 +129,6 @@ export default function Homepage() {
               Science doesn't have to be boring.
             </p>
           </div>
-
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard
               icon={<BrainCircuit className="w-10 h-10 text-indigo-500" />}
@@ -123,6 +145,70 @@ export default function Homepage() {
               title="Visual Chemistry"
               desc="Interactive diagrams for monomers, polymer chains, and cross-linking reactions."
             />
+          </div>
+        </div>
+      </section>
+
+      {/* CURRICULUM PREVIEW */}
+      <section
+        id="curriculum"
+        ref={curriculumRef}
+        className="py-20 bg-gradient-to-b from-indigo-50 to-white"
+      >
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate-900">
+              What you'll learn
+            </h2>
+            <p className="text-slate-500 mt-2">
+              Explore the full curriculum — no sign-up required.
+            </p>
+          </div>
+
+          {/* Loading skeleton */}
+          {modules === undefined && (
+            <div className="grid md:grid-cols-2 gap-6">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl border border-slate-100 bg-white p-8 animate-pulse"
+                >
+                  <div className="h-12 w-12 rounded-full bg-slate-100 mb-4" />
+                  <div className="h-5 w-24 bg-slate-100 rounded mb-2" />
+                  <div className="h-4 w-48 bg-slate-100 rounded mb-3" />
+                  <div className="h-3 w-full bg-slate-100 rounded mb-2" />
+                  <div className="h-3 w-3/4 bg-slate-100 rounded" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty state */}
+          {modules !== undefined && modules.length === 0 && (
+            <div className="text-center py-16 text-slate-400">
+              <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p className="text-lg">Curriculum content coming soon.</p>
+            </div>
+          )}
+
+          {/* Module cards */}
+          {modules !== undefined && modules.length > 0 && (
+            <div className="grid md:grid-cols-2 gap-6">
+              {(modules as any[]).map((m: any) => (
+                <ModuleCard key={m._id} module={m} />
+              ))}
+            </div>
+          )}
+
+          <div className="text-center mt-12">
+            <SignInButton mode="modal">
+              <Button
+                size="lg"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-base rounded-xl font-bold shadow-lg shadow-indigo-200"
+              >
+                Start Learning for Free
+              </Button>
+            </SignInButton>
           </div>
         </div>
       </section>
@@ -144,7 +230,36 @@ export default function Homepage() {
   );
 }
 
-// Helper Component for Feature Cards
+function iconForModule(iconKey?: string) {
+  if (iconKey === "beaker") return Beaker;
+  if (iconKey === "bookOpen") return BookOpen;
+  return Atom;
+}
+
+function ModuleCard({ module: m }: { module: any }) {
+  const Icon = iconForModule(m.iconKey);
+  const color = m.color || "indigo";
+  return (
+    <div className={`rounded-2xl border-2 border-${color}-100 bg-white p-8 hover:border-${color}-300 hover:shadow-lg transition-all`}>
+      <div className={`h-14 w-14 bg-${color}-100 rounded-full flex items-center justify-center mb-4`}>
+        <Icon className={`w-7 h-7 text-${color}-600`} />
+      </div>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-0.5">
+            {m.code}
+          </p>
+          <h3 className="text-xl font-bold text-slate-800">{m.title}</h3>
+        </div>
+        <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full bg-${color}-100 text-${color}-700`}>
+          {m.lessonCount} {m.lessonCount === 1 ? "lesson" : "lessons"}
+        </span>
+      </div>
+      <p className="text-slate-500 text-sm leading-relaxed">{m.description}</p>
+    </div>
+  );
+}
+
 function FeatureCard({
   icon,
   title,
