@@ -42,6 +42,16 @@ import {
 } from "lucide-react";
 import { filterGlossaryTerms } from "@/lib/studentUtils";
 
+/**
+ * PolymerChemistryApp — main student learning interface for PolymerLingo.
+ *
+ * Manages the complete student experience including module/lesson navigation,
+ * quiz taking (MCQ, drag-and-drop, fill-in-the-blank), progress tracking,
+ * leaderboard, glossary, and settings. Handles lesson attempt persistence via
+ * Convex, audio feedback, and review screens with answer breakdowns. Renders
+ * different views based on state: dashboard, active lesson, review, settings,
+ * leaderboard, or glossary. Accepts no props — fetches all data via Convex hooks.
+ */
 const PolymerChemistryApp = () => {
   // ========================================
   // 1. MODULE CONFIGURATION
@@ -535,7 +545,7 @@ const PolymerChemistryApp = () => {
   if (showSettings) {
     return (
       <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto pb-24 md:pb-0">
           <Button
             variant="outline"
             onClick={() => setShowSettings(false)}
@@ -652,7 +662,7 @@ const PolymerChemistryApp = () => {
       );
       return (
         <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto pb-24 md:pb-0">
             <div className="mb-6 flex items-center justify-between">
               <Button variant="outline" onClick={() => hideReview()}>
                 ← Back to Quiz
@@ -756,7 +766,7 @@ const PolymerChemistryApp = () => {
 
     return (
       <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto pb-24 md:pb-0">
           <div className="mb-6 flex items-center justify-between">
             <Button variant="outline" onClick={() => setCurrentLesson(null)}>
               ← Back
@@ -1249,7 +1259,7 @@ function GlossaryView({
 
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto pb-24 md:pb-0">
         <div className="mb-6 flex items-center justify-between">
           <Button variant="outline" onClick={onClose}>
             ← Back to Lessons
