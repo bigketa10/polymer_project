@@ -832,24 +832,34 @@ export function AnalyticsDashboard() {
                         {isMcq ? (
                           <>
                             {(q.options || []).map(
-                              (opt: string, optIdx: number) => (
-                                <p
-                                  key={optIdx}
-                                  className="text-xs text-slate-600"
-                                >
-                                  <span className="font-semibold">
-                                    Option {optIdx + 1}:
-                                  </span>{" "}
-                                  {uniquePickersByOption[optIdx]}{" "}
-                                  {uniquePickersByOption[optIdx] === 1
-                                    ? "person"
-                                    : "people"}
-                                  <span className="text-slate-400">
-                                    {" "}
-                                    ({opt})
-                                  </span>
-                                </p>
-                              ),
+                              (opt: string, optIdx: number) => {
+                                const isCorrectOption =
+                                  typeof q.correct === "number" &&
+                                  optIdx === q.correct;
+                                return (
+                                  <p
+                                    key={optIdx}
+                                    className="text-xs text-slate-600"
+                                  >
+                                    <span className="font-semibold">
+                                      Option {optIdx + 1}:
+                                    </span>{" "}
+                                    {uniquePickersByOption[optIdx]}{" "}
+                                    {uniquePickersByOption[optIdx] === 1
+                                      ? "person"
+                                      : "people"}
+                                    <span className="text-slate-400">
+                                      {" "}
+                                      ({opt})
+                                    </span>
+                                    {isCorrectOption && (
+                                      <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                                        Correct
+                                      </span>
+                                    )}
+                                  </p>
+                                );
+                              },
                             )}
                             {noAnswerUsers.size > 0 && (
                               <p className="text-xs text-slate-600">
