@@ -1394,20 +1394,20 @@ function AnswerBreakdownCard({ index, question, studentAnswer, isCorrect }: Answ
           <XCircle className="w-4 h-4 text-red-500 shrink-0" />
         )}
         <span className={`text-xs font-semibold ${isCorrect ? "text-green-700" : "text-red-700"}`}>
-          {isCorrect ? "Correct" : "Incorrect"}
+          {isCorrect ? "Correct Answer" : "Incorrect Answer"}
         </span>
       </div>
 
       {/* 3. Student answer */}
       <div className={`rounded-md px-3 py-2 text-sm border ${isCorrect ? "bg-green-50 border-green-200 text-green-900" : "bg-red-50 border-red-200 text-red-900"}`}>
-        <p className="text-xs font-semibold mb-0.5 opacity-70">Your answer</p>
+        <p className="text-xs font-semibold mb-0.5 opacity-70">Given Answer</p>
         {studentAnswerDisplay}
       </div>
 
       {/* 4. Correct answer */}
       <div className="rounded-md px-3 py-2 text-sm border bg-green-50 border-green-200 text-green-900">
         <p className="text-xs font-semibold mb-0.5 opacity-70 flex items-center gap-1">
-          <CheckCircle2 className="w-3 h-3" /> Correct answer
+          <CheckCircle2 className="w-3 h-3" /> Correct Answer
         </p>
         {correctAnswerDisplay}
       </div>
