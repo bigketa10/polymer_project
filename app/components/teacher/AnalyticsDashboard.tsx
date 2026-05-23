@@ -874,9 +874,6 @@ export function AnalyticsDashboard() {
                               className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-xs"
                             >
                               <div className="flex items-center justify-between gap-2">
-                                <span className="font-semibold text-slate-700">
-                                  {formatResponseName(response.userId)}
-                                </span>
                                 <span className="text-slate-400">
                                   {formatResponseTimestamp(
                                     response.submittedAt,
