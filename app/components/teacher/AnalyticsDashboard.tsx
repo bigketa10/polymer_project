@@ -825,7 +825,7 @@ export function AnalyticsDashboard() {
                         </Button>
                       </div>
                       <div className="mt-2 space-y-1">
-                        {q.type === "mcq" ? (
+                        {q.type !== "dragdrop" && q.type !== "fillblank" ? (
                           <>
                             {(q.options || []).map(
                               (opt: string, optIdx: number) => (
@@ -883,18 +883,7 @@ export function AnalyticsDashboard() {
                                   )}
                                 </span>
                               </div>
-                              {q.type === "mcq" ? (
-                                <p className="mt-1 text-slate-600">
-                                  Answer:{" "}
-                                  {response.selectedOption != null
-                                    ? `Option ${response.selectedOption + 1} — ${q.options?.[response.selectedOption] ?? ""}`
-                                    : "No answer"}
-                                </p>
-                              ) : q.type === "fillblank" ? (
-                                <p className="mt-1 text-slate-600">
-                                  Answer: {response.textAnswer ?? "No answer"}
-                                </p>
-                              ) : (
+                              {q.type === "dragdrop" ? (
                                 <div className="mt-1 text-slate-600">
                                   {response.placedSections?.length > 0 ? (
                                     <div className="flex flex-wrap gap-2 mt-1">
@@ -930,6 +919,17 @@ export function AnalyticsDashboard() {
                                     </span>
                                   )}
                                 </div>
+                              ) : q.type === "fillblank" ? (
+                                <p className="mt-1 text-slate-600">
+                                  Answer: {response.textAnswer ?? "No answer"}
+                                </p>
+                              ) : (
+                                <p className="mt-1 text-slate-600">
+                                  Answer:{" "}
+                                  {response.selectedOption != null
+                                    ? `Option ${response.selectedOption + 1} — ${q.options?.[response.selectedOption] ?? ""}`
+                                    : "No answer"}
+                                </p>
                               )}
                               <div className="mt-1.5 flex items-center justify-between">
                                 <span className="text-slate-500">
