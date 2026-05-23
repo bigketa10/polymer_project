@@ -784,6 +784,10 @@ export function AnalyticsDashboard() {
                   </p>
                 )}
                 {(selectedLesson.questions || []).map((q: any, idx: number) => {
+                  const isMcq =
+                    Array.isArray(q.options) && q.options.length > 0;
+                  const isDragdrop = q.type === "dragdrop" && !isMcq;
+                  const isFillblank = q.type === "fillblank";
                   const responses = lessonResponsesByQuestion.get(idx) || [];
                   const uniquePickersByOption = (q.options || []).map(
                     (_: string, optIdx: number) => {
@@ -825,7 +829,7 @@ export function AnalyticsDashboard() {
                         </Button>
                       </div>
                       <div className="mt-2 space-y-1">
-                        {q.type !== "dragdrop" && q.type !== "fillblank" ? (
+                        {isMcq ? (
                           <>
                             {(q.options || []).map(
                               (opt: string, optIdx: number) => (
@@ -883,7 +887,7 @@ export function AnalyticsDashboard() {
                                   )}
                                 </span>
                               </div>
-                              {q.type === "dragdrop" ? (
+                              {isDragdrop ? (
                                 <div className="mt-1 text-slate-600">
                                   {response.placedSections?.length > 0 ? (
                                     <div className="flex flex-wrap gap-2 mt-1">
@@ -919,7 +923,7 @@ export function AnalyticsDashboard() {
                                     </span>
                                   )}
                                 </div>
-                              ) : q.type === "fillblank" ? (
+                              ) : isFillblank ? (
                                 <p className="mt-1 text-slate-600">
                                   Answer: {response.textAnswer ?? "No answer"}
                                 </p>
