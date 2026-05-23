@@ -872,12 +872,56 @@ export function AnalyticsDashboard() {
                             )}
                           </>
                         ) : (
-                          <p className="text-xs text-slate-600">
-                            <span className="font-semibold">
-                              Total responses:
-                            </span>{" "}
-                            {responses.length}
-                          </p>
+                          <div className="text-xs text-slate-600">
+                            <p>
+                              <span className="font-semibold">
+                                Total responses:
+                              </span>{" "}
+                              {responses.length}
+                            </p>
+                            {isFillblank && (
+                              <p className="mt-1">
+                                <span className="font-semibold">
+                                  Correct Answer:
+                                </span>{" "}
+                                {q.correctAnswer ?? "-"}
+                              </p>
+                            )}
+                            {isDragdrop && (
+                              <div className="mt-1">
+                                <span className="font-semibold">
+                                  Correct Placement:
+                                </span>
+                                <div className="mt-1 flex flex-wrap gap-2">
+                                  {(q.sections || []).map(
+                                    (sec: any, sIdx: number) => (
+                                      <div
+                                        key={sIdx}
+                                        className="border border-indigo-100 rounded bg-indigo-50/30 p-1.5 min-w-[80px]"
+                                      >
+                                        <div className="font-semibold text-[10px] text-indigo-900 border-b border-indigo-100 pb-0.5 mb-1">
+                                          {sec.name}
+                                        </div>
+                                        {sec.answers?.length > 0 ? (
+                                          <ul className="list-disc list-inside text-[11px] text-slate-700 space-y-0.5">
+                                            {sec.answers.map(
+                                              (a: string, aIdx: number) => (
+                                                <li key={aIdx}>{a}</li>
+                                              ),
+                                            )}
+                                          </ul>
+                                        ) : (
+                                          <span className="text-[10px] italic text-slate-400">
+                                            Empty
+                                          </span>
+                                        )}
+                                      </div>
+                                    ),
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                       {isOpen && responses.length > 0 && (
@@ -932,54 +976,11 @@ export function AnalyticsDashboard() {
                                       No layout saved.
                                     </span>
                                   )}
-                                  {Array.isArray(q.sections) &&
-                                    q.sections.length > 0 && (
-                                      <div className="mt-2">
-                                        <div className="font-semibold text-[11px] text-slate-700">
-                                          Correct layout
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 mt-1">
-                                          {q.sections.map(
-                                            (sec: any, sIdx: number) => (
-                                              <div
-                                                key={sIdx}
-                                                className="border border-emerald-100 rounded bg-emerald-50/40 p-1.5 min-w-[80px]"
-                                              >
-                                                <div className="font-semibold text-[10px] text-emerald-900 border-b border-emerald-100 pb-0.5 mb-1">
-                                                  {sec.name}
-                                                </div>
-                                                {sec.answers?.length > 0 ? (
-                                                  <ul className="list-disc list-inside text-[11px] text-slate-700 space-y-0.5">
-                                                    {sec.answers.map(
-                                                      (
-                                                        a: string,
-                                                        aIdx: number,
-                                                      ) => (
-                                                        <li key={aIdx}>{a}</li>
-                                                      ),
-                                                    )}
-                                                  </ul>
-                                                ) : (
-                                                  <span className="text-[10px] italic text-slate-400">
-                                                    Empty
-                                                  </span>
-                                                )}
-                                              </div>
-                                            ),
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
                                 </div>
                               ) : isFillblank ? (
-                                <>
-                                  <p className="mt-1 text-slate-600">
-                                    Answer: {response.textAnswer ?? "No answer"}
-                                  </p>
-                                  <p className="text-slate-600">
-                                    Correct Answer: {q.correctAnswer ?? "-"}
-                                  </p>
-                                </>
+                                <p className="mt-1 text-slate-600">
+                                  Answer: {response.textAnswer ?? "No answer"}
+                                </p>
                               ) : (
                                 <p className="mt-1 text-slate-600">
                                   Answer:{" "}
