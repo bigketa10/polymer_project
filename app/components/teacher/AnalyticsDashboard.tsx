@@ -633,12 +633,53 @@ export function AnalyticsDashboard() {
                                             </p>
                                           </>
                                         ) : q.type === "dragdrop" ? (
-                                          <p className="text-xs text-slate-600 mt-1">
-                                            <span className="font-semibold">
-                                              Given Answer:
-                                            </span>{" "}
-                                            Drag &amp; Drop submitted
-                                          </p>
+                                          <>
+                                            <p className="text-xs text-slate-600 mt-1">
+                                              <span className="font-semibold">
+                                                Given Answer:
+                                              </span>{" "}
+                                              Drag &amp; Drop placement
+                                            </p>
+                                            {ans?.placedSections?.length > 0 ? (
+                                              <div className="mt-1 flex flex-wrap gap-2">
+                                                {ans.placedSections.map(
+                                                  (sec: any, sIdx: number) => (
+                                                    <div
+                                                      key={sIdx}
+                                                      className="border border-indigo-100 rounded bg-indigo-50/30 p-1.5 min-w-[80px]"
+                                                    >
+                                                      <div className="font-semibold text-[10px] text-indigo-900 border-b border-indigo-100 pb-0.5 mb-1">
+                                                        {sec.name}
+                                                      </div>
+                                                      {sec.answers?.length >
+                                                      0 ? (
+                                                        <ul className="list-disc list-inside text-[11px] text-slate-700 space-y-0.5">
+                                                          {sec.answers.map(
+                                                            (
+                                                              a: string,
+                                                              aIdx: number,
+                                                            ) => (
+                                                              <li key={aIdx}>
+                                                                {a}
+                                                              </li>
+                                                            ),
+                                                          )}
+                                                        </ul>
+                                                      ) : (
+                                                        <span className="text-[10px] italic text-slate-400">
+                                                          Empty
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  ),
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <p className="text-xs text-slate-400 italic mt-1">
+                                                No layout saved.
+                                              </p>
+                                            )}
+                                          </>
                                         ) : (
                                           <>
                                             <p className="text-xs text-slate-600 mt-1">
