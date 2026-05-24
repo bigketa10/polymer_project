@@ -142,6 +142,22 @@ const PolymerChemistryApp = () => {
   }, [user, initializeUser]);
 
   useEffect(() => {
+    if (typeof Audio === "undefined") return;
+
+    if (!correctSound.current) {
+      const audio = new Audio("/sounds/correct.mp3");
+      audio.preload = "auto";
+      correctSound.current = audio;
+    }
+
+    if (!wrongSound.current) {
+      const audio = new Audio("/sounds/incorrect.mp3");
+      audio.preload = "auto";
+      wrongSound.current = audio;
+    }
+  }, []);
+
+  useEffect(() => {
     let t: number | undefined;
     if (showReview) {
       t = window.setTimeout(() => setReviewAnimate(true), 20);
@@ -266,21 +282,9 @@ const PolymerChemistryApp = () => {
 
   // Helper to play chime reliably after user interaction
   const playChime = (type: "correct" | "wrong") => {
-    let audioRef = type === "correct" ? correctSound : wrongSound;
-    let audio = audioRef.current;
-    if (!audio) {
-      // Try to re-query the DOM if ref is lost
-      audio = document.querySelector(
-        type === "correct"
-          ? 'audio[src="/sounds/correct.mp3"]'
-          : 'audio[src="/sounds/incorrect.mp3"]',
-      );
-      if (audio) {
-        audioRef.current = audio as HTMLAudioElement;
-      } else {
-        return;
-      }
-    }
+    const audio =
+      type === "correct" ? correctSound.current : wrongSound.current;
+    if (!audio) return;
     try {
       audio.currentTime = 0;
       audio.volume = 0.5;
@@ -636,8 +640,6 @@ const PolymerChemistryApp = () => {
             </CardContent>
           </Card>
         </div>
-        <audio ref={correctSound} src="/sounds/correct.mp3" preload="auto" />
-        <audio ref={wrongSound} src="/sounds/incorrect.mp3" preload="auto" />
       </div>
     );
   }
@@ -1255,7 +1257,8 @@ function GlossaryView({
   onClose: () => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const filtered = terms !== undefined ? filterGlossaryTerms(terms, searchQuery) : undefined;
+  const filtered =
+    terms !== undefined ? filterGlossaryTerms(terms, searchQuery) : undefined;
 
   return (
     <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
@@ -1301,9 +1304,14 @@ function GlossaryView({
         {filtered !== undefined && filtered.length > 0 && (
           <div className="space-y-2">
             {filtered.map((t: any) => (
-              <div key={t._id} className="rounded-lg border border-slate-100 bg-white p-4">
+              <div
+                key={t._id}
+                className="rounded-lg border border-slate-100 bg-white p-4"
+              >
                 <p className="font-semibold text-slate-800 text-sm">{t.term}</p>
-                <p className="text-slate-500 text-sm mt-1 leading-relaxed">{t.definition}</p>
+                <p className="text-slate-500 text-sm mt-1 leading-relaxed">
+                  {t.definition}
+                </p>
               </div>
             ))}
           </div>
@@ -1328,22 +1336,35 @@ interface AnswerBreakdownCardProps {
  * correct answer, and explanation (omitted when empty/missing).
  * Supports mcq, fillblank, and dragdrop question types.
  */
-function AnswerBreakdownCard({ index, question, studentAnswer, isCorrect }: AnswerBreakdownCardProps) {
+function AnswerBreakdownCard({
+  index,
+  question,
+  studentAnswer,
+  isCorrect,
+}: AnswerBreakdownCardProps) {
   // ── Student answer display ──────────────────────────────────────────────────
   let studentAnswerDisplay: React.ReactNode;
   if (question.type === "fillblank") {
     const text = String(studentAnswer ?? "").trim();
-    studentAnswerDisplay = text || <span className="italic text-slate-400">No answer submitted</span>;
+    studentAnswerDisplay = text || (
+      <span className="italic text-slate-400">No answer submitted</span>
+    );
   } else if (question.type === "dragdrop") {
     if (!studentAnswer || !Array.isArray(studentAnswer)) {
-      studentAnswerDisplay = <span className="italic text-slate-400">No answer submitted</span>;
+      studentAnswerDisplay = (
+        <span className="italic text-slate-400">No answer submitted</span>
+      );
     } else {
       studentAnswerDisplay = (
         <ul className="space-y-0.5">
           {(studentAnswer as any[]).map((sec: any, i: number) => (
             <li key={i} className="text-xs">
               <span className="font-semibold">{sec.name}:</span>{" "}
-              {(sec.answers || []).map((a: any) => (typeof a === "string" ? a : a.text)).join(", ") || <span className="italic text-slate-400">empty</span>}
+              {(sec.answers || [])
+                .map((a: any) => (typeof a === "string" ? a : a.text))
+                .join(", ") || (
+                <span className="italic text-slate-400">empty</span>
+              )}
             </li>
           ))}
         </ul>
@@ -1352,9 +1373,13 @@ function AnswerBreakdownCard({ index, question, studentAnswer, isCorrect }: Answ
   } else {
     // mcq
     studentAnswerDisplay =
-      studentAnswer !== null && studentAnswer !== undefined
-        ? question.options?.[studentAnswer as number] ?? <span className="italic text-slate-400">No answer submitted</span>
-        : <span className="italic text-slate-400">No answer submitted</span>;
+      studentAnswer !== null && studentAnswer !== undefined ? (
+        (question.options?.[studentAnswer as number] ?? (
+          <span className="italic text-slate-400">No answer submitted</span>
+        ))
+      ) : (
+        <span className="italic text-slate-400">No answer submitted</span>
+      );
   }
 
   // ── Correct answer display ──────────────────────────────────────────────────
@@ -1393,13 +1418,17 @@ function AnswerBreakdownCard({ index, question, studentAnswer, isCorrect }: Answ
         ) : (
           <XCircle className="w-4 h-4 text-red-500 shrink-0" />
         )}
-        <span className={`text-xs font-semibold ${isCorrect ? "text-green-700" : "text-red-700"}`}>
+        <span
+          className={`text-xs font-semibold ${isCorrect ? "text-green-700" : "text-red-700"}`}
+        >
           {isCorrect ? "Correct Answer" : "Incorrect Answer"}
         </span>
       </div>
 
       {/* 3. Student answer */}
-      <div className={`rounded-md px-3 py-2 text-sm border ${isCorrect ? "bg-green-50 border-green-200 text-green-900" : "bg-red-50 border-red-200 text-red-900"}`}>
+      <div
+        className={`rounded-md px-3 py-2 text-sm border ${isCorrect ? "bg-green-50 border-green-200 text-green-900" : "bg-red-50 border-red-200 text-red-900"}`}
+      >
         <p className="text-xs font-semibold mb-0.5 opacity-70">Given Answer</p>
         {studentAnswerDisplay}
       </div>
@@ -1424,4 +1453,3 @@ function AnswerBreakdownCard({ index, question, studentAnswer, isCorrect }: Answ
 }
 
 export default PolymerChemistryApp;
-
