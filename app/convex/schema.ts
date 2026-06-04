@@ -136,4 +136,22 @@ export default defineSchema({
     term: v.string(),
     definition: v.string(),
   }).index("by_term", ["term"]),
+
+  // 5. QUESTION REVIEWS (SM-2 scheduling per user + question)
+  questionReviews: defineTable({
+    userId: v.string(),
+    lessonId: v.id("lessons"),
+    questionIndex: v.number(),
+    easeFactor: v.number(),
+    intervalDays: v.number(),
+    repetitions: v.number(),
+    lastReviewedAt: v.string(),
+    nextDueAt: v.string(),
+    lastConfidence: v.number(),
+    lastCorrect: v.boolean(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_lesson", ["userId", "lessonId"])
+    .index("by_user_lesson_question", ["userId", "lessonId", "questionIndex"])
+    .index("by_user_due", ["userId", "nextDueAt"]),
 });

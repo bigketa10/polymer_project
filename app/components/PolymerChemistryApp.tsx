@@ -86,6 +86,9 @@ const PolymerChemistryApp = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<any>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Array<any>>([]);
+  const [confidenceRatings, setConfidenceRatings] = useState<
+    Array<number | null>
+  >([]);
   const [failedQuestionImages, setFailedQuestionImages] = useState<Set<string>>(
     new Set(),
   );
@@ -93,6 +96,7 @@ const PolymerChemistryApp = () => {
     Date.now(),
   );
   const [activeAttemptId, setActiveAttemptId] = useState<string | null>(null);
+  const [isReviewSession, setIsReviewSession] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
 
@@ -109,6 +113,9 @@ const PolymerChemistryApp = () => {
   const lessons = useQuery(api.lessons.getAll);
   const modules = useQuery(api.modules.getAll);
   const glossaryTerms = useQuery(api.glossary.getAll);
+  const dueQuestions = useQuery(api.questionReviews.getDueQuestions, {
+    limit: 20,
+  });
 
   const updateProgress = useMutation(api.userProgress.update);
   const resetProgress = useMutation(api.userProgress.reset);
@@ -118,6 +125,7 @@ const PolymerChemistryApp = () => {
   );
   const saveAnswer = useMutation(api.lessonAttempts.saveAnswer);
   const finalizeAttempt = useMutation(api.lessonAttempts.finalizeAttempt);
+  const recordReview = useMutation(api.questionReviews.recordReview);
 
   // ========================================
   // 4. CLERK HOOKS & AUDIO
@@ -191,6 +199,7 @@ const PolymerChemistryApp = () => {
   // 7. HANDLERS
   // ========================================
   const startLesson = async (lesson: any) => {
+    setIsReviewSession(false);
     setCurrentLesson(lesson);
     setCurrentQuestion(0);
     setSelectedAnswer(null);
@@ -199,6 +208,7 @@ const PolymerChemistryApp = () => {
     setShowReview(false);
     setReviewAnimate(false);
     setSelectedAnswers(Array(lesson.questions.length).fill(null));
+    setConfidenceRatings(Array(lesson.questions.length).fill(null));
     setQuestionStartedAt(Date.now());
     setActiveAttemptId(null);
 
@@ -360,6 +370,33 @@ const PolymerChemistryApp = () => {
     setScore(interimScore + (isCorrect ? 1 : 0)); // Add current question if correct
   };
 
+  const submitConfidence = (confidence: number, isCorrect: boolean) => {
+    if (!currentLesson) return;
+
+    setConfidenceRatings((prev) => {
+      const next = [...prev];
+      next[currentQuestion] = confidence;
+      return next;
+    });
+
+    const questionMeta = currentLesson.questions[currentQuestion];
+    const lessonId = isReviewSession
+      ? questionMeta?.sourceLessonId
+      : currentLesson._id;
+    const questionIndex = isReviewSession
+      ? questionMeta?.sourceQuestionIndex
+      : currentQuestion;
+
+    if (!lessonId || typeof questionIndex !== "number") return;
+
+    recordReview({
+      lessonId,
+      questionIndex,
+      confidence,
+      isCorrect,
+    }).catch((err) => console.error("Review schedule update failed:", err));
+  };
+
   const evaluateDragDropCorrectness = (question: any, studentAns: any) => {
     if (!studentAns) return false;
     return question.sections.every((correctSec: any) => {
@@ -427,8 +464,27 @@ const PolymerChemistryApp = () => {
     }, 220);
   };
 
+  const exitSession = () => {
+    setShowReview(false);
+    setReviewAnimate(false);
+    setCurrentLesson(null);
+    setSelectedAnswers([]);
+    setSelectedAnswer(null);
+    setConfidenceRatings([]);
+    setScore(0);
+    setShowResult(false);
+    setQuestionStartedAt(Date.now());
+    setActiveAttemptId(null);
+    setIsReviewSession(false);
+  };
+
   const completeLesson = async () => {
     if (!currentLesson) return;
+
+    if (isReviewSession) {
+      exitSession();
+      return;
+    }
 
     const finalScore = computeFinalScore();
     const earnedXP = Math.round(
@@ -461,8 +517,39 @@ const PolymerChemistryApp = () => {
     setCurrentLesson(null);
     setSelectedAnswers([]);
     setSelectedAnswer(null);
+    setConfidenceRatings([]);
     setScore(0);
     setShowResult(false);
+    setQuestionStartedAt(Date.now());
+    setActiveAttemptId(null);
+  };
+
+  const startReviewSession = () => {
+    if (!dueQuestions || dueQuestions.length === 0) return;
+
+    const reviewQuestions = dueQuestions.map((due: any) => ({
+      ...due.question,
+      sourceLessonId: due.lessonId,
+      sourceQuestionIndex: due.questionIndex,
+      sourceLessonTitle: due.lessonTitle,
+    }));
+
+    setIsReviewSession(true);
+    setCurrentLesson({
+      title: "Review Due",
+      description: "Spaced repetition questions due now",
+      difficulty: "Review",
+      xpReward: 0,
+      questions: reviewQuestions,
+    });
+    setCurrentQuestion(0);
+    setSelectedAnswer(null);
+    setShowResult(false);
+    setScore(0);
+    setShowReview(false);
+    setReviewAnimate(false);
+    setSelectedAnswers(Array(reviewQuestions.length).fill(null));
+    setConfidenceRatings(Array(reviewQuestions.length).fill(null));
     setQuestionStartedAt(Date.now());
     setActiveAttemptId(null);
   };
@@ -688,9 +775,13 @@ const PolymerChemistryApp = () => {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl">Lesson Review</CardTitle>
+                  <CardTitle className="text-2xl">
+                    {isReviewSession ? "Review Session" : "Lesson Review"}
+                  </CardTitle>
                   <CardDescription>
-                    Quick summary of your answers and what you'll earn
+                    {isReviewSession
+                      ? "Quick summary of your review answers"
+                      : "Quick summary of your answers and what you'll earn"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -731,7 +822,7 @@ const PolymerChemistryApp = () => {
                     onClick={completeLesson}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-lg h-12"
                   >
-                    Complete Lesson
+                    {isReviewSession ? "Finish Review" : "Complete Lesson"}
                   </Button>
                 </CardContent>
               </Card>
@@ -765,12 +856,15 @@ const PolymerChemistryApp = () => {
     const hasQuestionImage = !!question.imageUrl;
     const showQuestionImage =
       hasQuestionImage && !failedQuestionImages.has(question.imageUrl);
+    const confidenceValue = confidenceRatings[currentQuestion];
+    const hasConfidence =
+      typeof confidenceValue === "number" && confidenceValue > 0;
 
     return (
       <div className="h-screen overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
         <div className="max-w-2xl mx-auto pb-24 md:pb-0">
           <div className="mb-6 flex items-center justify-between">
-            <Button variant="outline" onClick={() => setCurrentLesson(null)}>
+            <Button variant="outline" onClick={exitSession}>
               ← Back
             </Button>
             <div className="flex items-center gap-4 mr-10 md:mr-0">
@@ -935,6 +1029,32 @@ const PolymerChemistryApp = () => {
                 </Alert>
               )}
 
+              {showResult && (
+                <div className="mt-4 rounded-lg border border-indigo-100 bg-white p-4">
+                  <p className="text-sm font-semibold text-slate-700">
+                    How confident were you?
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    1 = guess, 5 = totally sure
+                  </p>
+                  <div className="grid grid-cols-5 gap-2 mt-3">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        onClick={() => submitConfidence(value, isCorrectForUI)}
+                        className={`h-10 rounded-md border text-sm font-semibold transition-colors ${
+                          confidenceValue === value
+                            ? "border-indigo-600 bg-indigo-600 text-white"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-indigo-300"
+                        }`}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="mt-6 flex justify-end">
                 {/* Submit Button visible when answer is picked but not yet checked */}
                 {!showResult && (
@@ -981,6 +1101,7 @@ const PolymerChemistryApp = () => {
                   <Button
                     onClick={nextQuestion}
                     className="bg-indigo-600 hover:bg-indigo-700"
+                    disabled={!hasConfidence}
                   >
                     {currentQuestion < currentLesson.questions.length - 1
                       ? "Next Question"
@@ -1080,6 +1201,31 @@ const PolymerChemistryApp = () => {
                 </div>
                 <ArrowRight className="w-5 h-5 text-indigo-300" />
               </Button>
+            </div>
+            <div className="max-w-2xl mx-auto">
+              <Button
+                onClick={startReviewSession}
+                disabled={
+                  dueQuestions === undefined || (dueQuestions?.length ?? 0) === 0
+                }
+                className="w-full bg-indigo-600 text-white hover:bg-indigo-700 h-14 text-lg font-bold shadow-sm transition-all flex items-center justify-between px-6 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center gap-3">
+                  <RotateCcw className="w-6 h-6" />
+                  <span>
+                    Review Due
+                    {dueQuestions && dueQuestions.length > 0
+                      ? ` (${dueQuestions.length})`
+                      : ""}
+                  </span>
+                </div>
+                <ArrowRight className="w-5 h-5 text-indigo-200" />
+              </Button>
+              {dueQuestions !== undefined && (dueQuestions?.length ?? 0) === 0 && (
+                <p className="text-xs text-slate-500 mt-2 text-center">
+                  No questions are due yet. Come back later for review.
+                </p>
+              )}
             </div>
             <div className="text-center mt-8">
               <h2 className="text-2xl font-bold text-indigo-900">
