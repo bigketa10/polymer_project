@@ -21,6 +21,7 @@ import { ConfirmDialog } from "@/components/teacher/ConfirmDialog";
 // ── Types ──────────────────────────────────────────────────────────────────────
 type DragDropItem = { id: string; text: string };
 type FieldErrors = Record<string, string>;
+type GlossaryImportEntry = { term: string; definition: string };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 /**
@@ -141,6 +142,8 @@ export function ContentManager() {
   const [editingGlossaryId, setEditingGlossaryId] = useState<string | null>(null);
   const [newGlossaryTerm, setNewGlossaryTerm] = useState("");
   const [newGlossaryDef, setNewGlossaryDef] = useState("");
+  const [isImportingGlossary, setIsImportingGlossary] = useState(false);
+  const glossaryImportInputRef = useRef<HTMLInputElement | null>(null);
 
   // ── Convex queries ──────────────────────────────────────────────────────────
   const storagePreviewUrl = useQuery(
@@ -273,6 +276,80 @@ export function ContentManager() {
     setNewGlossaryTerm("");
     setNewGlossaryDef("");
     setFieldErrors({});
+  };
+
+  const parseCsvLine = (line: string) => {
+    const values: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const next = line[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && next === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === "," && !inQuotes) {
+        values.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+
+    values.push(current.trim());
+    return values;
+  };
+
+  const parseGlossaryImportFile = (fileName: string, rawText: string): GlossaryImportEntry[] => {
+    const text = rawText.trim();
+    if (!text) throw new Error("The selected file is empty.");
+
+    const lowerName = fileName.toLowerCase();
+    const looksLikeJson = lowerName.endsWith(".json") || text.startsWith("[") || text.startsWith("{");
+
+    if (looksLikeJson) {
+      const parsed = JSON.parse(text);
+      const items = Array.isArray(parsed)
+        ? parsed
+        : Object.entries(parsed).map(([term, value]) => ({ term, definition: value }));
+
+      return items
+        .map((item: any) => ({
+          term: String(item?.term ?? item?.name ?? "").trim(),
+          definition: String(item?.definition ?? item?.meaning ?? item?.description ?? "").trim(),
+        }))
+        .filter((item) => item.term && item.definition);
+    }
+
+    const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    if (lines.length === 0) throw new Error("The selected file is empty.");
+
+    const rows = lines.map(parseCsvLine);
+    let startIndex = 0;
+    let termIndex = 0;
+    let definitionIndex = 1;
+
+    const header = rows[0].map((value) => value.toLowerCase());
+    const hasHeaders = header.includes("term") && header.includes("definition");
+    if (hasHeaders) {
+      termIndex = header.indexOf("term");
+      definitionIndex = header.indexOf("definition");
+      startIndex = 1;
+    }
+
+    return rows
+      .slice(startIndex)
+      .map((cols) => ({
+        term: String(cols[termIndex] ?? "").trim(),
+        definition: String(cols[definitionIndex] ?? "").trim(),
+      }))
+      .filter((item) => item.term && item.definition);
   };
 
   // ── Module handlers ─────────────────────────────────────────────────────────
@@ -689,6 +766,72 @@ export function ContentManager() {
     } catch (e: any) {
       toast("error", e?.message || "Failed to save glossary term.");
     }
+  };
+
+  const handleGlossaryImportClick = () => {
+    glossaryImportInputRef.current?.click();
+  };
+
+  const handleGlossaryImportFile = async (file: File) => {
+    setIsImportingGlossary(true);
+    try {
+      const parsedEntries = parseGlossaryImportFile(file.name, await file.text());
+
+      if (parsedEntries.length === 0) {
+        throw new Error("No glossary terms were found in that file.");
+      }
+
+      const seen = new Set<string>();
+      let added = 0;
+      let skipped = 0;
+
+      for (const entry of parsedEntries) {
+        const term = entry.term.trim();
+        const definition = entry.definition.trim();
+        const key = term.toLowerCase();
+
+        if (!term || !definition || seen.has(key)) {
+          skipped++;
+          continue;
+        }
+
+        seen.add(key);
+
+        try {
+          await createGlossaryTerm({ term, definition });
+          added++;
+        } catch (e: any) {
+          const message = String(e?.message || "");
+          if (message.toLowerCase().includes("already exists")) {
+            skipped++;
+            continue;
+          }
+          throw e;
+        }
+      }
+
+      if (added > 0) {
+        toast(
+          "success",
+          `Imported ${added} glossary term${added === 1 ? "" : "s"}${skipped > 0 ? `, skipped ${skipped}` : ""}.`,
+        );
+      } else {
+        toast("info", `No new terms were added${skipped > 0 ? `, skipped ${skipped}` : ""}.`);
+      }
+    } catch (e: any) {
+      toast("error", e?.message || "Failed to import glossary file.");
+    } finally {
+      setIsImportingGlossary(false);
+      if (glossaryImportInputRef.current) {
+        glossaryImportInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleGlossaryImportChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await handleGlossaryImportFile(file);
   };
 
   const handleDeleteGlossaryTerm = (term: any) => {
@@ -1250,6 +1393,22 @@ export function ContentManager() {
                     {fieldErrors.glossaryDef && <p className="text-red-500 text-xs mt-1">{fieldErrors.glossaryDef}</p>}
                   </div>
                   <div className="flex justify-end gap-2">
+                    <input
+                      ref={glossaryImportInputRef}
+                      type="file"
+                      accept=".csv,.json,.txt,application/json,text/csv,text/plain"
+                      className="hidden"
+                      onChange={handleGlossaryImportChange}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGlossaryImportClick}
+                      disabled={isImportingGlossary}
+                    >
+                      {isImportingGlossary ? "Importing..." : "Import File"}
+                    </Button>
                     {editingGlossaryId && (
                       <Button variant="outline" size="sm" onClick={resetGlossaryForm}>Cancel Edit</Button>
                     )}
@@ -1257,6 +1416,9 @@ export function ContentManager() {
                       {editingGlossaryId ? "Save Changes" : "Add Term"}
                     </Button>
                   </div>
+                  <p className="text-xs text-slate-500">
+                    Import a CSV with <span className="font-medium">term,definition</span> columns or a JSON array of glossary items.
+                  </p>
                 </div>
                 {/* Existing terms list */}
                 <div className="space-y-2">
