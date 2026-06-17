@@ -105,6 +105,18 @@ const PolymerChemistryApp = () => {
   const [reviewAnimate, setReviewAnimate] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
+  const [partyPopperStars, setPartyPopperStars] = useState<
+    Array<{
+      id: number;
+      x: number;
+      y: number;
+      size: number;
+      delay: number;
+      rotate: number;
+      color: string;
+    }>
+  >([]);
+  const partyPopperTimer = useRef<number | null>(null);
 
   // ========================================
   // 3. BACKEND INTEGRATION (Convex)
@@ -188,6 +200,14 @@ const PolymerChemistryApp = () => {
     }
   }, [currentQuestion, currentLesson]);
 
+  useEffect(() => {
+    return () => {
+      if (partyPopperTimer.current) {
+        window.clearTimeout(partyPopperTimer.current);
+      }
+    };
+  }, []);
+
   // ========================================
   // 6. DERIVED STATE
   // ========================================
@@ -200,6 +220,7 @@ const PolymerChemistryApp = () => {
   // ========================================
   const startLesson = async (lesson: any) => {
     setIsReviewSession(false);
+    setPartyPopperStars([]);
     setCurrentLesson(lesson);
     setCurrentQuestion(0);
     setSelectedAnswer(null);
@@ -419,6 +440,7 @@ const PolymerChemistryApp = () => {
   };
 
   const nextQuestion = () => {
+    setPartyPopperStars([]);
     if (currentQuestion < currentLesson.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
       setSelectedAnswer(selectedAnswers[currentQuestion + 1] ?? null);
@@ -465,6 +487,7 @@ const PolymerChemistryApp = () => {
   };
 
   const exitSession = () => {
+    setPartyPopperStars([]);
     setShowReview(false);
     setReviewAnimate(false);
     setCurrentLesson(null);
@@ -514,6 +537,7 @@ const PolymerChemistryApp = () => {
 
     setShowReview(false);
     setReviewAnimate(false);
+    setPartyPopperStars([]);
     setCurrentLesson(null);
     setSelectedAnswers([]);
     setSelectedAnswer(null);
@@ -535,6 +559,7 @@ const PolymerChemistryApp = () => {
     }));
 
     setIsReviewSession(true);
+    setPartyPopperStars([]);
     setCurrentLesson({
       title: "Review Due",
       description: "Spaced repetition questions due now",
@@ -552,6 +577,41 @@ const PolymerChemistryApp = () => {
     setConfidenceRatings(Array(reviewQuestions.length).fill(null));
     setQuestionStartedAt(Date.now());
     setActiveAttemptId(null);
+  };
+
+  const triggerPartyPopper = () => {
+    if (partyPopperTimer.current) {
+      window.clearTimeout(partyPopperTimer.current);
+    }
+
+    const colors = [
+      "text-yellow-400",
+      "text-amber-400",
+      "text-pink-400",
+      "text-sky-400",
+      "text-emerald-400",
+      "text-indigo-400",
+    ];
+
+    const stars = Array.from({ length: 10 }, (_, index) => {
+      const angle = (Math.PI * 2 * index) / 10;
+      const distance = 64 + Math.random() * 24;
+      return {
+        id: Date.now() + index,
+        x: Math.cos(angle) * distance + (Math.random() * 20 - 10),
+        y: -Math.abs(Math.sin(angle) * distance) - 24 - Math.random() * 20,
+        size: 12 + Math.random() * 10,
+        delay: Math.random() * 120,
+        rotate: Math.random() * 180 - 90,
+        color: colors[index % colors.length],
+      };
+    });
+
+    setPartyPopperStars(stars);
+    partyPopperTimer.current = window.setTimeout(() => {
+      setPartyPopperStars([]);
+      partyPopperTimer.current = null;
+    }, 1100);
   };
 
   const handleResetProgress = async () => {
@@ -1056,58 +1116,84 @@ const PolymerChemistryApp = () => {
               )}
 
               <div className="mt-6 flex justify-end">
-                {/* Submit Button visible when answer is picked but not yet checked */}
-                {!showResult && (
-                  <Button
-                    onClick={() => {
-                      const studentAns = selectedAnswers[currentQuestion];
-                      let isCorrect = false;
+                <div className="relative inline-flex items-center justify-end overflow-visible">
+                  {partyPopperStars.length > 0 && (
+                    <div className="pointer-events-none absolute inset-0 overflow-visible">
+                      {partyPopperStars.map((star) => (
+                        <Star
+                          key={star.id}
+                          fill="currentColor"
+                          strokeWidth={1.5}
+                          className={`party-popper-star absolute left-1/2 top-1/2 z-20 ${star.color}`}
+                          style={
+                            {
+                              width: `${star.size}px`,
+                              height: `${star.size}px`,
+                              animationDelay: `${star.delay}ms`,
+                              ["--burst-x" as any]: `${star.x}px`,
+                              ["--burst-y" as any]: `${star.y}px`,
+                              ["--burst-rotate" as any]: `${star.rotate}deg`,
+                            } as React.CSSProperties
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
 
-                      if (question.type === "dragdrop") {
-                        isCorrect = evaluateDragDropCorrectness(
-                          question,
-                          studentAns,
-                        );
-                      } else if (question.type === "fillblank") {
-                        isCorrect =
-                          String(studentAns || "")
-                            .trim()
-                            .toLowerCase() ===
-                          String(question.correctAnswer || "")
-                            .trim()
-                            .toLowerCase();
-                      } else {
-                        isCorrect = studentAns === question.correct;
+                  {/* Submit Button visible when answer is picked but not yet checked */}
+                  {!showResult ? (
+                    <Button
+                      onClick={() => {
+                        const studentAns = selectedAnswers[currentQuestion];
+                        let isCorrect = false;
+
+                        if (question.type === "dragdrop") {
+                          isCorrect = evaluateDragDropCorrectness(
+                            question,
+                            studentAns,
+                          );
+                        } else if (question.type === "fillblank") {
+                          isCorrect =
+                            String(studentAns || "")
+                              .trim()
+                              .toLowerCase() ===
+                            String(question.correctAnswer || "")
+                              .trim()
+                              .toLowerCase();
+                        } else {
+                          isCorrect = studentAns === question.correct;
+                        }
+
+                        if (isCorrect) {
+                          triggerPartyPopper();
+                        }
+
+                        triggerCheckAnswer(studentAns, isCorrect);
+                      }}
+                      // Disable if no MCQ option is picked, no D&D items are moved, or text input is empty
+                      disabled={
+                        selectedAnswers[currentQuestion] === null ||
+                        (question.type === "fillblank" &&
+                          String(
+                            selectedAnswers[currentQuestion] || "",
+                          ).trim() === "")
                       }
-
-                      triggerCheckAnswer(studentAns, isCorrect);
-                    }}
-                    // Disable if no MCQ option is picked, no D&D items are moved, or text input is empty
-                    disabled={
-                      selectedAnswers[currentQuestion] === null ||
-                      (question.type === "fillblank" &&
-                        String(
-                          selectedAnswers[currentQuestion] || "",
-                        ).trim() === "")
-                    }
-                    className="bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed"
-                  >
-                    Check Answer
-                  </Button>
-                )}
-
-                {/* Next Question / Review button shown AFTER checking */}
-                {showResult && (
-                  <Button
-                    onClick={nextQuestion}
-                    className="bg-indigo-600 hover:bg-indigo-700"
-                    disabled={!hasConfidence}
-                  >
-                    {currentQuestion < currentLesson.questions.length - 1
-                      ? "Next Question"
-                      : "Review Answers"}
-                  </Button>
-                )}
+                      className="bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed"
+                    >
+                      Check Answer
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={nextQuestion}
+                      className="bg-indigo-600 hover:bg-indigo-700"
+                      disabled={!hasConfidence}
+                    >
+                      {currentQuestion < currentLesson.questions.length - 1
+                        ? "Next Question"
+                        : "Review Answers"}
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
