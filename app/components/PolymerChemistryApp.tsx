@@ -1003,29 +1003,7 @@ const PolymerChemistryApp = () => {
                     onReadItem={speak}
                   />
                 ) : question.type === "fillblank" ? (
-                  <div className="relative mt-2 overflow-visible">
-                    {showResult && isCorrectForUI && partyPopperStars.length > 0 && (
-                      <div className="pointer-events-none absolute inset-0 overflow-visible z-20">
-                        {partyPopperStars.map((star) => (
-                          <Star
-                            key={star.id}
-                            fill="currentColor"
-                            strokeWidth={1.5}
-                            className={`party-popper-star absolute left-1/2 top-1/2 z-20 ${star.color}`}
-                            style={
-                              {
-                                width: `${star.size}px`,
-                                height: `${star.size}px`,
-                                animationDelay: `${star.delay}ms`,
-                                ["--burst-x" as any]: `${star.x}px`,
-                                ["--burst-y" as any]: `${star.y}px`,
-                                ["--burst-rotate" as any]: `${star.rotate}deg`,
-                              } as React.CSSProperties
-                            }
-                          />
-                        ))}
-                      </div>
-                    )}
+                  <div className="mt-2">
                     <input
                       type="text"
                       placeholder="Type your answer here..."
@@ -1057,7 +1035,7 @@ const PolymerChemistryApp = () => {
                       key={index}
                       onClick={() => handleAnswerSubmit(index)} // Just selects, doesn't check
                       disabled={showResult}
-                      className={`relative w-full p-4 text-left rounded-lg border-2 transition-all disabled:cursor-not-allowed overflow-visible ${
+                      className={`w-full p-4 text-left rounded-lg border-2 transition-all disabled:cursor-not-allowed ${
                         selectedAnswers[currentQuestion] === index
                           ? showResult
                             ? index === question.correct
@@ -1069,32 +1047,6 @@ const PolymerChemistryApp = () => {
                             : "border-gray-200 hover:border-gray-300 bg-white"
                       }`}
                     >
-                      {showResult &&
-                        isCorrectForUI &&
-                        selectedAnswers[currentQuestion] === index &&
-                        index === question.correct &&
-                        partyPopperStars.length > 0 && (
-                          <div className="pointer-events-none absolute inset-0 overflow-visible z-20">
-                            {partyPopperStars.map((star) => (
-                              <Star
-                                key={star.id}
-                                fill="currentColor"
-                                strokeWidth={1.5}
-                                className={`party-popper-star absolute left-1/2 top-1/2 z-20 ${star.color}`}
-                                style={
-                                  {
-                                    width: `${star.size}px`,
-                                    height: `${star.size}px`,
-                                    animationDelay: `${star.delay}ms`,
-                                    ["--burst-x" as any]: `${star.x}px`,
-                                    ["--burst-y" as any]: `${star.y}px`,
-                                    ["--burst-rotate" as any]: `${star.rotate}deg`,
-                                  } as React.CSSProperties
-                                }
-                              />
-                            ))}
-                          </div>
-                        )}
                       <div className="flex items-center justify-between">
                         <span>{option}</span>
                         {showResult && index === question.correct && (
@@ -1120,17 +1072,41 @@ const PolymerChemistryApp = () => {
                   }
                 >
                   <AlertDescription>
-                    <div className="flex items-start gap-2">
-                      {isCorrectForUI ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                    <div className="relative overflow-visible">
+                      {isCorrectForUI && partyPopperStars.length > 0 && (
+                        <div className="pointer-events-none absolute inset-0 overflow-visible z-20">
+                          {partyPopperStars.map((star) => (
+                            <Star
+                              key={star.id}
+                              fill="currentColor"
+                              strokeWidth={1.5}
+                              className={`party-popper-star absolute left-1/2 top-1/2 z-20 ${star.color}`}
+                              style={
+                                {
+                                  width: `${star.size}px`,
+                                  height: `${star.size}px`,
+                                  animationDelay: `${star.delay}ms`,
+                                  ["--burst-x" as any]: `${star.x}px`,
+                                  ["--burst-y" as any]: `${star.y}px`,
+                                  ["--burst-rotate" as any]: `${star.rotate}deg`,
+                                } as React.CSSProperties
+                              }
+                            />
+                          ))}
+                        </div>
                       )}
-                      <div>
-                        <p className="font-semibold mb-1">
-                          {isCorrectForUI ? "Correct!" : "Not quite right"}
-                        </p>
-                        <p className="text-sm">{question.explanation}</p>
+                      <div className="flex items-start gap-2">
+                        {isCorrectForUI ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                        )}
+                        <div>
+                          <p className="font-semibold mb-1">
+                            {isCorrectForUI ? "Correct!" : "Not quite right"}
+                          </p>
+                          <p className="text-sm">{question.explanation}</p>
+                        </div>
                       </div>
                     </div>
                   </AlertDescription>
