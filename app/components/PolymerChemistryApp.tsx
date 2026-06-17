@@ -1003,7 +1003,29 @@ const PolymerChemistryApp = () => {
                     onReadItem={speak}
                   />
                 ) : question.type === "fillblank" ? (
-                  <div className="mt-2">
+                  <div className="relative mt-2 overflow-visible">
+                    {showResult && isCorrectForUI && partyPopperStars.length > 0 && (
+                      <div className="pointer-events-none absolute inset-0 overflow-visible z-20">
+                        {partyPopperStars.map((star) => (
+                          <Star
+                            key={star.id}
+                            fill="currentColor"
+                            strokeWidth={1.5}
+                            className={`party-popper-star absolute left-1/2 top-1/2 z-20 ${star.color}`}
+                            style={
+                              {
+                                width: `${star.size}px`,
+                                height: `${star.size}px`,
+                                animationDelay: `${star.delay}ms`,
+                                ["--burst-x" as any]: `${star.x}px`,
+                                ["--burst-y" as any]: `${star.y}px`,
+                                ["--burst-rotate" as any]: `${star.rotate}deg`,
+                              } as React.CSSProperties
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
                     <input
                       type="text"
                       placeholder="Type your answer here..."
@@ -1035,7 +1057,7 @@ const PolymerChemistryApp = () => {
                       key={index}
                       onClick={() => handleAnswerSubmit(index)} // Just selects, doesn't check
                       disabled={showResult}
-                      className={`w-full p-4 text-left rounded-lg border-2 transition-all disabled:cursor-not-allowed ${
+                      className={`relative w-full p-4 text-left rounded-lg border-2 transition-all disabled:cursor-not-allowed overflow-visible ${
                         selectedAnswers[currentQuestion] === index
                           ? showResult
                             ? index === question.correct
@@ -1047,6 +1069,32 @@ const PolymerChemistryApp = () => {
                             : "border-gray-200 hover:border-gray-300 bg-white"
                       }`}
                     >
+                      {showResult &&
+                        isCorrectForUI &&
+                        selectedAnswers[currentQuestion] === index &&
+                        index === question.correct &&
+                        partyPopperStars.length > 0 && (
+                          <div className="pointer-events-none absolute inset-0 overflow-visible z-20">
+                            {partyPopperStars.map((star) => (
+                              <Star
+                                key={star.id}
+                                fill="currentColor"
+                                strokeWidth={1.5}
+                                className={`party-popper-star absolute left-1/2 top-1/2 z-20 ${star.color}`}
+                                style={
+                                  {
+                                    width: `${star.size}px`,
+                                    height: `${star.size}px`,
+                                    animationDelay: `${star.delay}ms`,
+                                    ["--burst-x" as any]: `${star.x}px`,
+                                    ["--burst-y" as any]: `${star.y}px`,
+                                    ["--burst-rotate" as any]: `${star.rotate}deg`,
+                                  } as React.CSSProperties
+                                }
+                              />
+                            ))}
+                          </div>
+                        )}
                       <div className="flex items-center justify-between">
                         <span>{option}</span>
                         {showResult && index === question.correct && (
@@ -1116,84 +1164,59 @@ const PolymerChemistryApp = () => {
               )}
 
               <div className="mt-6 flex justify-end">
-                <div className="relative inline-flex items-center justify-end overflow-visible">
-                  {partyPopperStars.length > 0 && (
-                    <div className="pointer-events-none absolute inset-0 overflow-visible">
-                      {partyPopperStars.map((star) => (
-                        <Star
-                          key={star.id}
-                          fill="currentColor"
-                          strokeWidth={1.5}
-                          className={`party-popper-star absolute left-1/2 top-1/2 z-20 ${star.color}`}
-                          style={
-                            {
-                              width: `${star.size}px`,
-                              height: `${star.size}px`,
-                              animationDelay: `${star.delay}ms`,
-                              ["--burst-x" as any]: `${star.x}px`,
-                              ["--burst-y" as any]: `${star.y}px`,
-                              ["--burst-rotate" as any]: `${star.rotate}deg`,
-                            } as React.CSSProperties
-                          }
-                        />
-                      ))}
-                    </div>
-                  )}
+                {/* Submit Button visible when answer is picked but not yet checked */}
+                {!showResult ? (
+                  <Button
+                    onClick={() => {
+                      const studentAns = selectedAnswers[currentQuestion];
+                      let isCorrect = false;
 
-                  {/* Submit Button visible when answer is picked but not yet checked */}
-                  {!showResult ? (
-                    <Button
-                      onClick={() => {
-                        const studentAns = selectedAnswers[currentQuestion];
-                        let isCorrect = false;
-
-                        if (question.type === "dragdrop") {
-                          isCorrect = evaluateDragDropCorrectness(
-                            question,
-                            studentAns,
-                          );
-                        } else if (question.type === "fillblank") {
-                          isCorrect =
-                            String(studentAns || "")
-                              .trim()
-                              .toLowerCase() ===
-                            String(question.correctAnswer || "")
-                              .trim()
-                              .toLowerCase();
-                        } else {
-                          isCorrect = studentAns === question.correct;
-                        }
-
-                        if (isCorrect) {
-                          triggerPartyPopper();
-                        }
-
-                        triggerCheckAnswer(studentAns, isCorrect);
-                      }}
-                      // Disable if no MCQ option is picked, no D&D items are moved, or text input is empty
-                      disabled={
-                        selectedAnswers[currentQuestion] === null ||
-                        (question.type === "fillblank" &&
-                          String(
-                            selectedAnswers[currentQuestion] || "",
-                          ).trim() === "")
+                      if (question.type === "dragdrop") {
+                        isCorrect = evaluateDragDropCorrectness(
+                          question,
+                          studentAns,
+                        );
+                      } else if (question.type === "fillblank") {
+                        isCorrect =
+                          String(studentAns || "")
+                            .trim()
+                            .toLowerCase() ===
+                          String(question.correctAnswer || "")
+                            .trim()
+                            .toLowerCase();
+                      } else {
+                        isCorrect = studentAns === question.correct;
                       }
-                      className="bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed"
-                    >
-                      Check Answer
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={nextQuestion}
-                      className="bg-indigo-600 hover:bg-indigo-700"
-                      disabled={!hasConfidence}
-                    >
-                      {currentQuestion < currentLesson.questions.length - 1
-                        ? "Next Question"
-                        : "Review Answers"}
-                    </Button>
-                  )}
-                </div>
+
+                      if (isCorrect) {
+                        triggerPartyPopper();
+                      }
+
+                      triggerCheckAnswer(studentAns, isCorrect);
+                    }}
+                    // Disable if no MCQ option is picked, no D&D items are moved, or text input is empty
+                    disabled={
+                      selectedAnswers[currentQuestion] === null ||
+                      (question.type === "fillblank" &&
+                        String(
+                          selectedAnswers[currentQuestion] || "",
+                        ).trim() === "")
+                    }
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed"
+                  >
+                    Check Answer
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={nextQuestion}
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                    disabled={!hasConfidence}
+                  >
+                    {currentQuestion < currentLesson.questions.length - 1
+                      ? "Next Question"
+                      : "Review Answers"}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
