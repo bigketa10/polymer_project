@@ -187,10 +187,7 @@ body {
 }
 
 .pdf-glossary-page .textLayer .pdf-glossary-term {
-  position: relative;
-  display: inline-block;
-  width: max-content;
-  max-width: max-content;
+  position: absolute;
   color: transparent;
   background: rgb(165 180 252 / 0.28);
   border-bottom: 2px dotted rgb(99 102 241 / 0.9);

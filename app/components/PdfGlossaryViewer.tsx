@@ -39,7 +39,7 @@ function renderGlossaryText(text: string, glossary: GlossaryTerm[]) {
       (item) => item.term.toLowerCase() === match.toLowerCase(),
     );
     if (!entry) return match;
-    return `<span class="pdf-glossary-term" data-definition="${escapeHtml(entry.definition)}" title="${escapeHtml(entry.definition)}">${match}</span>`;
+    return `<span class="pdf-glossary-term" data-definition="${escapeHtml(entry.definition)}">${match}</span>`;
   });
 }
 
