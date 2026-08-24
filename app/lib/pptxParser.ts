@@ -31,11 +31,19 @@ async function readZipEntries(file: ArrayBuffer) {
   return entries;
 }
 
-export async function parsePptx(file: File): Promise<NativeSlide[]> {
+export async function parsePptx(
+  file: File,
+  onProgress?: (message: string) => void,
+): Promise<NativeSlide[]> {
+  if (typeof DecompressionStream === "undefined") {
+    throw new Error("This browser cannot read PowerPoint files. Try the latest Chrome or Edge.");
+  }
+  onProgress?.("Reading PowerPoint file...");
   const entries = await readZipEntries(await file.arrayBuffer());
   const slideNames = [...entries.keys()]
     .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
     .sort((a, b) => Number(a.match(/\d+/)?.[0]) - Number(b.match(/\d+/)?.[0]));
+  onProgress?.(`Found ${slideNames.length} slides. Extracting text...`);
   return slideNames.map((name, index) => {
     const data = entries.get(name)!;
     const document = new DOMParser().parseFromString(readString(data, 0, data.length), "application/xml");

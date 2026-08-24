@@ -11,25 +11,42 @@ import { useToast } from "@/components/teacher/useToast";
 export function SlideDeckImporter({ moduleKey }: { moduleKey?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
   const { toast } = useToast();
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
   const createDeck = useMutation(api.slides.create);
 
+  const withTimeout = async <T,>(promise: Promise<T>, message: string) => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(message)), 60_000);
+    });
+    try {
+      return await Promise.race([promise, timeout]);
+    } finally {
+      clearTimeout(timeoutId!);
+    }
+  };
+
   const importDeck = async (file: File) => {
     setBusy(true);
+    setStatus("Checking file...");
     try {
       if (!file.name.toLowerCase().endsWith(".pptx")) throw new Error("Choose a .pptx PowerPoint file.");
-      const slides = await parsePptx(file);
-      const uploadUrl = await generateUploadUrl();
-      const upload = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type || "application/vnd.openxmlformats-officedocument.presentationml.presentation" }, body: file });
+      const slides = await withTimeout(parsePptx(file, setStatus), "Reading the PowerPoint file timed out.");
+      setStatus("Uploading original file...");
+      const uploadUrl = await withTimeout(generateUploadUrl(), "Getting an upload URL timed out. Is Convex running?");
+      const upload = await withTimeout(fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type || "application/vnd.openxmlformats-officedocument.presentationml.presentation" }, body: file }), "Uploading the PowerPoint file timed out.");
       if (!upload.ok) throw new Error("Could not upload the PowerPoint file.");
       const { storageId } = await upload.json();
-      await createDeck({ title: file.name.replace(/\.pptx$/i, ""), moduleKey, originalFileName: file.name, originalStorageId: storageId, slides });
+      setStatus("Saving deck to database...");
+      await withTimeout(createDeck({ title: file.name.replace(/\.pptx$/i, ""), moduleKey, originalFileName: file.name, originalStorageId: storageId, slides }), "Saving the deck timed out. Is Convex running?");
       toast("success", `Imported ${slides.length} slides from ${file.name}.`);
     } catch (error: unknown) {
       toast("error", error instanceof Error ? error.message : "Could not import the PowerPoint file.");
     } finally {
       setBusy(false);
+      setStatus("");
       if (inputRef.current) inputRef.current.value = "";
     }
   };
@@ -39,7 +56,7 @@ export function SlideDeckImporter({ moduleKey }: { moduleKey?: string }) {
       <Presentation className="h-5 w-5 text-blue-600" aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="font-medium text-slate-900">Native lecture slides</p>
-        <p className="text-xs text-slate-500">Import a PowerPoint deck as selectable HTML slides.</p>
+        <p className="text-xs text-slate-500">{status || "Import a PowerPoint deck as selectable HTML slides."}</p>
       </div>
       <input ref={inputRef} type="file" accept=".pptx" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importDeck(file); }} />
       <Button type="button" size="sm" onClick={() => inputRef.current?.click()} disabled={busy}>
