@@ -180,6 +180,13 @@ body {
 }
 
 @layer utilities {
+  .pdf-glossary-term {
+    cursor: help;
+    border-bottom: 2px dotted rgb(129 140 248);
+    color: rgb(49 46 129);
+    font-weight: 500;
+  }
+
   .party-popper-star {
     transform-origin: center;
     animation: party-popper-star 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;

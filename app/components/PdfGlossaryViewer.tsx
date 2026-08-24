@@ -6,9 +6,30 @@ import { Button } from "@/components/ui/button";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 
+type GlossaryTerm = { term: string; definition: string };
+
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
-export function PdfGlossaryViewer({ url }: { url: string }) {
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function renderGlossaryText(text: string, glossary: GlossaryTerm[]) {
+  const terms = glossary.map((item) => item.term.trim()).filter(Boolean).sort((a, b) => b.length - a.length);
+  if (!terms.length) return escapeHtml(text);
+  const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`, "gi");
+  return escapeHtml(text).replace(pattern, (match) => {
+    const entry = glossary.find((item) => item.term.toLowerCase() === match.toLowerCase());
+    if (!entry) return match;
+    return `<span class="pdf-glossary-term" title="${escapeHtml(entry.definition)}">${match}</span>`;
+  });
+}
+
+export function PdfGlossaryViewer({ url, glossary }: { url: string; glossary: GlossaryTerm[] }) {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageCount, setPageCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -21,10 +42,10 @@ export function PdfGlossaryViewer({ url }: { url: string }) {
     <div className="overflow-x-auto">
       <Document file={file} onLoadSuccess={({ numPages }) => { setPageCount(numPages); setError(null); }} onLoadError={(cause) => setError(cause.message || "Could not load this PDF.")} loading={<p className="p-4 text-sm text-slate-300">Loading PDF...</p>}>
         <div className="mx-auto w-fit bg-white shadow-xl">
-          <Page pageNumber={pageNumber} width={pageWidth} renderTextLayer renderAnnotationLayer onRenderError={(cause) => setError(cause.message || "Could not render this PDF page.")} />
+          <Page pageNumber={pageNumber} width={pageWidth} renderTextLayer renderAnnotationLayer customTextRenderer={({ str }) => renderGlossaryText(str, glossary)} onRenderError={(cause) => setError(cause.message || "Could not render this PDF page.")} />
         </div>
       </Document>
     </div>
-    <p className="mt-3 text-center text-sm text-slate-300">Select text directly in the PDF, as you would in the lesson material.</p>
+    <p className="mt-3 text-center text-sm text-slate-300">Glossary terms are highlighted like lesson text. Hover a term for its definition.</p>
   </div>;
 }
