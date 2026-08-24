@@ -47,3 +47,20 @@ export const create = mutation({
     });
   },
 });
+
+export const remove = mutation({
+  args: { id: v.id("slideDecks") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const deck = await ctx.db.get(args.id);
+    if (!deck || deck.ownerId !== identity.subject) {
+      throw new Error("Deck not found");
+    }
+
+    await ctx.storage.delete(deck.originalStorageId);
+    await ctx.db.delete(args.id);
+    return { success: true };
+  },
+});
