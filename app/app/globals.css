@@ -181,6 +181,7 @@ body {
 
 @layer utilities {
   .pdf-glossary-term {
+    position: relative !important;
     display: inline-block !important;
   }
 
