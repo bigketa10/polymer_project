@@ -25,7 +25,7 @@ function renderGlossaryText(text: string, glossary: GlossaryTerm[]) {
     const cleanKey = part.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()? '"[\]]/g, "");
     const entry = glossaryByTerm.get(cleanKey);
     if (!entry) return escapeHtml(part);
-    return `<span class="pdf-glossary-term relative group inline-block"><span class="pdf-glossary-word">${escapeHtml(part)}</span><span class="pdf-glossary-tooltip"><span class="pdf-glossary-tooltip-content">${escapeHtml(entry.definition)}<span class="pdf-glossary-tooltip-arrow"></span></span></span></span>`;
+    return `<span class="pdf-glossary-term"><span class="pdf-glossary-word">${escapeHtml(part)}</span><span class="pdf-glossary-tooltip"><span class="pdf-glossary-tooltip-content">${escapeHtml(entry.definition)}<span class="pdf-glossary-tooltip-arrow"></span></span></span></span>`;
   }).join("");
 }
 

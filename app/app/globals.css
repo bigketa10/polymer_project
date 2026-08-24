@@ -181,14 +181,16 @@ body {
 
 @layer utilities {
   .pdf-glossary-term {
-    position: relative;
-    display: inline-block;
+    display: inline-block !important;
   }
 
   .pdf-glossary-word {
+    position: static !important;
+    display: inline !important;
+    color: rgb(49 46 129) !important;
+    white-space: normal !important;
     cursor: help;
     border-bottom: 2px dotted rgb(129 140 248);
-    color: rgb(49 46 129);
     font-weight: 500;
     transition: color 150ms ease;
   }
@@ -198,14 +200,17 @@ body {
   }
 
   .pdf-glossary-tooltip {
-    position: absolute;
+    position: absolute !important;
     bottom: 100%;
     left: 50%;
     z-index: 50;
     display: none;
     width: 12rem;
+    max-width: calc(100vw - 2rem);
     margin-bottom: 0.5rem;
     transform: translateX(-50%);
+    white-space: normal !important;
+    color: rgb(30 41 59) !important;
   }
 
   .pdf-glossary-term:hover .pdf-glossary-tooltip {
@@ -213,15 +218,19 @@ body {
   }
 
   .pdf-glossary-tooltip-content {
-    position: relative;
+    position: relative !important;
     display: block;
+    box-sizing: border-box;
+    width: 100%;
     border: 2px solid rgb(226 232 240);
     border-radius: 0.75rem;
     background: white;
     padding: 0.75rem;
-    color: rgb(30 41 59);
-    font-size: 0.875rem;
-    line-height: 1.25;
+    color: rgb(30 41 59) !important;
+    font-size: 0.875rem !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
     box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.2), 0 8px 10px -6px rgb(15 23 42 / 0.2);
   }
 
@@ -231,6 +240,7 @@ body {
     left: 50%;
     width: 0.75rem;
     height: 0.75rem;
+    color: transparent !important;
     border-right: 2px solid rgb(226 232 240);
     border-bottom: 2px solid rgb(226 232 240);
     background: white;
