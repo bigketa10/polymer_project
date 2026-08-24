@@ -65,7 +65,11 @@ export default function SlidePresentationPage() {
         const arrayBuffer = await response.arrayBuffer();
         if (cancelled || !previewRef.current) return;
         previewRef.current.replaceChildren();
-        const viewer = init(previewRef.current, { width: 1280, height: 720 });
+        const viewer = init(previewRef.current, {
+          width: 1280,
+          height: 720,
+          mode: "slide",
+        });
         await viewer.preview(arrayBuffer);
         if (!cancelled) setStatus("");
         if (glossary?.length) highlightGlossary(previewRef.current, glossary);
