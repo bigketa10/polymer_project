@@ -192,7 +192,7 @@ body {
     position: static;
     display: inline-block;
     width: max-content;
-    color: transparent;
+    color: rgb(30 41 59);
     white-space: normal;
     transform: none;
     cursor: help;
@@ -208,13 +208,13 @@ body {
 
   .pdf-glossary-page .textLayer .pdf-glossary-tooltip {
     position: absolute;
-    bottom: 100%;
+    bottom: calc(100% + 0.5rem);
     left: 50%;
     z-index: 50;
     display: none;
     width: 12rem;
     max-width: calc(100vw - 2rem);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
     transform: translateX(-50%);
     white-space: normal;
     color: rgb(30 41 59);
