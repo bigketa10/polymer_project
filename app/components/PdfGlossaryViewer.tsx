@@ -21,7 +21,10 @@ function escapeRegExp(value: string) {
 function renderGlossaryText(text: string, glossary: GlossaryTerm[]) {
   const terms = glossary.map((item) => item.term.trim()).filter(Boolean).sort((a, b) => b.length - a.length);
   if (!terms.length) return escapeHtml(text);
-  const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`, "gi");
+  const pattern = new RegExp(
+    `(?<![\\p{L}\\p{N}_])(${terms.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}_])`,
+    "giu",
+  );
   return escapeHtml(text).replace(pattern, (match) => {
     const entry = glossary.find((item) => item.term.toLowerCase() === match.toLowerCase());
     if (!entry) return match;
