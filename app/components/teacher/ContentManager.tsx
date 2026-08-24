@@ -5,20 +5,18 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import {
-  PlusCircle,
-  Pencil,
-  Trash2,
-  ChevronDown,
-  XCircle,
-} from "lucide-react";
+import { PlusCircle, Pencil, Trash2, ChevronDown, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { useToast } from "@/components/teacher/useToast";
 import { ToastContainer } from "@/components/teacher/InlineToast";
 import { ConfirmDialog } from "@/components/teacher/ConfirmDialog";
-import { SlideDeckImporter } from "@/components/teacher/SlideDeckImporter";
-import { SlideDecks } from "@/components/teacher/SlideDecks";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type DragDropItem = { id: string; text: string };
@@ -67,7 +65,11 @@ export function ContentManager() {
   const [confirmTitle, setConfirmTitle] = useState("");
   const [confirmDescription, setConfirmDescription] = useState("");
 
-  const requestConfirm = (title: string, description: string, action: () => void) => {
+  const requestConfirm = (
+    title: string,
+    description: string,
+    action: () => void,
+  ) => {
     setConfirmTitle(title);
     setConfirmDescription(description);
     setPendingAction(() => action);
@@ -76,13 +78,18 @@ export function ContentManager() {
   // ── Field errors ────────────────────────────────────────────────────────────
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const clearFieldError = (key: string) =>
-    setFieldErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
 
   // ── Lesson selection & dropdowns ────────────────────────────────────────────
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [lessonDropdownOpen, setLessonDropdownOpen] = useState(false);
   const [moduleDropdownOpen, setModuleDropdownOpen] = useState(false);
-  const [moduleFilterDropdownOpen, setModuleFilterDropdownOpen] = useState(false);
+  const [moduleFilterDropdownOpen, setModuleFilterDropdownOpen] =
+    useState(false);
   const [lessonModuleFilter, setLessonModuleFilter] = useState<string>("all");
   const lessonDropdownRef = useRef<HTMLDivElement | null>(null);
   const moduleDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -96,7 +103,9 @@ export function ContentManager() {
   const [newModuleTitle, setNewModuleTitle] = useState("");
   const [newModuleDescription, setNewModuleDescription] = useState("");
   const [newModuleColor, setNewModuleColor] = useState("indigo");
-  const [newModuleIconKey, setNewModuleIconKey] = useState<"bookOpen" | "beaker" | "atom">("atom");
+  const [newModuleIconKey, setNewModuleIconKey] = useState<
+    "bookOpen" | "beaker" | "atom"
+  >("atom");
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
 
   // ── Lesson form state ───────────────────────────────────────────────────────
@@ -113,7 +122,9 @@ export function ContentManager() {
   // ── Question editor state ───────────────────────────────────────────────────
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [questionType, setQuestionType] = useState<"mcq" | "dragdrop" | "fillblank">("mcq");
+  const [questionType, setQuestionType] = useState<
+    "mcq" | "dragdrop" | "fillblank"
+  >("mcq");
   const [questionText, setQuestionText] = useState("");
   const [optionsText, setOptionsText] = useState("");
   const [correctOptionNumber, setCorrectOptionNumber] = useState("");
@@ -127,7 +138,9 @@ export function ContentManager() {
 
   // ── Drag & drop question builder state ─────────────────────────────────────
   const [ddAnswerBank, setDdAnswerBank] = useState<DragDropItem[]>([]);
-  const [ddSections, setDdSections] = useState<Array<{ name: string; answers: DragDropItem[] }>>([
+  const [ddSections, setDdSections] = useState<
+    Array<{ name: string; answers: DragDropItem[] }>
+  >([
     { name: "Section 1", answers: [] },
     { name: "Section 2", answers: [] },
   ]);
@@ -136,12 +149,18 @@ export function ContentManager() {
   // ── Drag reorder state ──────────────────────────────────────────────────────
   const [draggedModuleId, setDraggedModuleId] = useState<string | null>(null);
   const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
-  const [moduleDropTargetId, setModuleDropTargetId] = useState<string | null>(null);
-  const [lessonDropTargetId, setLessonDropTargetId] = useState<string | null>(null);
+  const [moduleDropTargetId, setModuleDropTargetId] = useState<string | null>(
+    null,
+  );
+  const [lessonDropTargetId, setLessonDropTargetId] = useState<string | null>(
+    null,
+  );
 
   // ── Glossary state ──────────────────────────────────────────────────────────
   const [showGlossaryModal, setShowGlossaryModal] = useState(false);
-  const [editingGlossaryId, setEditingGlossaryId] = useState<string | null>(null);
+  const [editingGlossaryId, setEditingGlossaryId] = useState<string | null>(
+    null,
+  );
   const [newGlossaryTerm, setNewGlossaryTerm] = useState("");
   const [newGlossaryDef, setNewGlossaryDef] = useState("");
   const [isImportingGlossary, setIsImportingGlossary] = useState(false);
@@ -188,9 +207,17 @@ export function ContentManager() {
 
   useEffect(() => {
     if (!lessons || lessons.length === 0) return;
-    if (filteredLessons.length === 0) { setSelectedLessonId(null); return; }
-    if (!selectedLessonId) { setSelectedLessonId(filteredLessons[0]._id); return; }
-    const stillVisible = filteredLessons.some((l: any) => l._id === selectedLessonId);
+    if (filteredLessons.length === 0) {
+      setSelectedLessonId(null);
+      return;
+    }
+    if (!selectedLessonId) {
+      setSelectedLessonId(filteredLessons[0]._id);
+      return;
+    }
+    const stillVisible = filteredLessons.some(
+      (l: any) => l._id === selectedLessonId,
+    );
     if (!stillVisible) setSelectedLessonId(filteredLessons[0]._id);
   }, [lessons, filteredLessons, selectedLessonId]);
 
@@ -203,34 +230,52 @@ export function ContentManager() {
   useEffect(() => {
     if (!lessonDropdownOpen) return;
     const onDown = (e: MouseEvent) => {
-      if (!lessonDropdownRef.current?.contains(e.target as Node)) setLessonDropdownOpen(false);
+      if (!lessonDropdownRef.current?.contains(e.target as Node))
+        setLessonDropdownOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setLessonDropdownOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLessonDropdownOpen(false);
+    };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("pointerdown", onDown); document.removeEventListener("keydown", onKey); };
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [lessonDropdownOpen]);
 
   useEffect(() => {
     if (!moduleDropdownOpen) return;
     const onDown = (e: MouseEvent) => {
-      if (!moduleDropdownRef.current?.contains(e.target as Node)) setModuleDropdownOpen(false);
+      if (!moduleDropdownRef.current?.contains(e.target as Node))
+        setModuleDropdownOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setModuleDropdownOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setModuleDropdownOpen(false);
+    };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("pointerdown", onDown); document.removeEventListener("keydown", onKey); };
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [moduleDropdownOpen]);
 
   useEffect(() => {
     if (!moduleFilterDropdownOpen) return;
     const onDown = (e: MouseEvent) => {
-      if (!moduleFilterDropdownRef.current?.contains(e.target as Node)) setModuleFilterDropdownOpen(false);
+      if (!moduleFilterDropdownRef.current?.contains(e.target as Node))
+        setModuleFilterDropdownOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setModuleFilterDropdownOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setModuleFilterDropdownOpen(false);
+    };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("pointerdown", onDown); document.removeEventListener("keydown", onKey); };
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [moduleFilterDropdownOpen]);
 
   // ── Reset helpers ───────────────────────────────────────────────────────────
@@ -308,28 +353,42 @@ export function ContentManager() {
     return values;
   };
 
-  const parseGlossaryImportFile = (fileName: string, rawText: string): GlossaryImportEntry[] => {
+  const parseGlossaryImportFile = (
+    fileName: string,
+    rawText: string,
+  ): GlossaryImportEntry[] => {
     const text = rawText.trim();
     if (!text) throw new Error("The selected file is empty.");
 
     const lowerName = fileName.toLowerCase();
-    const looksLikeJson = lowerName.endsWith(".json") || text.startsWith("[") || text.startsWith("{");
+    const looksLikeJson =
+      lowerName.endsWith(".json") ||
+      text.startsWith("[") ||
+      text.startsWith("{");
 
     if (looksLikeJson) {
       const parsed = JSON.parse(text);
       const items = Array.isArray(parsed)
         ? parsed
-        : Object.entries(parsed).map(([term, value]) => ({ term, definition: value }));
+        : Object.entries(parsed).map(([term, value]) => ({
+            term,
+            definition: value,
+          }));
 
       return items
         .map((item: any) => ({
           term: String(item?.term ?? item?.name ?? "").trim(),
-          definition: String(item?.definition ?? item?.meaning ?? item?.description ?? "").trim(),
+          definition: String(
+            item?.definition ?? item?.meaning ?? item?.description ?? "",
+          ).trim(),
         }))
         .filter((item) => item.term && item.definition);
     }
 
-    const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
     if (lines.length === 0) throw new Error("The selected file is empty.");
 
     const rows = lines.map(parseCsvLine);
@@ -377,15 +436,21 @@ export function ContentManager() {
     const errors: FieldErrors = {};
     if (!code) errors.moduleCode = "Module code is required (e.g. QXU7044).";
     if (!title) errors.moduleTitle = "Module title is required.";
-    if (!description) errors.moduleDescription = "Module description is required.";
-    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    if (!description)
+      errors.moduleDescription = "Module description is required.";
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
     setFieldErrors({});
 
     try {
       if (editingModuleId) {
         const res: any = await updateModule({
           id: editingModuleId as Id<"modules">,
-          code, title, description,
+          code,
+          title,
+          description,
           color: newModuleColor,
           iconKey: newModuleIconKey,
         });
@@ -393,7 +458,9 @@ export function ContentManager() {
         toast("success", "Module updated.");
       } else {
         const res: any = await createModule({
-          code, title, description,
+          code,
+          title,
+          description,
           color: newModuleColor,
           iconKey: newModuleIconKey,
         });
@@ -449,19 +516,30 @@ export function ContentManager() {
 
     const errors: FieldErrors = {};
     if (!title) errors.lessonTitle = "Lesson title is required.";
-    if (!description) errors.lessonDescription = "Lesson description is required.";
+    if (!description)
+      errors.lessonDescription = "Lesson description is required.";
     if (!difficulty) errors.lessonDifficulty = "Lesson difficulty is required.";
-    if (Number.isNaN(xpReward) || xpReward <= 0) errors.lessonXp = "XP reward must be a positive number.";
-    if (orderTrim.length > 0 && (order === undefined || Number.isNaN(order) || order <= 0))
+    if (Number.isNaN(xpReward) || xpReward <= 0)
+      errors.lessonXp = "XP reward must be a positive number.";
+    if (
+      orderTrim.length > 0 &&
+      (order === undefined || Number.isNaN(order) || order <= 0)
+    )
       errors.lessonOrder = "Order must be a positive number (or leave blank).";
-    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
     setFieldErrors({});
 
     try {
       if (editingLessonId) {
         await updateLesson({
           id: editingLessonId as Id<"lessons">,
-          title, description, difficulty, xpReward,
+          title,
+          description,
+          difficulty,
+          xpReward,
           section: newLessonSection || undefined,
           order,
         });
@@ -469,7 +547,10 @@ export function ContentManager() {
         toast("success", "Lesson updated.");
       } else {
         const res: any = await createLesson({
-          title, description, difficulty, xpReward,
+          title,
+          description,
+          difficulty,
+          xpReward,
           section: newLessonSection || undefined,
           order,
         });
@@ -512,7 +593,11 @@ export function ContentManager() {
   };
 
   // ── Drag reorder helpers ────────────────────────────────────────────────────
-  const reorderById = <T extends { _id: string }>(list: T[], draggedId: string, targetId: string) => {
+  const reorderById = <T extends { _id: string }>(
+    list: T[],
+    draggedId: string,
+    targetId: string,
+  ) => {
     if (draggedId === targetId) return list;
     const di = list.findIndex((i) => i._id === draggedId);
     const ti = list.findIndex((i) => i._id === targetId);
@@ -563,23 +648,37 @@ export function ContentManager() {
     else setQuestionType("mcq");
     setQuestionText(q.question || "");
     setOptionsText((q.options || []).join("\n"));
-    setCorrectOptionNumber(typeof q.correct === "number" ? String(q.correct + 1) : "1");
+    setCorrectOptionNumber(
+      typeof q.correct === "number" ? String(q.correct + 1) : "1",
+    );
     setFillCorrectAnswer(q.correctAnswer || "");
     setExplanation(q.explanation || "");
     setImageUrl(q.imageUrl || "");
     setImageStorageId(q.imageStorageId || "");
     setImageFileName("");
     if (q.type === "dragdrop") {
-      const ensureId = (text: string): DragDropItem => ({ id: crypto.randomUUID(), text });
+      const ensureId = (text: string): DragDropItem => ({
+        id: crypto.randomUUID(),
+        text,
+      });
       setDdAnswerBank((q.answerBank || []).map(ensureId));
       setDdSections(
         q.sections?.length > 0
-          ? q.sections.map((s: any) => ({ name: s.name, answers: (s.answers || []).map(ensureId) }))
-          : [{ name: "Section 1", answers: [] }, { name: "Section 2", answers: [] }],
+          ? q.sections.map((s: any) => ({
+              name: s.name,
+              answers: (s.answers || []).map(ensureId),
+            }))
+          : [
+              { name: "Section 1", answers: [] },
+              { name: "Section 2", answers: [] },
+            ],
       );
     } else {
       setDdAnswerBank([]);
-      setDdSections([{ name: "Section 1", answers: [] }, { name: "Section 2", answers: [] }]);
+      setDdSections([
+        { name: "Section 1", answers: [] },
+        { name: "Section 2", answers: [] },
+      ]);
     }
     setFieldErrors({});
     setShowQuestionModal(true);
@@ -595,36 +694,68 @@ export function ContentManager() {
     let newQuestion: any = { type: questionType, question: trimmedQuestion };
 
     if (questionType === "mcq") {
-      const options = optionsText.split("\n").map((o) => o.trim()).filter((o) => o.length > 0);
+      const options = optionsText
+        .split("\n")
+        .map((o) => o.trim())
+        .filter((o) => o.length > 0);
       const correctNum = parseInt(correctOptionNumber, 10);
-      if (options.length < 2) errors.options = "Please provide at least two answer options.";
-      if (Number.isNaN(correctNum) || correctNum < 1 || correctNum > options.length)
+      if (options.length < 2)
+        errors.options = "Please provide at least two answer options.";
+      if (
+        Number.isNaN(correctNum) ||
+        correctNum < 1 ||
+        correctNum > options.length
+      )
         errors.correctOption = `Correct option number must be between 1 and ${options.length || "N"}.`;
       if (Object.keys(errors).length === 0) {
-        newQuestion = { ...newQuestion, options, correct: correctNum - 1, explanation: explanation.trim() || "No explanation provided." };
+        newQuestion = {
+          ...newQuestion,
+          options,
+          correct: correctNum - 1,
+          explanation: explanation.trim() || "No explanation provided.",
+        };
       }
     } else if (questionType === "fillblank") {
       const correctAnswer = fillCorrectAnswer.trim();
-      if (!correctAnswer) errors.fillAnswer = "Correct answer is required for fill-in-the-blank questions.";
-      if (!trimmedQuestion.includes("___")) errors.questionText = "Question text must include '___' to indicate the blank.";
+      if (!correctAnswer)
+        errors.fillAnswer =
+          "Correct answer is required for fill-in-the-blank questions.";
+      if (!trimmedQuestion.includes("___"))
+        errors.questionText =
+          "Question text must include '___' to indicate the blank.";
       if (Object.keys(errors).length === 0) {
-        newQuestion = { ...newQuestion, correctAnswer, explanation: explanation.trim() || "No explanation provided." };
+        newQuestion = {
+          ...newQuestion,
+          correctAnswer,
+          explanation: explanation.trim() || "No explanation provided.",
+        };
       }
     } else if (questionType === "dragdrop") {
-      if (ddAnswerBank.length === 0 && ddSections.every((s) => s.answers.length === 0))
-        errors.ddBank = "Please add at least one answer to the bank or a section.";
-      if (ddSections.length < 2) errors.ddSections = "Please provide at least two sections.";
+      if (
+        ddAnswerBank.length === 0 &&
+        ddSections.every((s) => s.answers.length === 0)
+      )
+        errors.ddBank =
+          "Please add at least one answer to the bank or a section.";
+      if (ddSections.length < 2)
+        errors.ddSections = "Please provide at least two sections.";
       if (Object.keys(errors).length === 0) {
         newQuestion = {
           ...newQuestion,
           answerBank: ddAnswerBank.map((a) => a.text),
-          sections: ddSections.map((s) => ({ name: s.name, answers: s.answers.map((a) => a.text) })),
+          sections: ddSections.map((s) => ({
+            name: s.name,
+            answers: s.answers.map((a) => a.text),
+          })),
           explanation: explanation.trim() || "No explanation provided.",
         };
       }
     }
 
-    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
     setFieldErrors({});
 
     const trimmedImage = imageUrl.trim();
@@ -636,10 +767,15 @@ export function ContentManager() {
     const updatedQuestions =
       editingIndex === null
         ? [...existing, newQuestion]
-        : existing.map((q: any, idx: number) => (idx === editingIndex ? newQuestion : q));
+        : existing.map((q: any, idx: number) =>
+            idx === editingIndex ? newQuestion : q,
+          );
 
     try {
-      await updateQuestions({ lessonId: selectedLesson._id, questions: updatedQuestions });
+      await updateQuestions({
+        lessonId: selectedLesson._id,
+        questions: updatedQuestions,
+      });
       setEditingIndex(null);
       resetQuestionForm();
       setShowQuestionModal(false);
@@ -657,11 +793,19 @@ export function ContentManager() {
       async () => {
         try {
           const existing = selectedLesson.questions || [];
-          const updatedQuestions = existing.filter((_q: any, idx: number) => idx !== index);
-          await updateQuestions({ lessonId: selectedLesson._id, questions: updatedQuestions });
+          const updatedQuestions = existing.filter(
+            (_q: any, idx: number) => idx !== index,
+          );
+          await updateQuestions({
+            lessonId: selectedLesson._id,
+            questions: updatedQuestions,
+          });
           setEditingIndex((current) => {
             if (current === null) return current;
-            if (current === index) { resetQuestionForm(); return null; }
+            if (current === index) {
+              resetQuestionForm();
+              return null;
+            }
             if (current > index) return current - 1;
             return current;
           });
@@ -674,7 +818,10 @@ export function ContentManager() {
   };
 
   // ── Image upload ────────────────────────────────────────────────────────────
-  const processAndUpload = async (image: HTMLImageElement, _fileType: string) => {
+  const processAndUpload = async (
+    image: HTMLImageElement,
+    _fileType: string,
+  ) => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -687,7 +834,9 @@ export function ContentManager() {
     const x = (targetSize - image.width * scale) / 2;
     const y = (targetSize - image.height * scale) / 2;
     ctx.drawImage(image, x, y, image.width * scale, image.height * scale);
-    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.9));
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob(res, "image/jpeg", 0.9),
+    );
     if (!blob) throw new Error("Blob generation failed");
     try {
       const postUrl = await generateUploadUrl();
@@ -721,21 +870,39 @@ export function ContentManager() {
     setImageUrl("");
     setImageStorageId("");
     const reader = new FileReader();
-    reader.onerror = () => { setIsUploading(false); toast("error", "Could not read the file. Please try a different image."); };
+    reader.onerror = () => {
+      setIsUploading(false);
+      toast("error", "Could not read the file. Please try a different image.");
+    };
     reader.onload = () => {
       const imgElement = new Image();
       imgElement.crossOrigin = "anonymous";
-      imgElement.onerror = () => { setIsUploading(false); toast("error", "Could not load the image. Please try a different file."); };
+      imgElement.onerror = () => {
+        setIsUploading(false);
+        toast(
+          "error",
+          "Could not load the image. Please try a different file.",
+        );
+      };
       imgElement.onload = () => {
         processAndUpload(imgElement, file.type).catch((err) => {
           console.error("Upload error:", err);
           setIsUploading(false);
-          toast("error", "Could not process image. Try downloading the file and uploading it directly.");
+          toast(
+            "error",
+            "Could not process image. Try downloading the file and uploading it directly.",
+          );
         });
       };
       const result = reader.result;
       if (typeof result === "string") imgElement.src = result;
-      else { setIsUploading(false); toast("error", "Could not read the file. Please try a different image."); }
+      else {
+        setIsUploading(false);
+        toast(
+          "error",
+          "Could not read the file. Please try a different image.",
+        );
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -754,11 +921,18 @@ export function ContentManager() {
     const errors: FieldErrors = {};
     if (!term) errors.glossaryTerm = "Term is required.";
     if (!definition) errors.glossaryDef = "Definition is required.";
-    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
     setFieldErrors({});
     try {
       if (editingGlossaryId) {
-        await updateGlossaryTerm({ id: editingGlossaryId as Id<"glossary">, term, definition });
+        await updateGlossaryTerm({
+          id: editingGlossaryId as Id<"glossary">,
+          term,
+          definition,
+        });
         toast("success", "Glossary term updated.");
       } else {
         await createGlossaryTerm({ term, definition });
@@ -777,7 +951,10 @@ export function ContentManager() {
   const handleGlossaryImportFile = async (file: File) => {
     setIsImportingGlossary(true);
     try {
-      const parsedEntries = parseGlossaryImportFile(file.name, await file.text());
+      const parsedEntries = parseGlossaryImportFile(
+        file.name,
+        await file.text(),
+      );
 
       if (parsedEntries.length === 0) {
         throw new Error("No glossary terms were found in that file.");
@@ -818,7 +995,10 @@ export function ContentManager() {
           `Imported ${added} glossary term${added === 1 ? "" : "s"}${skipped > 0 ? `, skipped ${skipped}` : ""}.`,
         );
       } else {
-        toast("info", `No new terms were added${skipped > 0 ? `, skipped ${skipped}` : ""}.`);
+        toast(
+          "info",
+          `No new terms were added${skipped > 0 ? `, skipped ${skipped}` : ""}.`,
+        );
       }
     } catch (e: any) {
       toast("error", e?.message || "Failed to import glossary file.");
@@ -830,7 +1010,9 @@ export function ContentManager() {
     }
   };
 
-  const handleGlossaryImportChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGlossaryImportChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
     await handleGlossaryImportFile(file);
@@ -855,7 +1037,6 @@ export function ContentManager() {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="bg-slate-50 p-3 lg:p-4 font-sans">
-
       {/* ── Confirm Dialog ── */}
       <ConfirmDialog
         open={pendingAction !== null}
@@ -873,7 +1054,9 @@ export function ContentManager() {
         {/* ── Header ── */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Content Manager</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage modules, lessons, questions, and glossary.</p>
+          <p className="text-slate-500 text-sm mt-1">
+            Manage modules, lessons, questions, and glossary.
+          </p>
         </div>
 
         {/* ── Action bar ── */}
@@ -881,23 +1064,75 @@ export function ContentManager() {
           <CardHeader className="bg-white border-b border-slate-100 pb-3">
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-base">Lesson Question Sets</CardTitle>
+                <CardTitle className="text-base">
+                  Lesson Question Sets
+                </CardTitle>
               </div>
               {/* Button row */}
               <div className="flex flex-wrap gap-1.5">
-                <Button variant="outline" size="sm" onClick={() => { setShowAddModule((v) => !v); setEditingModuleId(null); resetNewModuleForm(); setShowAddLesson(false); }} className="bg-white text-xs h-7 px-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowAddModule((v) => !v);
+                    setEditingModuleId(null);
+                    resetNewModuleForm();
+                    setShowAddLesson(false);
+                  }}
+                  className="bg-white text-xs h-7 px-2"
+                >
                   <PlusCircle className="w-3 h-3 mr-1" /> Module
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setShowAddLesson((v) => !v); setEditingLessonId(null); resetNewLessonForm(); setShowAddModule(false); }} className="bg-white text-xs h-7 px-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowAddLesson((v) => !v);
+                    setEditingLessonId(null);
+                    resetNewLessonForm();
+                    setShowAddModule(false);
+                  }}
+                  className="bg-white text-xs h-7 px-2"
+                >
                   <PlusCircle className="w-3 h-3 mr-1" /> Lesson
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setShowManageModules((v) => { const n = !v; if (n) setShowManageLessons(false); return n; }); }} className="bg-white text-xs h-7 px-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowManageModules((v) => {
+                      const n = !v;
+                      if (n) setShowManageLessons(false);
+                      return n;
+                    });
+                  }}
+                  className="bg-white text-xs h-7 px-2"
+                >
                   {showManageModules ? "Hide modules" : "Modules"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setShowManageLessons((v) => { const n = !v; if (n) setShowManageModules(false); return n; }); }} className="bg-white text-xs h-7 px-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowManageLessons((v) => {
+                      const n = !v;
+                      if (n) setShowManageModules(false);
+                      return n;
+                    });
+                  }}
+                  className="bg-white text-xs h-7 px-2"
+                >
                   {showManageLessons ? "Hide lessons" : "Lessons"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setShowGlossaryModal(true); resetGlossaryForm(); }} className="bg-white text-xs h-7 px-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowGlossaryModal(true);
+                    resetGlossaryForm();
+                  }}
+                  className="bg-white text-xs h-7 px-2"
+                >
                   Glossary
                 </Button>
               </div>
@@ -905,26 +1140,50 @@ export function ContentManager() {
               <div className="grid grid-cols-2 gap-2">
                 {/* Module filter dropdown */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-slate-600">Module</span>
+                  <span className="text-xs font-medium text-slate-600">
+                    Module
+                  </span>
                   <div ref={moduleFilterDropdownRef} className="relative">
-                    <button type="button" onClick={() => setModuleFilterDropdownOpen((v) => !v)}
-                      className="h-8 w-full rounded-md border border-slate-200 bg-white text-xs pl-2 pr-7 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-left">
+                    <button
+                      type="button"
+                      onClick={() => setModuleFilterDropdownOpen((v) => !v)}
+                      className="h-8 w-full rounded-md border border-slate-200 bg-white text-xs pl-2 pr-7 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-left"
+                    >
                       <span className="truncate text-slate-800">
-                        {lessonModuleFilter === "all" ? "All modules" : (() => {
-                          const m = (modules || []).find((mod: any) => mod.moduleKey === lessonModuleFilter);
-                          return m ? `${m.code}` : "All";
-                        })()}
+                        {lessonModuleFilter === "all"
+                          ? "All modules"
+                          : (() => {
+                              const m = (modules || []).find(
+                                (mod: any) =>
+                                  mod.moduleKey === lessonModuleFilter,
+                              );
+                              return m ? `${m.code}` : "All";
+                            })()}
                       </span>
                       <ChevronDown className="ml-1 h-3 w-3 text-slate-400 flex-shrink-0" />
                     </button>
                     {moduleFilterDropdownOpen && (
                       <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
                         <div className="max-h-48 overflow-y-auto py-1">
-                          {[{ key: "all", label: "All modules" }, ...(modules || []).map((m: any) => ({ key: m.moduleKey, label: `${m.code} — ${m.title}` }))].map((opt) => (
-                            <button key={opt.key} type="button"
-                              onClick={() => { setLessonModuleFilter(opt.key); setModuleFilterDropdownOpen(false); }}
-                              className={`w-full px-3 py-2 text-xs text-left transition-colors ${lessonModuleFilter === opt.key ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}>
-                              <div className="font-medium truncate">{opt.label}</div>
+                          {[
+                            { key: "all", label: "All modules" },
+                            ...(modules || []).map((m: any) => ({
+                              key: m.moduleKey,
+                              label: `${m.code} — ${m.title}`,
+                            })),
+                          ].map((opt) => (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => {
+                                setLessonModuleFilter(opt.key);
+                                setModuleFilterDropdownOpen(false);
+                              }}
+                              className={`w-full px-3 py-2 text-xs text-left transition-colors ${lessonModuleFilter === opt.key ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}
+                            >
+                              <div className="font-medium truncate">
+                                {opt.label}
+                              </div>
                             </button>
                           ))}
                         </div>
@@ -935,29 +1194,52 @@ export function ContentManager() {
 
                 {/* Lesson selector dropdown */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-slate-600">Lesson</span>
+                  <span className="text-xs font-medium text-slate-600">
+                    Lesson
+                  </span>
                   <div ref={lessonDropdownRef} className="relative">
-                    <button type="button" disabled={!filteredLessons || filteredLessons.length === 0}
+                    <button
+                      type="button"
+                      disabled={
+                        !filteredLessons || filteredLessons.length === 0
+                      }
                       onClick={() => setLessonDropdownOpen((v) => !v)}
-                      className="h-8 w-full rounded-md border border-slate-200 bg-white text-xs pl-2 pr-7 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left">
+                      className="h-8 w-full rounded-md border border-slate-200 bg-white text-xs pl-2 pr-7 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-between text-left"
+                    >
                       <span className="truncate text-slate-800">
-                        {!lessons ? "Loading..." : filteredLessons.length === 0 ? "No lessons" : selectedLesson?.title || "Select"}
+                        {!lessons
+                          ? "Loading..."
+                          : filteredLessons.length === 0
+                            ? "No lessons"
+                            : selectedLesson?.title || "Select"}
                       </span>
                       <ChevronDown className="ml-1 h-3 w-3 text-slate-400 flex-shrink-0" />
                     </button>
-                    {lessonDropdownOpen && filteredLessons && filteredLessons.length > 0 && (
-                      <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
-                        <div className="max-h-48 overflow-y-auto py-1">
-                          {filteredLessons.map((lesson: any) => (
-                            <button key={lesson._id} type="button"
-                              onClick={() => { setSelectedLessonId(lesson._id); setLessonDropdownOpen(false); setEditingIndex(null); resetQuestionForm(); }}
-                              className={`w-full px-3 py-2 text-xs text-left transition-colors ${lesson._id === selectedLessonId ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}>
-                              <div className="font-medium truncate">{lesson.title}</div>
-                            </button>
-                          ))}
+                    {lessonDropdownOpen &&
+                      filteredLessons &&
+                      filteredLessons.length > 0 && (
+                        <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
+                          <div className="max-h-48 overflow-y-auto py-1">
+                            {filteredLessons.map((lesson: any) => (
+                              <button
+                                key={lesson._id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedLessonId(lesson._id);
+                                  setLessonDropdownOpen(false);
+                                  setEditingIndex(null);
+                                  resetQuestionForm();
+                                }}
+                                className={`w-full px-3 py-2 text-xs text-left transition-colors ${lesson._id === selectedLessonId ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}
+                              >
+                                <div className="font-medium truncate">
+                                  {lesson.title}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 </div>
               </div>
@@ -968,45 +1250,110 @@ export function ContentManager() {
             {/* ── Add Module inline form ── */}
             {showAddModule && (
               <div className="border-b border-slate-100 p-4 bg-slate-50">
-                <p className="text-sm font-semibold text-slate-800 mb-3">{editingModuleId ? "Edit module" : "New module"}</p>
+                <p className="text-sm font-semibold text-slate-800 mb-3">
+                  {editingModuleId ? "Edit module" : "New module"}
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Module code</label>
-                    <input type="text" className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newModuleCode} onChange={(e) => { setNewModuleCode(e.target.value); clearFieldError("moduleCode"); }} />
-                    {fieldErrors.moduleCode && <p className="text-red-500 text-xs mt-1">{fieldErrors.moduleCode}</p>}
+                    <label className="text-xs font-medium text-slate-700">
+                      Module code
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={newModuleCode}
+                      onChange={(e) => {
+                        setNewModuleCode(e.target.value);
+                        clearFieldError("moduleCode");
+                      }}
+                    />
+                    {fieldErrors.moduleCode && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.moduleCode}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Module title</label>
-                    <input type="text" className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newModuleTitle} onChange={(e) => { setNewModuleTitle(e.target.value); clearFieldError("moduleTitle"); }} />
-                    {fieldErrors.moduleTitle && <p className="text-red-500 text-xs mt-1">{fieldErrors.moduleTitle}</p>}
+                    <label className="text-xs font-medium text-slate-700">
+                      Module title
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={newModuleTitle}
+                      onChange={(e) => {
+                        setNewModuleTitle(e.target.value);
+                        clearFieldError("moduleTitle");
+                      }}
+                    />
+                    {fieldErrors.moduleTitle && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.moduleTitle}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 mt-3">
-                  <label className="text-xs font-medium text-slate-700">Description</label>
-                  <textarea rows={2} className="w-full rounded-md border border-slate-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={newModuleDescription} onChange={(e) => { setNewModuleDescription(e.target.value); clearFieldError("moduleDescription"); }} />
-                  {fieldErrors.moduleDescription && <p className="text-red-500 text-xs mt-1">{fieldErrors.moduleDescription}</p>}
+                  <label className="text-xs font-medium text-slate-700">
+                    Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    className="w-full rounded-md border border-slate-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    value={newModuleDescription}
+                    onChange={(e) => {
+                      setNewModuleDescription(e.target.value);
+                      clearFieldError("moduleDescription");
+                    }}
+                  />
+                  {fieldErrors.moduleDescription && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {fieldErrors.moduleDescription}
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Color theme</label>
+                    <label className="text-xs font-medium text-slate-700">
+                      Color theme
+                    </label>
                     <div className="flex flex-wrap gap-2">
-                      {["indigo","pink","blue","emerald","amber","violet","rose"].map((c) => (
-                        <button key={c} type="button" onClick={() => setNewModuleColor(c)}
-                          className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${newModuleColor === c ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
+                      {[
+                        "indigo",
+                        "pink",
+                        "blue",
+                        "emerald",
+                        "amber",
+                        "violet",
+                        "rose",
+                      ].map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setNewModuleColor(c)}
+                          className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${newModuleColor === c ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                        >
                           {c}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Icon</label>
+                    <label className="text-xs font-medium text-slate-700">
+                      Icon
+                    </label>
                     <div className="flex gap-2">
-                      {[{ key: "bookOpen", label: "Book" }, { key: "beaker", label: "Beaker" }, { key: "atom", label: "Atom" }].map((opt) => (
-                        <button key={opt.key} type="button" onClick={() => setNewModuleIconKey(opt.key as any)}
-                          className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${newModuleIconKey === opt.key ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
+                      {[
+                        { key: "bookOpen", label: "Book" },
+                        { key: "beaker", label: "Beaker" },
+                        { key: "atom", label: "Atom" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => setNewModuleIconKey(opt.key as any)}
+                          className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors ${newModuleIconKey === opt.key ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                        >
                           {opt.label}
                         </button>
                       ))}
@@ -1014,8 +1361,19 @@ export function ContentManager() {
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="outline" size="sm" onClick={() => { setShowAddModule(false); resetNewModuleForm(); }}>Cancel</Button>
-                  <Button size="sm" onClick={handleSaveModule}>Save module</Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowAddModule(false);
+                      resetNewModuleForm();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSaveModule}>
+                    Save module
+                  </Button>
                 </div>
               </div>
             )}
@@ -1023,15 +1381,29 @@ export function ContentManager() {
             {/* ── Add Lesson inline form ── */}
             {showAddLesson && (
               <div className="border-b border-slate-100 p-4 bg-slate-50">
-                <p className="text-sm font-semibold text-slate-800 mb-3">{editingLessonId ? "Edit lesson" : "New lesson"}</p>
+                <p className="text-sm font-semibold text-slate-800 mb-3">
+                  {editingLessonId ? "Edit lesson" : "New lesson"}
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Course</label>
+                    <label className="text-xs font-medium text-slate-700">
+                      Course
+                    </label>
                     <div ref={moduleDropdownRef} className="relative">
-                      <button type="button" disabled={!modules || modules.length === 0} onClick={() => setModuleDropdownOpen((v) => !v)}
-                        className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 flex items-center justify-between text-left">
+                      <button
+                        type="button"
+                        disabled={!modules || modules.length === 0}
+                        onClick={() => setModuleDropdownOpen((v) => !v)}
+                        className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 flex items-center justify-between text-left"
+                      >
                         <span className="truncate text-slate-800">
-                          {!modules ? "Loading..." : modules.length === 0 ? "No modules" : selectedModuleForNewLesson ? `${selectedModuleForNewLesson.code} — ${selectedModuleForNewLesson.title}` : "Select a module"}
+                          {!modules
+                            ? "Loading..."
+                            : modules.length === 0
+                              ? "No modules"
+                              : selectedModuleForNewLesson
+                                ? `${selectedModuleForNewLesson.code} — ${selectedModuleForNewLesson.title}`
+                                : "Select a module"}
                         </span>
                         <ChevronDown className="ml-2 h-4 w-4 text-slate-400 flex-shrink-0" />
                       </button>
@@ -1039,10 +1411,21 @@ export function ContentManager() {
                         <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
                           <div className="max-h-48 overflow-y-auto py-1">
                             {modules.map((m: any) => (
-                              <button key={m.moduleKey} type="button" onClick={() => { setNewLessonSection(m.moduleKey); setModuleDropdownOpen(false); }}
-                                className={`w-full px-3 py-2 text-sm text-left transition-colors ${m.moduleKey === newLessonSection ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}>
-                                <div className="font-medium truncate">{m.code} — {m.title}</div>
-                                <div className="text-xs text-slate-500 truncate mt-0.5">{m.description}</div>
+                              <button
+                                key={m.moduleKey}
+                                type="button"
+                                onClick={() => {
+                                  setNewLessonSection(m.moduleKey);
+                                  setModuleDropdownOpen(false);
+                                }}
+                                className={`w-full px-3 py-2 text-sm text-left transition-colors ${m.moduleKey === newLessonSection ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}
+                              >
+                                <div className="font-medium truncate">
+                                  {m.code} — {m.title}
+                                </div>
+                                <div className="text-xs text-slate-500 truncate mt-0.5">
+                                  {m.description}
+                                </div>
                               </button>
                             ))}
                           </div>
@@ -1051,53 +1434,131 @@ export function ContentManager() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Difficulty</label>
-                    <input type="text" className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newLessonDifficulty} onChange={(e) => { setNewLessonDifficulty(e.target.value); clearFieldError("lessonDifficulty"); }} />
-                    {fieldErrors.lessonDifficulty && <p className="text-red-500 text-xs mt-1">{fieldErrors.lessonDifficulty}</p>}
+                    <label className="text-xs font-medium text-slate-700">
+                      Difficulty
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={newLessonDifficulty}
+                      onChange={(e) => {
+                        setNewLessonDifficulty(e.target.value);
+                        clearFieldError("lessonDifficulty");
+                      }}
+                    />
+                    {fieldErrors.lessonDifficulty && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.lessonDifficulty}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 mt-3">
-                  <label className="text-xs font-medium text-slate-700">Lesson title</label>
-                  <input type="text" className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={newLessonTitle} onChange={(e) => { setNewLessonTitle(e.target.value); clearFieldError("lessonTitle"); }} />
-                  {fieldErrors.lessonTitle && <p className="text-red-500 text-xs mt-1">{fieldErrors.lessonTitle}</p>}
+                  <label className="text-xs font-medium text-slate-700">
+                    Lesson title
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    value={newLessonTitle}
+                    onChange={(e) => {
+                      setNewLessonTitle(e.target.value);
+                      clearFieldError("lessonTitle");
+                    }}
+                  />
+                  {fieldErrors.lessonTitle && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {fieldErrors.lessonTitle}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1 mt-3">
-                  <label className="text-xs font-medium text-slate-700">Description</label>
-                  <textarea rows={2} className="w-full rounded-md border border-slate-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={newLessonDescription} onChange={(e) => { setNewLessonDescription(e.target.value); clearFieldError("lessonDescription"); }} />
-                  {fieldErrors.lessonDescription && <p className="text-red-500 text-xs mt-1">{fieldErrors.lessonDescription}</p>}
+                  <label className="text-xs font-medium text-slate-700">
+                    Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    className="w-full rounded-md border border-slate-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    value={newLessonDescription}
+                    onChange={(e) => {
+                      setNewLessonDescription(e.target.value);
+                      clearFieldError("lessonDescription");
+                    }}
+                  />
+                  {fieldErrors.lessonDescription && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {fieldErrors.lessonDescription}
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">XP reward</label>
-                    <input type="number" min={1} className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newLessonXpReward} onChange={(e) => { setNewLessonXpReward(e.target.value); clearFieldError("lessonXp"); }} />
-                    {fieldErrors.lessonXp && <p className="text-red-500 text-xs mt-1">{fieldErrors.lessonXp}</p>}
+                    <label className="text-xs font-medium text-slate-700">
+                      XP reward
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={newLessonXpReward}
+                      onChange={(e) => {
+                        setNewLessonXpReward(e.target.value);
+                        clearFieldError("lessonXp");
+                      }}
+                    />
+                    {fieldErrors.lessonXp && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.lessonXp}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Order <span className="font-normal text-slate-500">(optional)</span></label>
-                    <input type="number" min={1} placeholder="Auto" className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newLessonOrder} onChange={(e) => { setNewLessonOrder(e.target.value); clearFieldError("lessonOrder"); }} />
-                    {fieldErrors.lessonOrder && <p className="text-red-500 text-xs mt-1">{fieldErrors.lessonOrder}</p>}
+                    <label className="text-xs font-medium text-slate-700">
+                      Order{" "}
+                      <span className="font-normal text-slate-500">
+                        (optional)
+                      </span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="Auto"
+                      className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={newLessonOrder}
+                      onChange={(e) => {
+                        setNewLessonOrder(e.target.value);
+                        clearFieldError("lessonOrder");
+                      }}
+                    />
+                    {fieldErrors.lessonOrder && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.lessonOrder}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="outline" size="sm" onClick={() => { setShowAddLesson(false); resetNewLessonForm(); }}>Cancel</Button>
-                  <Button size="sm" onClick={handleSaveLesson}>Save lesson</Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowAddLesson(false);
+                      resetNewLessonForm();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSaveLesson}>
+                    Save lesson
+                  </Button>
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        <SlideDeckImporter moduleKey={lessonModuleFilter === "all" ? undefined : lessonModuleFilter} />
-        <Card className="shadow-sm"><CardHeader><CardTitle className="text-base">Imported lecture decks</CardTitle></CardHeader><CardContent><SlideDecks /></CardContent></Card>
-
         {/* ── Full-width: module/lesson management + question set ── */}
         <div className="space-y-4">
-
           {/* ── LEFT COLUMN: Manage modules & lessons ── */}
           <div className="space-y-4">
             {/* Manage Modules */}
@@ -1105,55 +1566,133 @@ export function ContentManager() {
               <Card className="shadow-sm">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <CardTitle className="text-base">Modules</CardTitle>
-                  <CardDescription>Drag to reorder. Click Edit to modify.</CardDescription>
+                  <CardDescription>
+                    Drag to reorder. Click Edit to modify.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="p-3 space-y-2">
                   {(modules || []).map((module: any) =>
                     editingModuleId === module._id ? (
-                      <div key={module._id} className="border rounded-lg p-4 bg-slate-50">
+                      <div
+                        key={module._id}
+                        className="border rounded-lg p-4 bg-slate-50"
+                      >
                         <div className="flex items-start justify-between gap-4 mb-3">
-                          <p className="text-sm font-semibold text-slate-800">Edit module</p>
-                          <Button variant="ghost" size="sm" onClick={resetNewModuleForm}>Cancel</Button>
+                          <p className="text-sm font-semibold text-slate-800">
+                            Edit module
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={resetNewModuleForm}
+                          >
+                            Cancel
+                          </Button>
                         </div>
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1">
-                              <label className="text-xs font-medium text-slate-700">Module code</label>
-                              <input type="text" className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                value={newModuleCode} onChange={(e) => { setNewModuleCode(e.target.value); clearFieldError("moduleCode"); }} />
-                              {fieldErrors.moduleCode && <p className="text-red-500 text-xs mt-1">{fieldErrors.moduleCode}</p>}
+                              <label className="text-xs font-medium text-slate-700">
+                                Module code
+                              </label>
+                              <input
+                                type="text"
+                                className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={newModuleCode}
+                                onChange={(e) => {
+                                  setNewModuleCode(e.target.value);
+                                  clearFieldError("moduleCode");
+                                }}
+                              />
+                              {fieldErrors.moduleCode && (
+                                <p className="text-red-500 text-xs mt-1">
+                                  {fieldErrors.moduleCode}
+                                </p>
+                              )}
                             </div>
                             <div className="flex flex-col gap-1">
-                              <label className="text-xs font-medium text-slate-700">Module title</label>
-                              <input type="text" className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                value={newModuleTitle} onChange={(e) => { setNewModuleTitle(e.target.value); clearFieldError("moduleTitle"); }} />
-                              {fieldErrors.moduleTitle && <p className="text-red-500 text-xs mt-1">{fieldErrors.moduleTitle}</p>}
+                              <label className="text-xs font-medium text-slate-700">
+                                Module title
+                              </label>
+                              <input
+                                type="text"
+                                className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={newModuleTitle}
+                                onChange={(e) => {
+                                  setNewModuleTitle(e.target.value);
+                                  clearFieldError("moduleTitle");
+                                }}
+                              />
+                              {fieldErrors.moduleTitle && (
+                                <p className="text-red-500 text-xs mt-1">
+                                  {fieldErrors.moduleTitle}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">Description</label>
-                            <textarea rows={2} className="w-full rounded-md border border-slate-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={newModuleDescription} onChange={(e) => { setNewModuleDescription(e.target.value); clearFieldError("moduleDescription"); }} />
-                            {fieldErrors.moduleDescription && <p className="text-red-500 text-xs mt-1">{fieldErrors.moduleDescription}</p>}
+                            <label className="text-xs font-medium text-slate-700">
+                              Description
+                            </label>
+                            <textarea
+                              rows={2}
+                              className="w-full rounded-md border border-slate-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              value={newModuleDescription}
+                              onChange={(e) => {
+                                setNewModuleDescription(e.target.value);
+                                clearFieldError("moduleDescription");
+                              }}
+                            />
+                            {fieldErrors.moduleDescription && (
+                              <p className="text-red-500 text-xs mt-1">
+                                {fieldErrors.moduleDescription}
+                              </p>
+                            )}
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1">
-                              <label className="text-xs font-medium text-slate-700">Color theme</label>
+                              <label className="text-xs font-medium text-slate-700">
+                                Color theme
+                              </label>
                               <div className="flex flex-wrap gap-2">
-                                {["indigo","pink","blue","emerald","amber","violet","rose"].map((c) => (
-                                  <button key={c} type="button" onClick={() => setNewModuleColor(c)}
-                                    className={`h-8 px-2 rounded-md border text-xs font-medium transition-colors ${newModuleColor === c ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
+                                {[
+                                  "indigo",
+                                  "pink",
+                                  "blue",
+                                  "emerald",
+                                  "amber",
+                                  "violet",
+                                  "rose",
+                                ].map((c) => (
+                                  <button
+                                    key={c}
+                                    type="button"
+                                    onClick={() => setNewModuleColor(c)}
+                                    className={`h-8 px-2 rounded-md border text-xs font-medium transition-colors ${newModuleColor === c ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                                  >
                                     {c}
                                   </button>
                                 ))}
                               </div>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <label className="text-xs font-medium text-slate-700">Icon</label>
+                              <label className="text-xs font-medium text-slate-700">
+                                Icon
+                              </label>
                               <div className="flex gap-2">
-                                {[{ key: "bookOpen", label: "Book" }, { key: "beaker", label: "Beaker" }, { key: "atom", label: "Atom" }].map((opt) => (
-                                  <button key={opt.key} type="button" onClick={() => setNewModuleIconKey(opt.key as any)}
-                                    className={`h-8 px-2 rounded-md border text-xs font-medium transition-colors ${newModuleIconKey === opt.key ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
+                                {[
+                                  { key: "bookOpen", label: "Book" },
+                                  { key: "beaker", label: "Beaker" },
+                                  { key: "atom", label: "Atom" },
+                                ].map((opt) => (
+                                  <button
+                                    key={opt.key}
+                                    type="button"
+                                    onClick={() =>
+                                      setNewModuleIconKey(opt.key as any)
+                                    }
+                                    className={`h-8 px-2 rounded-md border text-xs font-medium transition-colors ${newModuleIconKey === opt.key ? "border-indigo-300 bg-indigo-50 text-indigo-900" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                                  >
                                     {opt.label}
                                   </button>
                                 ))}
@@ -1161,35 +1700,81 @@ export function ContentManager() {
                             </div>
                           </div>
                           <div className="flex justify-end gap-2 pt-2">
-                            <Button variant="outline" size="sm" onClick={resetNewModuleForm}>Cancel</Button>
-                            <Button size="sm" onClick={handleSaveModule}>Save module</Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={resetNewModuleForm}
+                            >
+                              Cancel
+                            </Button>
+                            <Button size="sm" onClick={handleSaveModule}>
+                              Save module
+                            </Button>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div key={module.moduleKey} draggable
-                        onDragStart={(e) => { setDraggedModuleId(module._id); e.dataTransfer.effectAllowed = "move"; }}
-                        onDragOver={(e) => { e.preventDefault(); setModuleDropTargetId(module._id); }}
-                        onDragLeave={() => { if (moduleDropTargetId === module._id) setModuleDropTargetId(null); }}
-                        onDrop={async (e) => { e.preventDefault(); await handleDropModule(module._id); setDraggedModuleId(null); setModuleDropTargetId(null); }}
-                        onDragEnd={() => { setDraggedModuleId(null); setModuleDropTargetId(null); }}
-                        className={`border rounded-md px-4 py-3 flex items-center justify-between gap-4 cursor-move transition-colors ${moduleDropTargetId === module._id ? "border-indigo-300 bg-indigo-50" : "bg-white"}`}>
+                      <div
+                        key={module.moduleKey}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedModuleId(module._id);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setModuleDropTargetId(module._id);
+                        }}
+                        onDragLeave={() => {
+                          if (moduleDropTargetId === module._id)
+                            setModuleDropTargetId(null);
+                        }}
+                        onDrop={async (e) => {
+                          e.preventDefault();
+                          await handleDropModule(module._id);
+                          setDraggedModuleId(null);
+                          setModuleDropTargetId(null);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedModuleId(null);
+                          setModuleDropTargetId(null);
+                        }}
+                        className={`border rounded-md px-4 py-3 flex items-center justify-between gap-4 cursor-move transition-colors ${moduleDropTargetId === module._id ? "border-indigo-300 bg-indigo-50" : "bg-white"}`}
+                      >
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-slate-800 truncate">{module.code} — {module.title}</p>
-                          <p className="text-xs text-slate-500 truncate">{module.description}</p>
+                          <p className="text-sm font-medium text-slate-800 truncate">
+                            {module.code} — {module.title}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {module.description}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-slate-100" onClick={() => startEditModule(module)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-600 hover:bg-slate-100"
+                            onClick={() => startEditModule(module)}
+                          >
                             <Pencil className="w-4 h-4 mr-1" /> Edit
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteModule(module)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDeleteModule(module)}
+                          >
                             <Trash2 className="w-4 h-4 mr-1" /> Delete
                           </Button>
                         </div>
                       </div>
                     ),
                   )}
-                  {(modules || []).length === 0 && <p className="text-xs text-slate-500 italic">No modules yet.</p>}
+                  {(modules || []).length === 0 && (
+                    <p className="text-xs text-slate-500 italic">
+                      No modules yet.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -1199,105 +1784,256 @@ export function ContentManager() {
               <Card className="shadow-sm">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <CardTitle className="text-base">Lessons</CardTitle>
-                  <CardDescription>Drag to reorder. Filtered by selected module.</CardDescription>
+                  <CardDescription>
+                    Drag to reorder. Filtered by selected module.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="p-3 space-y-2">
                   {filteredLessons.map((lesson: any) =>
                     editingLessonId === lesson._id ? (
-                      <div key={lesson._id} className="border rounded-lg p-4 bg-slate-50">
+                      <div
+                        key={lesson._id}
+                        className="border rounded-lg p-4 bg-slate-50"
+                      >
                         <div className="flex items-start justify-between gap-4 mb-3">
-                          <p className="text-sm font-semibold text-slate-800">Edit lesson</p>
-                          <Button variant="ghost" size="sm" onClick={resetNewLessonForm}>Cancel</Button>
+                          <p className="text-sm font-semibold text-slate-800">
+                            Edit lesson
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={resetNewLessonForm}
+                          >
+                            Cancel
+                          </Button>
                         </div>
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1">
-                              <label className="text-xs font-medium text-slate-700">Course</label>
+                              <label className="text-xs font-medium text-slate-700">
+                                Course
+                              </label>
                               <div ref={moduleDropdownRef} className="relative">
-                                <button type="button" disabled={!modules || modules.length === 0} onClick={() => setModuleDropdownOpen((v) => !v)}
-                                  className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 flex items-center justify-between text-left">
+                                <button
+                                  type="button"
+                                  disabled={!modules || modules.length === 0}
+                                  onClick={() =>
+                                    setModuleDropdownOpen((v) => !v)
+                                  }
+                                  className="h-9 w-full rounded-md border border-slate-200 bg-white text-sm pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 flex items-center justify-between text-left"
+                                >
                                   <span className="truncate text-slate-800">
-                                    {selectedModuleForNewLesson ? `${selectedModuleForNewLesson.code} — ${selectedModuleForNewLesson.title}` : "Select a module"}
+                                    {selectedModuleForNewLesson
+                                      ? `${selectedModuleForNewLesson.code} — ${selectedModuleForNewLesson.title}`
+                                      : "Select a module"}
                                   </span>
                                   <ChevronDown className="ml-2 h-4 w-4 text-slate-400 flex-shrink-0" />
                                 </button>
-                                {moduleDropdownOpen && modules && modules.length > 0 && (
-                                  <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
-                                    <div className="max-h-48 overflow-y-auto py-1">
-                                      {modules.map((m: any) => (
-                                        <button key={m.moduleKey} type="button" onClick={() => { setNewLessonSection(m.moduleKey); setModuleDropdownOpen(false); }}
-                                          className={`w-full px-3 py-2 text-sm text-left transition-colors ${m.moduleKey === newLessonSection ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}>
-                                          <div className="font-medium truncate">{m.code} — {m.title}</div>
-                                        </button>
-                                      ))}
+                                {moduleDropdownOpen &&
+                                  modules &&
+                                  modules.length > 0 && (
+                                    <div className="absolute mt-1 w-full z-50 rounded-md border border-slate-200 bg-white shadow-lg overflow-hidden">
+                                      <div className="max-h-48 overflow-y-auto py-1">
+                                        {modules.map((m: any) => (
+                                          <button
+                                            key={m.moduleKey}
+                                            type="button"
+                                            onClick={() => {
+                                              setNewLessonSection(m.moduleKey);
+                                              setModuleDropdownOpen(false);
+                                            }}
+                                            className={`w-full px-3 py-2 text-sm text-left transition-colors ${m.moduleKey === newLessonSection ? "bg-indigo-50 text-indigo-900" : "text-slate-700 hover:bg-slate-50"}`}
+                                          >
+                                            <div className="font-medium truncate">
+                                              {m.code} — {m.title}
+                                            </div>
+                                          </button>
+                                        ))}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
                               </div>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <label className="text-xs font-medium text-slate-700">Difficulty</label>
-                              <input type="text" className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                value={newLessonDifficulty} onChange={(e) => { setNewLessonDifficulty(e.target.value); clearFieldError("lessonDifficulty"); }} />
-                              {fieldErrors.lessonDifficulty && <p className="text-red-500 text-xs mt-1">{fieldErrors.lessonDifficulty}</p>}
+                              <label className="text-xs font-medium text-slate-700">
+                                Difficulty
+                              </label>
+                              <input
+                                type="text"
+                                className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={newLessonDifficulty}
+                                onChange={(e) => {
+                                  setNewLessonDifficulty(e.target.value);
+                                  clearFieldError("lessonDifficulty");
+                                }}
+                              />
+                              {fieldErrors.lessonDifficulty && (
+                                <p className="text-red-500 text-xs mt-1">
+                                  {fieldErrors.lessonDifficulty}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">Lesson title</label>
-                            <input type="text" className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={newLessonTitle} onChange={(e) => { setNewLessonTitle(e.target.value); clearFieldError("lessonTitle"); }} />
-                            {fieldErrors.lessonTitle && <p className="text-red-500 text-xs mt-1">{fieldErrors.lessonTitle}</p>}
+                            <label className="text-xs font-medium text-slate-700">
+                              Lesson title
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              value={newLessonTitle}
+                              onChange={(e) => {
+                                setNewLessonTitle(e.target.value);
+                                clearFieldError("lessonTitle");
+                              }}
+                            />
+                            {fieldErrors.lessonTitle && (
+                              <p className="text-red-500 text-xs mt-1">
+                                {fieldErrors.lessonTitle}
+                              </p>
+                            )}
                           </div>
                           <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-slate-700">Description</label>
-                            <textarea rows={2} className="w-full rounded-md border border-slate-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              value={newLessonDescription} onChange={(e) => { setNewLessonDescription(e.target.value); clearFieldError("lessonDescription"); }} />
-                            {fieldErrors.lessonDescription && <p className="text-red-500 text-xs mt-1">{fieldErrors.lessonDescription}</p>}
+                            <label className="text-xs font-medium text-slate-700">
+                              Description
+                            </label>
+                            <textarea
+                              rows={2}
+                              className="w-full rounded-md border border-slate-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              value={newLessonDescription}
+                              onChange={(e) => {
+                                setNewLessonDescription(e.target.value);
+                                clearFieldError("lessonDescription");
+                              }}
+                            />
+                            {fieldErrors.lessonDescription && (
+                              <p className="text-red-500 text-xs mt-1">
+                                {fieldErrors.lessonDescription}
+                              </p>
+                            )}
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1">
-                              <label className="text-xs font-medium text-slate-700">XP reward</label>
-                              <input type="number" min={1} className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                value={newLessonXpReward} onChange={(e) => { setNewLessonXpReward(e.target.value); clearFieldError("lessonXp"); }} />
-                              {fieldErrors.lessonXp && <p className="text-red-500 text-xs mt-1">{fieldErrors.lessonXp}</p>}
+                              <label className="text-xs font-medium text-slate-700">
+                                XP reward
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={newLessonXpReward}
+                                onChange={(e) => {
+                                  setNewLessonXpReward(e.target.value);
+                                  clearFieldError("lessonXp");
+                                }}
+                              />
+                              {fieldErrors.lessonXp && (
+                                <p className="text-red-500 text-xs mt-1">
+                                  {fieldErrors.lessonXp}
+                                </p>
+                              )}
                             </div>
                             <div className="flex flex-col gap-1">
-                              <label className="text-xs font-medium text-slate-700">Order <span className="font-normal text-slate-500">(optional)</span></label>
-                              <input type="number" min={1} placeholder="Auto" className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                value={newLessonOrder} onChange={(e) => { setNewLessonOrder(e.target.value); clearFieldError("lessonOrder"); }} />
-                              {fieldErrors.lessonOrder && <p className="text-red-500 text-xs mt-1">{fieldErrors.lessonOrder}</p>}
+                              <label className="text-xs font-medium text-slate-700">
+                                Order{" "}
+                                <span className="font-normal text-slate-500">
+                                  (optional)
+                                </span>
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                placeholder="Auto"
+                                className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={newLessonOrder}
+                                onChange={(e) => {
+                                  setNewLessonOrder(e.target.value);
+                                  clearFieldError("lessonOrder");
+                                }}
+                              />
+                              {fieldErrors.lessonOrder && (
+                                <p className="text-red-500 text-xs mt-1">
+                                  {fieldErrors.lessonOrder}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex justify-end gap-2 pt-2">
-                            <Button variant="outline" size="sm" onClick={resetNewLessonForm}>Cancel</Button>
-                            <Button size="sm" onClick={handleSaveLesson}>Save lesson</Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={resetNewLessonForm}
+                            >
+                              Cancel
+                            </Button>
+                            <Button size="sm" onClick={handleSaveLesson}>
+                              Save lesson
+                            </Button>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div key={lesson._id} draggable
-                        onDragStart={(e) => { setDraggedLessonId(lesson._id); e.dataTransfer.effectAllowed = "move"; }}
-                        onDragOver={(e) => { e.preventDefault(); setLessonDropTargetId(lesson._id); }}
-                        onDragLeave={() => { if (lessonDropTargetId === lesson._id) setLessonDropTargetId(null); }}
-                        onDrop={async (e) => { e.preventDefault(); await handleDropLesson(lesson._id); setDraggedLessonId(null); setLessonDropTargetId(null); }}
-                        onDragEnd={() => { setDraggedLessonId(null); setLessonDropTargetId(null); }}
-                        className={`border rounded-md px-4 py-3 flex items-center justify-between gap-4 cursor-move transition-colors ${lessonDropTargetId === lesson._id ? "border-indigo-300 bg-indigo-50" : "bg-white"}`}>
+                      <div
+                        key={lesson._id}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedLessonId(lesson._id);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setLessonDropTargetId(lesson._id);
+                        }}
+                        onDragLeave={() => {
+                          if (lessonDropTargetId === lesson._id)
+                            setLessonDropTargetId(null);
+                        }}
+                        onDrop={async (e) => {
+                          e.preventDefault();
+                          await handleDropLesson(lesson._id);
+                          setDraggedLessonId(null);
+                          setLessonDropTargetId(null);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedLessonId(null);
+                          setLessonDropTargetId(null);
+                        }}
+                        className={`border rounded-md px-4 py-3 flex items-center justify-between gap-4 cursor-move transition-colors ${lessonDropTargetId === lesson._id ? "border-indigo-300 bg-indigo-50" : "bg-white"}`}
+                      >
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-slate-800 truncate">{lesson.title}</p>
-                          <p className="text-xs text-slate-500 truncate">{lesson.description}</p>
+                          <p className="text-sm font-medium text-slate-800 truncate">
+                            {lesson.title}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {lesson.description}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-slate-100" onClick={() => startEditLesson(lesson)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-600 hover:bg-slate-100"
+                            onClick={() => startEditLesson(lesson)}
+                          >
                             <Pencil className="w-4 h-4 mr-1" /> Edit
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteLesson(lesson)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDeleteLesson(lesson)}
+                          >
                             <Trash2 className="w-4 h-4 mr-1" /> Delete
                           </Button>
                         </div>
                       </div>
                     ),
                   )}
-                  {filteredLessons.length === 0 && <p className="text-xs text-slate-500 italic">No lessons for this module.</p>}
+                  {filteredLessons.length === 0 && (
+                    <p className="text-xs text-slate-500 italic">
+                      No lessons for this module.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -1308,14 +2044,35 @@ export function ContentManager() {
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
-                      <p className="font-semibold text-slate-800">{selectedLesson.title}</p>
+                      <p className="font-semibold text-slate-800">
+                        {selectedLesson.title}
+                      </p>
                       <div className="flex gap-3 text-xs text-slate-500 mt-1">
-                        <span>Difficulty: <span className="font-semibold text-slate-700">{selectedLesson.difficulty}</span></span>
-                        <span>XP: <span className="font-semibold text-slate-700">{selectedLesson.xpReward}</span></span>
-                        <span>Questions: <span className="font-semibold text-slate-700">{selectedLesson.questions?.length || 0}</span></span>
+                        <span>
+                          Difficulty:{" "}
+                          <span className="font-semibold text-slate-700">
+                            {selectedLesson.difficulty}
+                          </span>
+                        </span>
+                        <span>
+                          XP:{" "}
+                          <span className="font-semibold text-slate-700">
+                            {selectedLesson.xpReward}
+                          </span>
+                        </span>
+                        <span>
+                          Questions:{" "}
+                          <span className="font-semibold text-slate-700">
+                            {selectedLesson.questions?.length || 0}
+                          </span>
+                        </span>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" onClick={startAddNewQuestion}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={startAddNewQuestion}
+                    >
                       <PlusCircle className="w-4 h-4 mr-1" /> Add question
                     </Button>
                   </div>
@@ -1324,22 +2081,58 @@ export function ContentManager() {
                   {selectedLesson.questions?.length > 0 ? (
                     <div className="space-y-2 h-64 overflow-y-auto pr-1">
                       {selectedLesson.questions.map((q: any, idx: number) => (
-                        <div key={idx} className="border rounded-md p-3 bg-white">
+                        <div
+                          key={idx}
+                          className="border rounded-md p-3 bg-white"
+                        >
                           <div className="flex justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs text-slate-500 mb-1">Q{idx + 1} · {q.type === "dragdrop" ? "Drag & Drop" : q.type === "fillblank" ? "Fill in Blank" : "MCQ"}</p>
-                              <p className="text-sm font-medium text-slate-800 truncate">{q.question}</p>
+                              <p className="text-xs text-slate-500 mb-1">
+                                Q{idx + 1} ·{" "}
+                                {q.type === "dragdrop"
+                                  ? "Drag & Drop"
+                                  : q.type === "fillblank"
+                                    ? "Fill in Blank"
+                                    : "MCQ"}
+                              </p>
+                              <p className="text-sm font-medium text-slate-800 truncate">
+                                {q.question}
+                              </p>
                               <p className="text-xs text-slate-500 mt-1">
-                                {q.type === "dragdrop" ? <span className="italic">Drag & Drop</span>
-                                  : q.type === "fillblank" ? <>Correct: <span className="font-semibold">{q.correctAnswer ?? "Not set"}</span></>
-                                  : <>Correct: <span className="font-semibold">{q.options?.[q.correct] ?? "Not set"}</span></>}
+                                {q.type === "dragdrop" ? (
+                                  <span className="italic">Drag & Drop</span>
+                                ) : q.type === "fillblank" ? (
+                                  <>
+                                    Correct:{" "}
+                                    <span className="font-semibold">
+                                      {q.correctAnswer ?? "Not set"}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    Correct:{" "}
+                                    <span className="font-semibold">
+                                      {q.options?.[q.correct] ?? "Not set"}
+                                    </span>
+                                  </>
+                                )}
                               </p>
                             </div>
                             <div className="flex items-start gap-2 shrink-0">
-                              <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-slate-100" onClick={() => startEditQuestion(idx)}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-slate-600 hover:bg-slate-100"
+                                onClick={() => startEditQuestion(idx)}
+                              >
                                 <Pencil className="w-4 h-4 mr-1" /> Edit
                               </Button>
-                              <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteQuestion(idx)}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDeleteQuestion(idx)}
+                              >
                                 <Trash2 className="w-4 h-4 mr-1" /> Delete
                               </Button>
                             </div>
@@ -1348,7 +2141,9 @@ export function ContentManager() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-500 italic p-2">This lesson has no questions yet.</p>
+                    <p className="text-xs text-slate-500 italic p-2">
+                      This lesson has no questions yet.
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -1370,32 +2165,76 @@ export function ContentManager() {
 
         {/* ── Glossary Modal ── */}
         {showGlossaryModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            onPointerDown={(e) => { if (e.target === e.currentTarget) { setShowGlossaryModal(false); resetGlossaryForm(); } }}>
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onPointerDown={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowGlossaryModal(false);
+                resetGlossaryForm();
+              }
+            }}
+          >
             <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-                <h2 className="text-sm font-semibold text-slate-800">Manage Glossary</h2>
-                <Button variant="ghost" size="sm" onClick={() => { setShowGlossaryModal(false); resetGlossaryForm(); }}>
+                <h2 className="text-sm font-semibold text-slate-800">
+                  Manage Glossary
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowGlossaryModal(false);
+                    resetGlossaryForm();
+                  }}
+                >
                   <XCircle className="w-4 h-4" />
                 </Button>
               </div>
               <div className="overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Add / edit form */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-slate-800">{editingGlossaryId ? "Edit Term" : "Add New Term"}</h3>
+                  <h3 className="font-semibold text-slate-800">
+                    {editingGlossaryId ? "Edit Term" : "Add New Term"}
+                  </h3>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Term</label>
-                    <input type="text" placeholder="e.g. polymer"
+                    <label className="text-xs font-medium text-slate-700">
+                      Term
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. polymer"
                       className="w-full h-9 rounded-md border border-slate-200 bg-white text-sm px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newGlossaryTerm} onChange={(e) => { setNewGlossaryTerm(e.target.value); clearFieldError("glossaryTerm"); }} />
-                    {fieldErrors.glossaryTerm && <p className="text-red-500 text-xs mt-1">{fieldErrors.glossaryTerm}</p>}
+                      value={newGlossaryTerm}
+                      onChange={(e) => {
+                        setNewGlossaryTerm(e.target.value);
+                        clearFieldError("glossaryTerm");
+                      }}
+                    />
+                    {fieldErrors.glossaryTerm && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.glossaryTerm}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Definition</label>
-                    <textarea rows={4} placeholder="A large molecule..."
+                    <label className="text-xs font-medium text-slate-700">
+                      Definition
+                    </label>
+                    <textarea
+                      rows={4}
+                      placeholder="A large molecule..."
                       className="w-full rounded-md border border-slate-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newGlossaryDef} onChange={(e) => { setNewGlossaryDef(e.target.value); clearFieldError("glossaryDef"); }} />
-                    {fieldErrors.glossaryDef && <p className="text-red-500 text-xs mt-1">{fieldErrors.glossaryDef}</p>}
+                      value={newGlossaryDef}
+                      onChange={(e) => {
+                        setNewGlossaryDef(e.target.value);
+                        clearFieldError("glossaryDef");
+                      }}
+                    />
+                    {fieldErrors.glossaryDef && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.glossaryDef}
+                      </p>
+                    )}
                   </div>
                   <div className="flex justify-end gap-2">
                     <input
@@ -1415,38 +2254,71 @@ export function ContentManager() {
                       {isImportingGlossary ? "Importing..." : "Import File"}
                     </Button>
                     {editingGlossaryId && (
-                      <Button variant="outline" size="sm" onClick={resetGlossaryForm}>Cancel Edit</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={resetGlossaryForm}
+                      >
+                        Cancel Edit
+                      </Button>
                     )}
                     <Button size="sm" onClick={handleSaveGlossaryTerm}>
                       {editingGlossaryId ? "Save Changes" : "Add Term"}
                     </Button>
                   </div>
                   <p className="text-xs text-slate-500">
-                    Import a CSV with <span className="font-medium">term,definition</span> columns or a JSON array of glossary items.
+                    Import a CSV with{" "}
+                    <span className="font-medium">term,definition</span> columns
+                    or a JSON array of glossary items.
                   </p>
                 </div>
                 {/* Existing terms list */}
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-slate-800">Existing Terms</h3>
+                  <h3 className="font-semibold text-slate-800">
+                    Existing Terms
+                  </h3>
                   <div className="max-h-[55vh] overflow-y-auto pr-2 space-y-2">
-                    {!glossary && <p className="text-xs text-slate-500">Loading...</p>}
+                    {!glossary && (
+                      <p className="text-xs text-slate-500">Loading...</p>
+                    )}
                     {glossary?.map((term: any) => (
-                      <div key={term._id} className="border rounded-md px-3 py-2 flex items-center justify-between gap-4 bg-slate-50">
+                      <div
+                        key={term._id}
+                        className="border rounded-md px-3 py-2 flex items-center justify-between gap-4 bg-slate-50"
+                      >
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-slate-800 truncate">{term.term}</p>
-                          <p className="text-xs text-slate-500 truncate">{term.definition}</p>
+                          <p className="text-sm font-medium text-slate-800 truncate">
+                            {term.term}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {term.definition}
+                          </p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:bg-slate-100" onClick={() => startEditGlossaryTerm(term)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-slate-500 hover:bg-slate-100"
+                            onClick={() => startEditGlossaryTerm(term)}
+                          >
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:bg-red-50" onClick={() => handleDeleteGlossaryTerm(term)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-red-500 hover:bg-red-50"
+                            onClick={() => handleDeleteGlossaryTerm(term)}
+                          >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       </div>
                     ))}
-                    {glossary?.length === 0 && <p className="text-xs text-slate-500 italic">No glossary terms found.</p>}
+                    {glossary?.length === 0 && (
+                      <p className="text-xs text-slate-500 italic">
+                        No glossary terms found.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1456,14 +2328,32 @@ export function ContentManager() {
 
         {/* ── Question Add/Edit Modal ── */}
         {showQuestionModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            onPointerDown={(e) => { if (e.target === e.currentTarget) { setShowQuestionModal(false); setEditingIndex(null); resetQuestionForm(); } }}>
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onPointerDown={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowQuestionModal(false);
+                setEditingIndex(null);
+                resetQuestionForm();
+              }
+            }}
+          >
             <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
                 <h2 className="text-sm font-semibold text-slate-800">
-                  {editingIndex === null ? "Add a new question" : `Edit question ${editingIndex + 1}`}
+                  {editingIndex === null
+                    ? "Add a new question"
+                    : `Edit question ${editingIndex + 1}`}
                 </h2>
-                <Button variant="ghost" size="sm" onClick={() => { setShowQuestionModal(false); setEditingIndex(null); resetQuestionForm(); }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowQuestionModal(false);
+                    setEditingIndex(null);
+                    resetQuestionForm();
+                  }}
+                >
                   <XCircle className="w-4 h-4" />
                 </Button>
               </div>
@@ -1471,9 +2361,19 @@ export function ContentManager() {
                 <div className="space-y-3">
                   {/* Question type */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Question type</label>
-                    <select className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={questionType} onChange={(e) => { setQuestionType(e.target.value as "mcq" | "dragdrop" | "fillblank"); setFieldErrors({}); }}>
+                    <label className="text-xs font-medium text-slate-700">
+                      Question type
+                    </label>
+                    <select
+                      className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={questionType}
+                      onChange={(e) => {
+                        setQuestionType(
+                          e.target.value as "mcq" | "dragdrop" | "fillblank",
+                        );
+                        setFieldErrors({});
+                      }}
+                    >
                       <option value="mcq">Multiple Choice</option>
                       <option value="dragdrop">Drag &amp; Drop</option>
                       <option value="fillblank">Fill in the Blank</option>
@@ -1483,24 +2383,52 @@ export function ContentManager() {
                   {/* Question text */}
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-slate-700">
-                      {questionType === "fillblank" ? 'Question with blank (use "___")' : "Question text"}
+                      {questionType === "fillblank"
+                        ? 'Question with blank (use "___")'
+                        : "Question text"}
                     </label>
-                    <textarea rows={3}
+                    <textarea
+                      rows={3}
                       className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       value={questionText}
-                      placeholder={questionType === "fillblank" ? "A polymer is a large ___ made of repeating subunits." : ""}
-                      onChange={(e) => { setQuestionText(e.target.value); clearFieldError("questionText"); }} />
-                    {fieldErrors.questionText && <p className="text-red-500 text-xs mt-1">{fieldErrors.questionText}</p>}
+                      placeholder={
+                        questionType === "fillblank"
+                          ? "A polymer is a large ___ made of repeating subunits."
+                          : ""
+                      }
+                      onChange={(e) => {
+                        setQuestionText(e.target.value);
+                        clearFieldError("questionText");
+                      }}
+                    />
+                    {fieldErrors.questionText && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.questionText}
+                      </p>
+                    )}
                   </div>
 
                   {/* Fill-in-the-blank correct answer */}
                   {questionType === "fillblank" && (
                     <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-700">Correct Answer</label>
-                      <input type="text" placeholder="molecule"
+                      <label className="text-xs font-medium text-slate-700">
+                        Correct Answer
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="molecule"
                         className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        value={fillCorrectAnswer} onChange={(e) => { setFillCorrectAnswer(e.target.value); clearFieldError("fillAnswer"); }} />
-                      {fieldErrors.fillAnswer && <p className="text-red-500 text-xs mt-1">{fieldErrors.fillAnswer}</p>}
+                        value={fillCorrectAnswer}
+                        onChange={(e) => {
+                          setFillCorrectAnswer(e.target.value);
+                          clearFieldError("fillAnswer");
+                        }}
+                      />
+                      {fieldErrors.fillAnswer && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {fieldErrors.fillAnswer}
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -1508,20 +2436,46 @@ export function ContentManager() {
                   {questionType === "mcq" && (
                     <>
                       <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-slate-700">Answer options (one per line)</label>
-                        <textarea rows={4}
+                        <label className="text-xs font-medium text-slate-700">
+                          Answer options (one per line)
+                        </label>
+                        <textarea
+                          rows={4}
                           className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          value={optionsText} onChange={(e) => { setOptionsText(e.target.value); clearFieldError("options"); }} />
-                        {fieldErrors.options && <p className="text-red-500 text-xs mt-1">{fieldErrors.options}</p>}
+                          value={optionsText}
+                          onChange={(e) => {
+                            setOptionsText(e.target.value);
+                            clearFieldError("options");
+                          }}
+                        />
+                        {fieldErrors.options && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {fieldErrors.options}
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-col gap-1">
                         <label className="text-xs font-medium text-slate-700">
-                          Correct option number <span className="font-normal text-slate-500">(1 = first line)</span>
+                          Correct option number{" "}
+                          <span className="font-normal text-slate-500">
+                            (1 = first line)
+                          </span>
                         </label>
-                        <input type="number" min={1}
+                        <input
+                          type="number"
+                          min={1}
                           className="w-full h-9 rounded-md border border-slate-200 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          value={correctOptionNumber} onChange={(e) => { setCorrectOptionNumber(e.target.value); clearFieldError("correctOption"); }} />
-                        {fieldErrors.correctOption && <p className="text-red-500 text-xs mt-1">{fieldErrors.correctOption}</p>}
+                          value={correctOptionNumber}
+                          onChange={(e) => {
+                            setCorrectOptionNumber(e.target.value);
+                            clearFieldError("correctOption");
+                          }}
+                        />
+                        {fieldErrors.correctOption && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {fieldErrors.correctOption}
+                          </p>
+                        )}
                       </div>
                     </>
                   )}
@@ -1531,85 +2485,197 @@ export function ContentManager() {
                     <div className="border rounded-md p-3 bg-slate-50 space-y-4">
                       {/* Answer bank */}
                       <div>
-                        <label className="text-xs font-medium text-slate-700">Answer bank</label>
+                        <label className="text-xs font-medium text-slate-700">
+                          Answer bank
+                        </label>
                         <div className="flex gap-2 mt-1">
-                          <input type="text" placeholder="Add answer and press Enter"
+                          <input
+                            type="text"
+                            placeholder="Add answer and press Enter"
                             className="flex-1 rounded-md border border-slate-200 text-sm px-2 h-8"
-                            value={ddBankInput} onChange={(e) => setDdBankInput(e.target.value)}
+                            value={ddBankInput}
+                            onChange={(e) => setDdBankInput(e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" && ddBankInput.trim()) {
-                                setDdAnswerBank([...ddAnswerBank, { id: crypto.randomUUID(), text: ddBankInput.trim() }]);
+                                setDdAnswerBank([
+                                  ...ddAnswerBank,
+                                  {
+                                    id: crypto.randomUUID(),
+                                    text: ddBankInput.trim(),
+                                  },
+                                ]);
                                 setDdBankInput("");
                                 e.preventDefault();
                               }
-                            }} />
-                          <button type="button" className="px-2 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition text-sm"
-                            onClick={() => { if (ddBankInput.trim()) { setDdAnswerBank([...ddAnswerBank, { id: crypto.randomUUID(), text: ddBankInput.trim() }]); setDdBankInput(""); } }}>
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="px-2 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition text-sm"
+                            onClick={() => {
+                              if (ddBankInput.trim()) {
+                                setDdAnswerBank([
+                                  ...ddAnswerBank,
+                                  {
+                                    id: crypto.randomUUID(),
+                                    text: ddBankInput.trim(),
+                                  },
+                                ]);
+                                setDdBankInput("");
+                              }
+                            }}
+                          >
                             Add
                           </button>
                         </div>
-                        {fieldErrors.ddBank && <p className="text-red-500 text-xs mt-1">{fieldErrors.ddBank}</p>}
+                        {fieldErrors.ddBank && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {fieldErrors.ddBank}
+                          </p>
+                        )}
                         <div className="flex flex-wrap gap-2 mt-2">
                           {ddAnswerBank.map((ans) => (
-                            <div key={ans.id} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", ans.id)}
-                              className="px-2 py-1 bg-white border rounded shadow text-sm cursor-move flex items-center">
+                            <div
+                              key={ans.id}
+                              draggable
+                              onDragStart={(e) =>
+                                e.dataTransfer.setData("text/plain", ans.id)
+                              }
+                              className="px-2 py-1 bg-white border rounded shadow text-sm cursor-move flex items-center"
+                            >
                               {ans.text}
-                              <button type="button" className="ml-2 text-xs text-red-500 hover:text-red-700"
-                                onClick={() => setDdAnswerBank(ddAnswerBank.filter((a) => a.id !== ans.id))}>✕</button>
+                              <button
+                                type="button"
+                                className="ml-2 text-xs text-red-500 hover:text-red-700"
+                                onClick={() =>
+                                  setDdAnswerBank(
+                                    ddAnswerBank.filter((a) => a.id !== ans.id),
+                                  )
+                                }
+                              >
+                                ✕
+                              </button>
                             </div>
                           ))}
                         </div>
                       </div>
                       {/* Sections */}
                       <div>
-                        <label className="text-xs font-medium text-slate-700">Sections</label>
+                        <label className="text-xs font-medium text-slate-700">
+                          Sections
+                        </label>
                         <div className="flex flex-wrap gap-2 mt-1 mb-2">
                           {ddSections.map((section, sIdx) => (
-                            <input key={`sec-input-${sIdx}`} type="text"
+                            <input
+                              key={`sec-input-${sIdx}`}
+                              type="text"
                               className="rounded-md border border-slate-200 text-sm px-2 h-8 w-32"
                               value={section.name}
-                              onChange={(e) => { const s = [...ddSections]; s[sIdx].name = e.target.value; setDdSections(s); }} />
+                              onChange={(e) => {
+                                const s = [...ddSections];
+                                s[sIdx].name = e.target.value;
+                                setDdSections(s);
+                              }}
+                            />
                           ))}
-                          <button type="button" className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition text-sm"
-                            onClick={() => setDdSections([...ddSections, { name: `Section ${ddSections.length + 1}`, answers: [] }])}>
+                          <button
+                            type="button"
+                            className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition text-sm"
+                            onClick={() =>
+                              setDdSections([
+                                ...ddSections,
+                                {
+                                  name: `Section ${ddSections.length + 1}`,
+                                  answers: [],
+                                },
+                              ])
+                            }
+                          >
                             + Add Section
                           </button>
                         </div>
-                        {fieldErrors.ddSections && <p className="text-red-500 text-xs mt-1">{fieldErrors.ddSections}</p>}
+                        {fieldErrors.ddSections && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {fieldErrors.ddSections}
+                          </p>
+                        )}
                         <div className="grid grid-cols-2 gap-4">
                           {ddSections.map((section, sIdx) => (
-                            <div key={`sec-drop-${sIdx}`} className="bg-white border rounded p-2 min-h-[80px]"
+                            <div
+                              key={`sec-drop-${sIdx}`}
+                              className="bg-white border rounded p-2 min-h-[80px]"
                               onDragOver={(e) => e.preventDefault()}
                               onDrop={(e) => {
-                                const draggedId = e.dataTransfer.getData("text/plain");
+                                const draggedId =
+                                  e.dataTransfer.getData("text/plain");
                                 if (!draggedId) return;
-                                let draggedItem = ddAnswerBank.find((a) => a.id === draggedId);
+                                let draggedItem = ddAnswerBank.find(
+                                  (a) => a.id === draggedId,
+                                );
                                 if (!draggedItem) {
                                   for (const sec of ddSections) {
-                                    const found = sec.answers.find((a) => a.id === draggedId);
-                                    if (found) { draggedItem = found; break; }
+                                    const found = sec.answers.find(
+                                      (a) => a.id === draggedId,
+                                    );
+                                    if (found) {
+                                      draggedItem = found;
+                                      break;
+                                    }
                                   }
                                 }
                                 if (!draggedItem) return;
-                                setDdAnswerBank((prev) => prev.filter((a) => a.id !== draggedId));
-                                setDdSections(ddSections.map((sec, i) => {
-                                  const filtered = sec.answers.filter((a) => a.id !== draggedId);
-                                  return i === sIdx ? { ...sec, answers: [...filtered, draggedItem!] } : { ...sec, answers: filtered };
-                                }));
-                              }}>
-                              <div className="font-semibold text-xs mb-1 border-b pb-1">{section.name}</div>
-                              {section.answers.length === 0 && <div className="text-slate-400 text-xs italic mt-2">Drop answers here</div>}
+                                setDdAnswerBank((prev) =>
+                                  prev.filter((a) => a.id !== draggedId),
+                                );
+                                setDdSections(
+                                  ddSections.map((sec, i) => {
+                                    const filtered = sec.answers.filter(
+                                      (a) => a.id !== draggedId,
+                                    );
+                                    return i === sIdx
+                                      ? {
+                                          ...sec,
+                                          answers: [...filtered, draggedItem!],
+                                        }
+                                      : { ...sec, answers: filtered };
+                                  }),
+                                );
+                              }}
+                            >
+                              <div className="font-semibold text-xs mb-1 border-b pb-1">
+                                {section.name}
+                              </div>
+                              {section.answers.length === 0 && (
+                                <div className="text-slate-400 text-xs italic mt-2">
+                                  Drop answers here
+                                </div>
+                              )}
                               {section.answers.map((ans) => (
-                                <div key={ans.id} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", ans.id)}
-                                  className="px-2 py-1 bg-indigo-50 border border-indigo-100 rounded shadow-sm text-sm flex items-center justify-between mt-2 cursor-move">
-                                  <span className="truncate mr-2">{ans.text}</span>
-                                  <button type="button" className="text-xs text-red-500 hover:text-red-700 shrink-0"
+                                <div
+                                  key={ans.id}
+                                  draggable
+                                  onDragStart={(e) =>
+                                    e.dataTransfer.setData("text/plain", ans.id)
+                                  }
+                                  className="px-2 py-1 bg-indigo-50 border border-indigo-100 rounded shadow-sm text-sm flex items-center justify-between mt-2 cursor-move"
+                                >
+                                  <span className="truncate mr-2">
+                                    {ans.text}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="text-xs text-red-500 hover:text-red-700 shrink-0"
                                     onClick={() => {
                                       const s = [...ddSections];
-                                      s[sIdx].answers = s[sIdx].answers.filter((a) => a.id !== ans.id);
+                                      s[sIdx].answers = s[sIdx].answers.filter(
+                                        (a) => a.id !== ans.id,
+                                      );
                                       setDdSections(s);
                                       setDdAnswerBank([...ddAnswerBank, ans]);
-                                    }}>✕</button>
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
                                 </div>
                               ))}
                             </div>
@@ -1621,20 +2687,50 @@ export function ContentManager() {
 
                   {/* Image upload */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Upload image</label>
-                    <input id="question-image-upload" type="file" accept="image/*" className="sr-only"
-                      ref={imageInputRef} disabled={isUploading} onChange={handleImageUpload} />
-                    <button type="button" onClick={() => imageInputRef.current?.click()}
-                      className={`inline-flex w-fit items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${isUploading ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}>
+                    <label className="text-xs font-medium text-slate-700">
+                      Upload image
+                    </label>
+                    <input
+                      id="question-image-upload"
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      ref={imageInputRef}
+                      disabled={isUploading}
+                      onChange={handleImageUpload}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      className={`inline-flex w-fit items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${isUploading ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}
+                    >
                       Choose image to upload
                     </button>
-                    <p className="text-[11px] text-slate-500">{imageFileName || "No file selected"}</p>
+                    <p className="text-[11px] text-slate-500">
+                      {imageFileName || "No file selected"}
+                    </p>
                     {previewUrl && (
                       <div className="mt-2 w-full h-48 bg-slate-50 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden relative">
-                        <img src={previewUrl} alt="Preview" className="w-full h-full object-contain p-2"
-                          onError={() => { if (imageUrl) setBrokenLinks((prev) => new Set(prev).add(imageUrl)); }} />
-                        <button type="button" onClick={() => { setImageUrl(""); setImageStorageId(""); setImageFileName(""); }}
-                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full shadow-sm">
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          className="w-full h-full object-contain p-2"
+                          onError={() => {
+                            if (imageUrl)
+                              setBrokenLinks((prev) =>
+                                new Set(prev).add(imageUrl),
+                              );
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImageUrl("");
+                            setImageStorageId("");
+                            setImageFileName("");
+                          }}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full shadow-sm"
+                        >
                           <XCircle className="w-4 h-4" />
                         </button>
                       </div>
@@ -1643,18 +2739,39 @@ export function ContentManager() {
 
                   {/* Explanation */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-slate-700">Explanation</label>
-                    <textarea rows={3}
+                    <label className="text-xs font-medium text-slate-700">
+                      Explanation
+                    </label>
+                    <textarea
+                      rows={3}
                       className="w-full rounded-md border border-slate-200 text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={explanation} onChange={(e) => setExplanation(e.target.value)} />
+                      value={explanation}
+                      onChange={(e) => setExplanation(e.target.value)}
+                    />
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2 mt-4 border-t border-slate-100">
-                    <Button variant="outline" size="sm" onClick={() => { setShowQuestionModal(false); setEditingIndex(null); resetQuestionForm(); }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowQuestionModal(false);
+                        setEditingIndex(null);
+                        resetQuestionForm();
+                      }}
+                    >
                       Cancel
                     </Button>
-                    <Button size="sm" onClick={handleSaveQuestion} disabled={isUploading}>
-                      {isUploading ? "Uploading image..." : editingIndex === null ? "Add question to set" : "Save changes"}
+                    <Button
+                      size="sm"
+                      onClick={handleSaveQuestion}
+                      disabled={isUploading}
+                    >
+                      {isUploading
+                        ? "Uploading image..."
+                        : editingIndex === null
+                          ? "Add question to set"
+                          : "Save changes"}
                     </Button>
                   </div>
                 </div>
