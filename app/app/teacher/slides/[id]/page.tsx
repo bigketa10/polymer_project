@@ -101,6 +101,7 @@ export default function SlidePresentationPage() {
     <div className="mx-auto max-w-7xl">
       <Link href="/teacher/slides" className="text-sm text-sky-300">Back to decks</Link>
       <header className="mb-6 mt-5"><p className="text-xs uppercase tracking-widest text-sky-300">PowerPoint presentation</p><h1 className="mt-2 text-3xl font-bold">{deck.title}</h1><p className="mt-2 text-sm text-slate-400">Glossary matches are highlighted in amber. Hover a highlight for its definition.</p></header>
+      {fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer" download={deck.originalFileName} className="mb-4 inline-flex items-center rounded-md bg-sky-300 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-sky-200">Open original PowerPoint</a>}
       {status && <p className="mb-4 rounded border border-slate-700 bg-slate-900 p-3 text-sm text-slate-300">{status}</p>}
       {renderError && <div className="mb-4 rounded border border-red-400/40 bg-red-950/40 p-4 text-sm text-red-100"><p>{renderError}</p><p className="mt-2 text-red-200">The original PowerPoint is stored, but this browser renderer could not display it.</p></div>}
       <div ref={previewRef} className="min-h-[240px] overflow-x-auto rounded-lg bg-slate-900 p-2 [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full" />
