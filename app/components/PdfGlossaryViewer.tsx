@@ -10,23 +10,18 @@ type GlossaryTerm = { term: string; definition: string };
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
-}
-
 function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function renderGlossaryText(text: string, glossary: GlossaryTerm[]) {
-  const terms = glossary.map((item) => item.term.trim()).filter(Boolean).sort((a, b) => b.length - a.length);
-  if (!terms.length) return escapeHtml(text);
-  const pattern = new RegExp(`(?<![A-Za-z0-9_])(${terms.map(escapeRegExp).join("|")})(?![A-Za-z0-9_])`, "gi");
-  return escapeHtml(text).replace(pattern, (match) => {
-    const entry = glossary.find((item) => item.term.toLowerCase() === match.toLowerCase());
-    if (!entry) return match;
-    return `<span class="pdf-glossary-term" title="${escapeHtml(entry.definition)}">${match}</span>`;
-  });
+  const glossaryByTerm = new Map(glossary.map((item) => [item.term.toLowerCase(), item]));
+  return text.split(/(\s+)/).map((part) => {
+    const cleanKey = part.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()? '"[\]]/g, "");
+    const entry = glossaryByTerm.get(cleanKey);
+    if (!entry) return escapeHtml(part);
+    return `<span class="pdf-glossary-term" title="${escapeHtml(entry.definition)}">${escapeHtml(part)}</span>`;
+  }).join("");
 }
 
 export function PdfGlossaryViewer({ url, glossary }: { url: string; glossary: GlossaryTerm[] }) {
