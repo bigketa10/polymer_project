@@ -65,11 +65,13 @@ export default function SlidePresentationPage() {
         const arrayBuffer = await response.arrayBuffer();
         if (cancelled || !previewRef.current) return;
         previewRef.current.replaceChildren();
-        const viewer = init(previewRef.current, {
-          width: 1280,
-          height: 720,
-          mode: "slide",
-        });
+        const sizingZip = await import("jszip");
+        const zip = await sizingZip.default.loadAsync(arrayBuffer);
+        const presentationXml = await zip.file("ppt/presentation.xml")?.async("string");
+        const sizeMatch = presentationXml?.match(/<p:sldSz[^>]*cx="(\d+)"[^>]*cy="(\d+)"/);
+        const width = sizeMatch ? Number(sizeMatch[1]) : 1280;
+        const height = sizeMatch ? Number(sizeMatch[2]) : 720;
+        const viewer = init(previewRef.current, { width, height, mode: "slide" });
         await viewer.preview(arrayBuffer);
         if (!cancelled) setStatus("");
         if (glossary?.length) highlightGlossary(previewRef.current, glossary);
