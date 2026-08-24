@@ -12,7 +12,12 @@ type GlossaryTerm = { term: string; definition: string };
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 function escapeHtml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function escapeRegExp(value: string) {
@@ -20,14 +25,19 @@ function escapeRegExp(value: string) {
 }
 
 function renderGlossaryText(text: string, glossary: GlossaryTerm[]) {
-  const terms = glossary.map((item) => item.term.trim()).filter(Boolean).sort((a, b) => b.length - a.length);
+  const terms = glossary
+    .map((item) => item.term.trim())
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
   if (!terms.length) return escapeHtml(text);
   const pattern = new RegExp(
     `(?<![\\p{L}\\p{N}_])(${terms.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}_])`,
     "giu",
   );
   return escapeHtml(text).replace(pattern, (match) => {
-    const entry = glossary.find((item) => item.term.toLowerCase() === match.toLowerCase());
+    const entry = glossary.find(
+      (item) => item.term.toLowerCase() === match.toLowerCase(),
+    );
     if (!entry) return match;
     return `<span class="pdf-glossary-term" data-definition="${escapeHtml(entry.definition)}" title="${escapeHtml(entry.definition)}">${match}</span>`;
   });
@@ -44,12 +54,18 @@ export function PdfGlossaryViewer({
   const [pageCount, setPageCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const file = useMemo(() => ({ url }), [url]);
-  const pageWidth = typeof window === "undefined" ? 1100 : Math.min(1100, Math.max(320, window.innerWidth - 48));
+  const pageWidth =
+    typeof window === "undefined"
+      ? 1100
+      : Math.min(1100, Math.max(320, window.innerWidth - 48));
 
   return (
     <div className="pdf-glossary-page pr-1">
       {pageCount > 0 && (
-        <nav aria-label="PDF pages" className="mb-4 flex items-center justify-center gap-3">
+        <nav
+          aria-label="PDF pages"
+          className="mb-4 flex items-center justify-center gap-3"
+        >
           <Button
             type="button"
             variant="outline"
@@ -63,7 +79,10 @@ export function PdfGlossaryViewer({
             <ChevronLeft aria-hidden="true" className="h-4 w-4" />
             <span>Previous</span>
           </Button>
-          <span aria-live="polite" className="min-w-24 text-center text-sm font-medium text-slate-300">
+          <span
+            aria-live="polite"
+            className="min-w-24 text-center text-sm font-medium text-slate-300"
+          >
             Page {pageNumber} of {pageCount}
           </span>
           <Button
