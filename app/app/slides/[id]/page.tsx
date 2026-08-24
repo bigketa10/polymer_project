@@ -67,13 +67,13 @@ export default function StudentSlidePage() {
       </main>
     );
   return (
-    <main className="h-[100dvh] overflow-y-auto bg-slate-950 p-4 text-slate-100 sm:p-8">
+    <main className="h-[100dvh] overflow-y-auto bg-slate-50 p-4 text-slate-900 sm:p-8">
       <div className="mx-auto max-w-7xl pb-8">
         <Link href="/slides" className="text-sm text-sky-300">
           Back to slides
         </Link>
         <h1 className="mb-2 mt-5 text-3xl font-bold">{deck.title}</h1>
-        <p className="mb-5 text-sm text-slate-400">
+        <p className="mb-5 text-sm text-slate-500">
           Select text directly in the PDF, as you would in the lesson material.
         </p>
         {fileUrl && (
@@ -88,7 +88,7 @@ export default function StudentSlidePage() {
           </a>
         )}
         {!isPdf && status && (
-          <p className="mb-4 rounded border border-slate-700 bg-slate-900 p-3 text-sm">
+          <p className="mb-4 rounded border border-slate-200 bg-white p-3 text-sm text-slate-700">
             {status}
           </p>
         )}
@@ -97,7 +97,7 @@ export default function StudentSlidePage() {
         ) : (
           <div
             ref={previewRef}
-            className="min-h-[240px] overflow-x-auto rounded-lg bg-slate-900 p-2 [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full"
+            className="min-h-[240px] overflow-x-auto rounded-lg bg-white p-2 shadow-sm [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full"
           />
         )}
       </div>

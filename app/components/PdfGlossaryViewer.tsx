@@ -74,7 +74,7 @@ export function PdfGlossaryViewer({
             onClick={() => setPageNumber((value) => value - 1)}
             aria-label="Previous page"
             title="Previous page"
-            className="gap-1.5 border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+              className="gap-1.5 border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
           >
             <ChevronLeft aria-hidden="true" className="h-4 w-4" />
             <span>Previous</span>
@@ -93,7 +93,7 @@ export function PdfGlossaryViewer({
             onClick={() => setPageNumber((value) => value + 1)}
             aria-label="Next page"
             title="Next page"
-            className="gap-1.5 border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800"
+              className="gap-1.5 border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
           >
             <span>Next</span>
             <ChevronRight aria-hidden="true" className="h-4 w-4" />
@@ -115,7 +115,7 @@ export function PdfGlossaryViewer({
           onLoadError={(cause) =>
             setError(cause.message || "Could not load this PDF.")
           }
-          loading={<p className="p-4 text-sm text-slate-300">Loading PDF...</p>}
+            loading={<p className="p-4 text-sm text-slate-600">Loading PDF...</p>}
         >
           <div className="mx-auto w-fit bg-white shadow-xl">
             <Page
@@ -133,7 +133,7 @@ export function PdfGlossaryViewer({
           </div>
         </Document>
       </div>
-      <p className="mt-3 text-center text-sm text-slate-300">
+        <p className="mt-3 text-center text-sm text-slate-500">
         Glossary terms are highlighted like lesson text. Hover a term for its
         definition.
       </p>

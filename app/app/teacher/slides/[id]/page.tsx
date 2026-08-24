@@ -93,17 +93,17 @@ export default function SlidePresentationPage() {
     );
 
   return (
-    <main className="h-[100dvh] overflow-y-auto bg-slate-950 p-4 text-slate-100 sm:p-8">
+    <main className="h-[100dvh] overflow-y-auto bg-slate-50 p-4 text-slate-900 sm:p-8">
       <div className="mx-auto max-w-7xl pb-8">
         <Link href="/teacher/slides" className="text-sm text-sky-300">
           Back to decks
         </Link>
         <header className="mb-6 mt-5">
-          <p className="text-xs uppercase tracking-widest text-sky-300">
+          <p className="text-xs uppercase tracking-widest text-sky-600">
             PowerPoint presentation
           </p>
           <h1 className="mt-2 text-3xl font-bold">{deck.title}</h1>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-slate-500">
             Glossary matches are highlighted in amber. Hover a highlight for its
             definition.
           </p>
@@ -120,7 +120,7 @@ export default function SlidePresentationPage() {
           </a>
         )}
         {!isPdf && status && (
-          <p className="mb-4 rounded border border-slate-700 bg-slate-900 p-3 text-sm text-slate-300">
+          <p className="mb-4 rounded border border-slate-200 bg-white p-3 text-sm text-slate-700">
             {status}
           </p>
         )}
@@ -138,7 +138,7 @@ export default function SlidePresentationPage() {
         ) : (
           <div
             ref={previewRef}
-            className="min-h-[240px] overflow-x-auto rounded-lg bg-slate-900 p-2 [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full"
+            className="min-h-[240px] overflow-x-auto rounded-lg bg-white p-2 shadow-sm [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full"
           />
         )}
       </div>
