@@ -62,8 +62,8 @@ export default function SlidePresentationPage() {
   if (deck === undefined) return <main className="p-8">Loading slides...</main>;
   if (!deck) return <main className="p-8"><p>Deck not found.</p><Link className="text-blue-600" href="/teacher/slides">Back to decks</Link></main>;
 
-  return <main className="min-h-full bg-slate-950 p-4 text-slate-100 sm:p-8">
-    <div className="mx-auto max-w-7xl">
+  return <main className="h-[100dvh] overflow-y-auto bg-slate-950 p-4 text-slate-100 sm:p-8">
+    <div className="mx-auto max-w-7xl pb-8">
       <Link href="/teacher/slides" className="text-sm text-sky-300">Back to decks</Link>
       <header className="mb-6 mt-5"><p className="text-xs uppercase tracking-widest text-sky-300">PowerPoint presentation</p><h1 className="mt-2 text-3xl font-bold">{deck.title}</h1><p className="mt-2 text-sm text-slate-400">Glossary matches are highlighted in amber. Hover a highlight for its definition.</p></header>
       {fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer" download={deck.originalFileName} className="mb-4 inline-flex items-center rounded-md bg-sky-300 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-sky-200">Open original {isPdf ? "PDF" : "PowerPoint"}</a>}

@@ -15,7 +15,7 @@ export function PdfGlossaryViewer({ url }: { url: string }) {
   const file = useMemo(() => ({ url }), [url]);
   const pageWidth = typeof window === "undefined" ? 1100 : Math.min(1100, Math.max(320, window.innerWidth - 48));
 
-  return <div>
+  return <div className="max-h-[calc(100dvh-180px)] overflow-y-auto pr-1">
     {pageCount > 0 && <div className="mb-4 flex items-center justify-center gap-3"><Button type="button" variant="outline" size="sm" disabled={pageNumber <= 1} onClick={() => setPageNumber((value) => value - 1)}>Previous</Button><span className="text-sm text-slate-300">Page {pageNumber} of {pageCount}</span><Button type="button" variant="outline" size="sm" disabled={pageNumber >= pageCount} onClick={() => setPageNumber((value) => value + 1)}>Next</Button></div>}
     {error && <div className="mb-4 rounded border border-red-400/40 bg-red-950/40 p-4 text-sm text-red-100">{error}</div>}
     <div className="overflow-x-auto">
