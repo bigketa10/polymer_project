@@ -197,6 +197,12 @@ body {
   background-color: transparent;
 }
 
+.pdf-glossary-page .textLayer,
+.pdf-glossary-page .textLayer span {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 .pdf-glossary-page .textLayer .pdf-glossary-term::after {
   position: absolute;
   bottom: calc(100% + 0.5rem);
