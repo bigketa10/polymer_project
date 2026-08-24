@@ -8,47 +8,10 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { PdfGlossaryViewer } from "@/components/PdfGlossaryViewer";
 
-type GlossaryTerm = { term: string; definition: string };
-
-function highlightGlossary(root: HTMLElement, terms: GlossaryTerm[]) {
-  const sortedTerms = terms.map((item) => item.term.trim()).filter(Boolean).sort((a, b) => b.length - a.length);
-  if (!sortedTerms.length) return;
-  const pattern = new RegExp(`(${sortedTerms.map((term) => term.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")).join("|")})`, "gi");
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const nodes: Text[] = [];
-  let node: Node | null;
-  while ((node = walker.nextNode())) {
-    if (node.parentElement?.closest("mark, script, style")) continue;
-    nodes.push(node as Text);
-  }
-  for (const textNode of nodes) {
-    if (!pattern.test(textNode.data)) {
-      pattern.lastIndex = 0;
-      continue;
-    }
-    pattern.lastIndex = 0;
-    const fragment = document.createDocumentFragment();
-    let lastIndex = 0;
-    textNode.data.replace(pattern, (match, _group, offset: number) => {
-      fragment.append(textNode.data.slice(lastIndex, offset));
-      const mark = document.createElement("mark");
-      mark.className = "bg-amber-300 text-slate-950 rounded px-0.5";
-      mark.title = terms.find((item) => item.term.toLowerCase() === match.toLowerCase())?.definition || "Glossary term";
-      mark.textContent = match;
-      fragment.append(mark);
-      lastIndex = offset + match.length;
-      return match;
-    });
-    fragment.append(textNode.data.slice(lastIndex));
-    textNode.replaceWith(fragment);
-  }
-}
-
 export default function SlidePresentationPage() {
   const params = useParams<{ id: string }>();
   const deck = useQuery(api.slides.get, { id: params.id as Id<"slideDecks"> });
   const fileUrl = useQuery(api.uploads.getFileUrl, deck ? { storageId: deck.originalStorageId } : "skip");
-  const glossary = useQuery(api.glossary.getAll) as GlossaryTerm[] | undefined;
   const isPdf = deck?.originalFileName.toLowerCase().endsWith(".pdf");
   const previewRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState("Loading presentation...");
@@ -84,7 +47,6 @@ export default function SlidePresentationPage() {
           throw new Error("The PowerPoint renderer produced no slides. Try exporting the deck as PDF.");
         }
         if (!cancelled) setStatus("");
-        if (glossary?.length) highlightGlossary(previewRef.current, glossary);
       } catch (error) {
         if (!cancelled) {
           const message = error instanceof Error ? error.message : "Could not render this presentation.";
@@ -95,7 +57,7 @@ export default function SlidePresentationPage() {
     };
     void render();
     return () => { cancelled = true; };
-  }, [fileUrl, glossary, isPdf]);
+  }, [fileUrl, isPdf]);
 
   if (deck === undefined) return <main className="p-8">Loading slides...</main>;
   if (!deck) return <main className="p-8"><p>Deck not found.</p><Link className="text-blue-600" href="/teacher/slides">Back to decks</Link></main>;
@@ -107,7 +69,7 @@ export default function SlidePresentationPage() {
       {fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer" download={deck.originalFileName} className="mb-4 inline-flex items-center rounded-md bg-sky-300 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-sky-200">Open original {isPdf ? "PDF" : "PowerPoint"}</a>}
       {status && <p className="mb-4 rounded border border-slate-700 bg-slate-900 p-3 text-sm text-slate-300">{status}</p>}
       {renderError && <div className="mb-4 rounded border border-red-400/40 bg-red-950/40 p-4 text-sm text-red-100"><p>{renderError}</p><p className="mt-2 text-red-200">The original PowerPoint is stored, but this browser renderer could not display it.</p></div>}
-      {isPdf && fileUrl ? <PdfGlossaryViewer url={fileUrl} glossary={glossary || []} /> : <div ref={previewRef} className="min-h-[240px] overflow-x-auto rounded-lg bg-slate-900 p-2 [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full" />}
+      {isPdf && fileUrl ? <PdfGlossaryViewer url={fileUrl} /> : <div ref={previewRef} className="min-h-[240px] overflow-x-auto rounded-lg bg-slate-900 p-2 [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full" />}
     </div>
   </main>;
 }
