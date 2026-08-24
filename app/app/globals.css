@@ -186,6 +186,64 @@ body {
   font-weight: 500;
 }
 
+.pdf-glossary-page .textLayer .pdf-glossary-term {
+  position: relative;
+  display: inline-block;
+  width: max-content;
+  max-width: max-content;
+}
+
+.pdf-glossary-page .textLayer .pdf-glossary-term::after {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  z-index: 50;
+  width: 12rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.75rem;
+  border: 2px solid rgb(226 232 240);
+  border-radius: 0.75rem;
+  background: white;
+  color: rgb(30 41 59);
+  content: attr(data-definition);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 150ms ease;
+  visibility: hidden;
+  box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.2), 0 8px 10px -6px rgb(15 23 42 / 0.2);
+}
+
+.pdf-glossary-page .textLayer .pdf-glossary-term::before {
+  position: absolute;
+  bottom: calc(100% + 0.125rem);
+  left: 50%;
+  z-index: 51;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-right: 2px solid rgb(226 232 240);
+  border-bottom: 2px solid rgb(226 232 240);
+  background: white;
+  content: "";
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 0.375rem) rotate(45deg);
+  transition: opacity 150ms ease;
+  visibility: hidden;
+}
+
+.pdf-glossary-page .textLayer .pdf-glossary-term:hover::after,
+.pdf-glossary-page .textLayer .pdf-glossary-term:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
 .party-popper-star {
   transform-origin: center;
   animation: party-popper-star 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;

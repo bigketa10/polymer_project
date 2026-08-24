@@ -11,7 +11,7 @@ type GlossaryTerm = { term: string; definition: string };
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 function escapeHtml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 function escapeRegExp(value: string) {
@@ -25,7 +25,7 @@ function renderGlossaryText(text: string, glossary: GlossaryTerm[]) {
   return escapeHtml(text).replace(pattern, (match) => {
     const entry = glossary.find((item) => item.term.toLowerCase() === match.toLowerCase());
     if (!entry) return match;
-    return `<span class="pdf-glossary-term" title="${escapeHtml(entry.definition)}">${match}</span>`;
+    return `<span class="pdf-glossary-term" data-definition="${escapeHtml(entry.definition)}" title="${escapeHtml(entry.definition)}">${match}</span>`;
   });
 }
 
@@ -43,7 +43,7 @@ export function PdfGlossaryViewer({
   const pageWidth = typeof window === "undefined" ? 1100 : Math.min(1100, Math.max(320, window.innerWidth - 48));
 
   return (
-    <div className="max-h-[calc(100dvh-180px)] overflow-y-auto pr-1">
+    <div className="pdf-glossary-page max-h-[calc(100dvh-180px)] overflow-y-auto pr-1">
       {pageCount > 0 && (
         <div className="mb-4 flex items-center justify-center gap-3">
           <Button
