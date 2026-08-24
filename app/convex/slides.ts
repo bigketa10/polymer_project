@@ -38,7 +38,9 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
-    if (args.slides.length === 0) throw new Error("The deck contains no readable slides.");
+    if (args.slides.length === 0 && !args.originalFileName.toLowerCase().endsWith(".pdf")) {
+      throw new Error("The deck contains no readable slides.");
+    }
     return await ctx.db.insert("slideDecks", {
       ...args,
       title: args.title.trim() || args.originalFileName,
