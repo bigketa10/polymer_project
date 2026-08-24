@@ -876,9 +876,6 @@ export function ContentManager() {
           <p className="text-slate-500 text-sm mt-1">Manage modules, lessons, questions, and glossary.</p>
         </div>
 
-        <SlideDeckImporter moduleKey={lessonModuleFilter === "all" ? undefined : lessonModuleFilter} />
-        <Card className="shadow-sm"><CardHeader><CardTitle className="text-base">Imported lecture decks</CardTitle></CardHeader><CardContent><SlideDecks /></CardContent></Card>
-
         {/* ── Action bar ── */}
         <Card className="shadow-sm">
           <CardHeader className="bg-white border-b border-slate-100 pb-3">
@@ -1094,6 +1091,9 @@ export function ContentManager() {
             )}
           </CardContent>
         </Card>
+
+        <SlideDeckImporter moduleKey={lessonModuleFilter === "all" ? undefined : lessonModuleFilter} />
+        <Card className="shadow-sm"><CardHeader><CardTitle className="text-base">Imported lecture decks</CardTitle></CardHeader><CardContent><SlideDecks /></CardContent></Card>
 
         {/* ── Full-width: module/lesson management + question set ── */}
         <div className="space-y-4">
