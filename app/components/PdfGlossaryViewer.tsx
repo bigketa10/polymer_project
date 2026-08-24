@@ -60,11 +60,11 @@ export function PdfGlossaryViewer({
       : Math.min(1100, Math.max(320, window.innerWidth - 48));
 
   return (
-    <div className="pdf-glossary-page pr-1">
+    <div className="pdf-glossary-page relative pr-1">
       {pageCount > 0 && (
         <nav
           aria-label="PDF pages"
-          className="mb-4 flex items-center justify-center gap-3"
+          className="pointer-events-none absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center justify-center gap-3"
         >
           <Button
             type="button"
@@ -74,14 +74,14 @@ export function PdfGlossaryViewer({
             onClick={() => setPageNumber((value) => value - 1)}
             aria-label="Previous page"
             title="Previous page"
-              className="gap-1.5 border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+              className="pointer-events-auto gap-1.5 border-slate-200/80 bg-white/70 text-slate-700 shadow-sm backdrop-blur-sm hover:bg-white/90"
           >
             <ChevronLeft aria-hidden="true" className="h-4 w-4" />
             <span>Previous</span>
           </Button>
           <span
             aria-live="polite"
-            className="min-w-24 text-center text-sm font-medium text-slate-300"
+            className="rounded-md bg-white/60 px-2 py-1 text-center text-sm font-medium text-slate-700 shadow-sm backdrop-blur-sm"
           >
             Page {pageNumber} of {pageCount}
           </span>
@@ -93,7 +93,7 @@ export function PdfGlossaryViewer({
             onClick={() => setPageNumber((value) => value + 1)}
             aria-label="Next page"
             title="Next page"
-              className="gap-1.5 border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+              className="pointer-events-auto gap-1.5 border-slate-200/80 bg-white/70 text-slate-700 shadow-sm backdrop-blur-sm hover:bg-white/90"
           >
             <span>Next</span>
             <ChevronRight aria-hidden="true" className="h-4 w-4" />
