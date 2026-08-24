@@ -67,7 +67,7 @@ export default function StudentSlidePage() {
       </main>
     );
   return (
-    <main className="h-[100dvh] overflow-y-auto bg-white p-4 text-slate-900 sm:p-8">
+    <main className="h-[100dvh] overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 p-4 text-slate-900 sm:p-8">
       <div className="mx-auto max-w-7xl pb-8">
         <Link href="/slides" className="text-sm text-sky-300">
           Back to slides
