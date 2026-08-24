@@ -66,3 +66,24 @@ export const remove = mutation({
     return { success: true };
   },
 });
+
+export const listPublic = query({
+  args: { moduleKey: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    const decks = await ctx.db.query("slideDecks").collect();
+    return decks
+      .filter((deck) => !args.moduleKey || deck.moduleKey === args.moduleKey)
+      .sort((a, b) => b.importedAt.localeCompare(a.importedAt));
+  },
+});
+
+export const getPublic = query({
+  args: { id: v.id("slideDecks") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    return await ctx.db.get(args.id);
+  },
+});

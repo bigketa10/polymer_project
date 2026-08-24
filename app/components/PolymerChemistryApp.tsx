@@ -125,6 +125,10 @@ const PolymerChemistryApp = () => {
   const lessons = useQuery(api.lessons.getAll);
   const modules = useQuery(api.modules.getAll);
   const glossaryTerms = useQuery(api.glossary.getAll);
+  const lectureDecks = useQuery(
+    api.slides.listPublic,
+    selectedModuleId ? { moduleKey: selectedModuleId } : { moduleKey: undefined },
+  );
   const dueQuestions = useQuery(api.questionReviews.getDueQuestions, {
     limit: 20,
   });
@@ -1377,6 +1381,15 @@ const PolymerChemistryApp = () => {
               {allModules.find((m: any) => m.moduleKey === selectedModuleId)
                 ?.title || ""}
             </h2>
+            {lectureDecks && lectureDecks.length > 0 && (
+              <Button
+                variant="outline"
+                className="mb-5"
+                onClick={() => router.push(`/slides?module=${encodeURIComponent(selectedModuleId)}`)}
+              >
+                <BookOpen className="mr-2 h-4 w-4" /> Lecture slides ({lectureDecks.length})
+              </Button>
+            )}
             <div className="space-y-4">
               {lessons
                 ?.filter((lesson: any) => lesson.section === selectedModuleId)
