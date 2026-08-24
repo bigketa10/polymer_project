@@ -32,7 +32,6 @@ export const create = mutation({
   args: {
     title: v.string(),
     moduleKey: v.optional(v.string()),
-    lessonId: v.optional(v.id("lessons")),
     originalFileName: v.string(),
     originalStorageId: v.id("_storage"),
     slides: v.array(slideValidator),
@@ -43,7 +42,6 @@ export const create = mutation({
     if (!args.originalFileName.toLowerCase().endsWith(".pdf")) {
       throw new Error("Only PDF lecture decks are supported.");
     }
-    if (args.lessonId && !(await ctx.db.get(args.lessonId))) throw new Error("Lesson not found.");
     return await ctx.db.insert("slideDecks", {
       ...args,
       title: args.title.trim() || args.originalFileName,
@@ -54,14 +52,20 @@ export const create = mutation({
 });
 
 export const move = mutation({
-  args: { id: v.id("slideDecks"), lessonId: v.optional(v.id("lessons")) },
-  handler: async (ctx, { id, lessonId }) => {
+  args: { id: v.id("slideDecks"), moduleKey: v.optional(v.string()) },
+  handler: async (ctx, { id, moduleKey }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
     const deck = await ctx.db.get(id);
     if (!deck || deck.ownerId !== identity.subject) throw new Error("Deck not found");
-    if (lessonId && !(await ctx.db.get(lessonId))) throw new Error("Lesson not found.");
-    await ctx.db.patch(id, { lessonId });
+    if (moduleKey) {
+      const module = await ctx.db
+        .query("modules")
+        .withIndex("by_key", (query) => query.eq("moduleKey", moduleKey))
+        .first();
+      if (!module) throw new Error("Module not found.");
+    }
+    await ctx.db.patch(id, { moduleKey });
   },
 });
 

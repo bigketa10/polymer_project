@@ -3,12 +3,11 @@
 import { useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { Upload, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/teacher/useToast";
 
-export function SlideDeckImporter({ moduleKey, lessonId }: { moduleKey?: string; lessonId?: string }) {
+export function SlideDeckImporter({ moduleKey }: { moduleKey?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
@@ -40,7 +39,7 @@ export function SlideDeckImporter({ moduleKey, lessonId }: { moduleKey?: string;
       if (!upload.ok) throw new Error("Could not upload the PDF file.");
       const { storageId } = await upload.json();
       setStatus("Saving deck to database...");
-      await withTimeout(createDeck({ title: file.name.replace(/\.pdf$/i, ""), moduleKey, lessonId: lessonId as Id<"lessons"> | undefined, originalFileName: file.name, originalStorageId: storageId, slides }), "Saving the deck timed out. Is Convex running?");
+      await withTimeout(createDeck({ title: file.name.replace(/\.pdf$/i, ""), moduleKey, originalFileName: file.name, originalStorageId: storageId, slides }), "Saving the deck timed out. Is Convex running?");
       toast("success", `Uploaded ${file.name}.`);
     } catch (error: unknown) {
       toast("error", error instanceof Error ? error.message : "Could not upload the PDF file.");

@@ -1092,7 +1092,7 @@ export function ContentManager() {
           </CardContent>
         </Card>
 
-        <SlideDeckImporter moduleKey={lessonModuleFilter === "all" ? undefined : lessonModuleFilter} lessonId={selectedLessonId ?? undefined} />
+        <SlideDeckImporter moduleKey={lessonModuleFilter === "all" ? undefined : lessonModuleFilter} />
         <Card className="shadow-sm"><CardHeader><CardTitle className="text-base">Imported lecture decks</CardTitle></CardHeader><CardContent><SlideDecks /></CardContent></Card>
 
         {/* ── Full-width: module/lesson management + question set ── */}
