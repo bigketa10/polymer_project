@@ -13,6 +13,7 @@ import { useToast } from "@/components/teacher/useToast";
 
 export function SlideDecks() {
   const decks = useQuery(api.slides.list);
+  const pdfDecks = decks?.filter((deck) => deck.originalFileName.toLowerCase().endsWith(".pdf"));
   const removeDeck = useMutation(api.slides.remove);
   const [deckToRemove, setDeckToRemove] = useState<{ id: string; title: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -32,23 +33,23 @@ export function SlideDecks() {
     }
   };
 
-  if (!decks?.length) return <p className="text-sm text-slate-500">No imported decks yet.</p>;
+  if (!pdfDecks?.length) return <p className="text-sm text-slate-500">No PDF lecture decks yet.</p>;
   return <>
     <ToastContainer toasts={toasts} onDismiss={dismiss} />
     <ConfirmDialog
       open={deckToRemove !== null}
       title="Remove lecture deck"
-      description={`Remove "${deckToRemove?.title}"? The stored PowerPoint and imported slides will be deleted.`}
+      description={`Remove "${deckToRemove?.title}"? The stored PDF will be deleted.`}
       destructive
       onCancel={() => { if (!isRemoving) setDeckToRemove(null); }}
       onConfirm={() => { if (!isRemoving) void handleRemove(); }}
     />
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{decks.map((deck) => (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{pdfDecks.map((deck) => (
       <div key={deck._id} className="rounded-lg border bg-white p-4 transition hover:border-blue-400 hover:shadow-sm">
         <Link href={`/teacher/slides/${deck._id}`} className="block">
           <Presentation className="mb-3 h-5 w-5 text-blue-600" aria-hidden="true" />
           <h2 className="font-semibold text-slate-900">{deck.title}</h2>
-          <p className="mt-1 text-xs text-slate-500">{deck.slides.length} slides · {deck.originalFileName}</p>
+          <p className="mt-1 text-xs text-slate-500">PDF lecture deck · {deck.originalFileName}</p>
         </Link>
         <Button
           type="button"

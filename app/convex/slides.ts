@@ -13,6 +13,7 @@ export const list = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
     return (await ctx.db.query("slideDecks").withIndex("by_owner", (q) => q.eq("ownerId", identity.subject)).collect())
+      .filter((deck) => deck.originalFileName.toLowerCase().endsWith(".pdf"))
       .sort((a, b) => b.importedAt.localeCompare(a.importedAt));
   },
 });
@@ -38,8 +39,8 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
-    if (args.slides.length === 0 && !args.originalFileName.toLowerCase().endsWith(".pdf")) {
-      throw new Error("The deck contains no readable slides.");
+    if (!args.originalFileName.toLowerCase().endsWith(".pdf")) {
+      throw new Error("Only PDF lecture decks are supported.");
     }
     return await ctx.db.insert("slideDecks", {
       ...args,
