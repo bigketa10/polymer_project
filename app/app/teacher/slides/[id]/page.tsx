@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { PdfGlossaryViewer } from "@/components/PdfGlossaryViewer";
 
 type GlossaryTerm = { term: string; definition: string };
 
@@ -106,7 +107,7 @@ export default function SlidePresentationPage() {
       {fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer" download={deck.originalFileName} className="mb-4 inline-flex items-center rounded-md bg-sky-300 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-sky-200">Open original {isPdf ? "PDF" : "PowerPoint"}</a>}
       {status && <p className="mb-4 rounded border border-slate-700 bg-slate-900 p-3 text-sm text-slate-300">{status}</p>}
       {renderError && <div className="mb-4 rounded border border-red-400/40 bg-red-950/40 p-4 text-sm text-red-100"><p>{renderError}</p><p className="mt-2 text-red-200">The original PowerPoint is stored, but this browser renderer could not display it.</p></div>}
-      {isPdf && fileUrl ? <iframe title={deck.title} src={fileUrl} className="h-[80vh] min-h-[600px] w-full rounded-lg bg-white" /> : <div ref={previewRef} className="min-h-[240px] overflow-x-auto rounded-lg bg-slate-900 p-2 [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full" />}
+      {isPdf && fileUrl ? <PdfGlossaryViewer url={fileUrl} glossary={glossary || []} /> : <div ref={previewRef} className="min-h-[240px] overflow-x-auto rounded-lg bg-slate-900 p-2 [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full" />}
     </div>
   </main>;
 }

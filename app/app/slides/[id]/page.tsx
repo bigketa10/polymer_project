@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { PdfGlossaryViewer } from "@/components/PdfGlossaryViewer";
 
 type GlossaryTerm = { term: string; definition: string };
 
@@ -65,5 +66,5 @@ export default function StudentSlidePage() {
 
   if (deck === undefined) return <main className="p-8">Loading slides...</main>;
   if (!deck) return <main className="p-8"><p>Deck not found.</p><Link className="text-indigo-600" href="/slides">Back to slides</Link></main>;
-  return <main className="min-h-screen bg-slate-950 p-4 text-slate-100 sm:p-8"><div className="mx-auto max-w-7xl"><Link href="/slides" className="text-sm text-sky-300">Back to slides</Link><h1 className="mb-2 mt-5 text-3xl font-bold">{deck.title}</h1><p className="mb-5 text-sm text-slate-400">Glossary matches are highlighted in amber.</p>{fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer" download={deck.originalFileName} className="mb-4 inline-flex rounded-md bg-sky-300 px-3 py-2 text-sm font-semibold text-slate-950">Open original {isPdf ? "PDF" : "PowerPoint"}</a>}{status && <p className="mb-4 rounded border border-slate-700 bg-slate-900 p-3 text-sm">{status}</p>}{isPdf && fileUrl ? <iframe title={deck.title} src={fileUrl} className="h-[80vh] min-h-[600px] w-full rounded-lg bg-white" /> : <div ref={previewRef} className="min-h-[240px] overflow-x-auto rounded-lg bg-slate-900 p-2 [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full" />}</div></main>;
+  return <main className="min-h-screen bg-slate-950 p-4 text-slate-100 sm:p-8"><div className="mx-auto max-w-7xl"><Link href="/slides" className="text-sm text-sky-300">Back to slides</Link><h1 className="mb-2 mt-5 text-3xl font-bold">{deck.title}</h1><p className="mb-5 text-sm text-slate-400">Glossary matches are highlighted in amber.</p>{fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer" download={deck.originalFileName} className="mb-4 inline-flex rounded-md bg-sky-300 px-3 py-2 text-sm font-semibold text-slate-950">Open original {isPdf ? "PDF" : "PowerPoint"}</a>}{status && <p className="mb-4 rounded border border-slate-700 bg-slate-900 p-3 text-sm">{status}</p>}{isPdf && fileUrl ? <PdfGlossaryViewer url={fileUrl} glossary={glossary || []} /> : <div ref={previewRef} className="min-h-[240px] overflow-x-auto rounded-lg bg-slate-900 p-2 [&_.pptx-preview-wrapper]:mx-auto [&_.pptx-preview-wrapper]:max-w-full [&_svg]:mx-auto [&_svg]:max-w-full" />}</div></main>;
 }
