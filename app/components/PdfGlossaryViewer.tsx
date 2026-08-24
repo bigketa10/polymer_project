@@ -11,7 +11,12 @@ type GlossaryTerm = { term: string; definition: string };
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 function escapeHtml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function renderGlossaryText(text: string, glossary: GlossaryTerm[]) {
@@ -20,7 +25,7 @@ function renderGlossaryText(text: string, glossary: GlossaryTerm[]) {
     const cleanKey = part.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()? '"[\]]/g, "");
     const entry = glossaryByTerm.get(cleanKey);
     if (!entry) return escapeHtml(part);
-    return `<span class="pdf-glossary-term" title="${escapeHtml(entry.definition)}">${escapeHtml(part)}</span>`;
+    return `<span class="pdf-glossary-term relative group inline-block"><span class="pdf-glossary-word">${escapeHtml(part)}</span><span class="pdf-glossary-tooltip"><span class="pdf-glossary-tooltip-content">${escapeHtml(entry.definition)}<span class="pdf-glossary-tooltip-arrow"></span></span></span></span>`;
   }).join("");
 }
 

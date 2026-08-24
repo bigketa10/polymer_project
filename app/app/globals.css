@@ -181,10 +181,60 @@ body {
 
 @layer utilities {
   .pdf-glossary-term {
+    position: relative;
+    display: inline-block;
+  }
+
+  .pdf-glossary-word {
     cursor: help;
     border-bottom: 2px dotted rgb(129 140 248);
     color: rgb(49 46 129);
     font-weight: 500;
+    transition: color 150ms ease;
+  }
+
+  .pdf-glossary-term:hover .pdf-glossary-word {
+    color: rgb(79 70 229);
+  }
+
+  .pdf-glossary-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    z-index: 50;
+    display: none;
+    width: 12rem;
+    margin-bottom: 0.5rem;
+    transform: translateX(-50%);
+  }
+
+  .pdf-glossary-term:hover .pdf-glossary-tooltip {
+    display: block;
+  }
+
+  .pdf-glossary-tooltip-content {
+    position: relative;
+    display: block;
+    border: 2px solid rgb(226 232 240);
+    border-radius: 0.75rem;
+    background: white;
+    padding: 0.75rem;
+    color: rgb(30 41 59);
+    font-size: 0.875rem;
+    line-height: 1.25;
+    box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.2), 0 8px 10px -6px rgb(15 23 42 / 0.2);
+  }
+
+  .pdf-glossary-tooltip-arrow {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-right: 2px solid rgb(226 232 240);
+    border-bottom: 2px solid rgb(226 232 240);
+    background: white;
+    transform: translate(-50%, -0.375rem) rotate(45deg);
   }
 
   .party-popper-star {
