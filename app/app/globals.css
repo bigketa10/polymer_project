@@ -191,6 +191,11 @@ body {
   display: inline-block;
   width: max-content;
   max-width: max-content;
+  background: transparent;
+}
+
+.pdf-glossary-page .textLayer span {
+  background-color: transparent;
 }
 
 .pdf-glossary-page .textLayer .pdf-glossary-term::after {
