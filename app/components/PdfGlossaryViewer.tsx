@@ -11,29 +11,22 @@ type GlossaryTerm = { term: string; definition: string };
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
 }
 
 function renderGlossaryText(text: string, glossary: GlossaryTerm[]) {
-  const glossaryByTerm = new Map(
-    glossary.map((item) => [item.term.toLowerCase(), item]),
-  );
-  return text
-    .split(/(\s+)/)
-    .map((part) => {
-      const cleanKey = part
-        .toLowerCase()
-        .replace(/[.,/#!$%^&*;:{}=\-_`~()? '"[\]]/g, "");
-      const entry = glossaryByTerm.get(cleanKey);
-      if (!entry) return escapeHtml(part);
-      return `<span class="pdf-glossary-term"><span class="pdf-glossary-word">${escapeHtml(part)}</span><span class="pdf-glossary-tooltip"><span class="pdf-glossary-tooltip-content">${escapeHtml(entry.definition)}<span class="pdf-glossary-tooltip-arrow"></span></span></span></span>`;
-    })
-    .join("");
+  const terms = glossary.map((item) => item.term.trim()).filter(Boolean).sort((a, b) => b.length - a.length);
+  if (!terms.length) return escapeHtml(text);
+  const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`, "gi");
+  return escapeHtml(text).replace(pattern, (match) => {
+    const entry = glossary.find((item) => item.term.toLowerCase() === match.toLowerCase());
+    if (!entry) return match;
+    return `<span class="pdf-glossary-term" title="${escapeHtml(entry.definition)}">${match}</span>`;
+  });
 }
 
 export function PdfGlossaryViewer({
@@ -45,20 +38,12 @@ export function PdfGlossaryViewer({
 }) {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageCount, setPageCount] = useState(0);
-  const [pageAspectRatio, setPageAspectRatio] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const file = useMemo(() => ({ url }), [url]);
-  const pageWidth =
-    typeof window === "undefined"
-      ? 1100
-      : Math.min(
-          1100,
-          Math.max(240, window.innerWidth - 48),
-          Math.max(240, (window.innerHeight - 220) * pageAspectRatio),
-        );
+  const pageWidth = typeof window === "undefined" ? 1100 : Math.min(1100, Math.max(320, window.innerWidth - 48));
 
   return (
-    <div className="pdf-glossary-page pr-1">
+    <div className="max-h-[calc(100dvh-180px)] overflow-y-auto pr-1">
       {pageCount > 0 && (
         <div className="mb-4 flex items-center justify-center gap-3">
           <Button
@@ -89,7 +74,7 @@ export function PdfGlossaryViewer({
           {error}
         </div>
       )}
-      <div className="flex justify-center">
+      <div className="overflow-x-auto">
         <Document
           file={file}
           onLoadSuccess={({ numPages }) => {
@@ -109,9 +94,6 @@ export function PdfGlossaryViewer({
               renderAnnotationLayer
               customTextRenderer={({ str }) =>
                 renderGlossaryText(str, glossary)
-              }
-              onLoadSuccess={({ originalWidth, originalHeight }) =>
-                setPageAspectRatio(originalWidth / originalHeight)
               }
               onRenderError={(cause) =>
                 setError(cause.message || "Could not render this PDF page.")
