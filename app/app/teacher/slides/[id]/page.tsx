@@ -93,7 +93,7 @@ export default function SlidePresentationPage() {
     );
 
   return (
-    <main className="h-[100dvh] overflow-y-auto bg-slate-50 p-4 text-slate-900 sm:p-8">
+    <main className="h-[100dvh] overflow-y-auto bg-white p-4 text-slate-900 sm:p-8">
       <div className="mx-auto max-w-7xl pb-8">
         <Link href="/teacher/slides" className="text-sm text-sky-300">
           Back to decks
