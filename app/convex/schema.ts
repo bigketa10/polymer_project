@@ -154,4 +154,18 @@ export default defineSchema({
     .index("by_user_lesson", ["userId", "lessonId"])
     .index("by_user_lesson_question", ["userId", "lessonId", "questionIndex"])
     .index("by_user_due", ["userId", "nextDueAt"]),
+
+  slideDecks: defineTable({
+    title: v.string(),
+    moduleKey: v.optional(v.string()),
+    originalFileName: v.string(),
+    originalStorageId: v.id("_storage"),
+    importedAt: v.string(),
+    slides: v.array(v.object({
+      number: v.number(),
+      title: v.string(),
+      body: v.array(v.string()),
+    })),
+    ownerId: v.string(),
+  }).index("by_owner", ["ownerId"]).index("by_module", ["moduleKey"]),
 });

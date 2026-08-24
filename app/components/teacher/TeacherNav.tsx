@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, BarChart2, ArrowLeft } from "lucide-react";
+import { BookOpen, BarChart2, ArrowLeft, Presentation } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/teacher/content", label: "Content", icon: BookOpen },
   { href: "/teacher/analytics", label: "Analytics", icon: BarChart2 },
+  { href: "/teacher/slides", label: "Slides", icon: Presentation },
 ];
 
 export function TeacherNav() {

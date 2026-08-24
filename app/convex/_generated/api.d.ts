@@ -14,6 +14,7 @@ import type * as lessons from "../lessons.js";
 import type * as messages from "../messages.js";
 import type * as modules from "../modules.js";
 import type * as questionReviews from "../questionReviews.js";
+import type * as slides from "../slides.js";
 import type * as teachers from "../teachers.js";
 import type * as uploads from "../uploads.js";
 import type * as userProgress from "../userProgress.js";
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   messages: typeof messages;
   modules: typeof modules;
   questionReviews: typeof questionReviews;
+  slides: typeof slides;
   teachers: typeof teachers;
   uploads: typeof uploads;
   userProgress: typeof userProgress;

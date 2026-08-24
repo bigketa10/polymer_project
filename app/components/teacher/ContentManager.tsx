@@ -17,6 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useToast } from "@/components/teacher/useToast";
 import { ToastContainer } from "@/components/teacher/InlineToast";
 import { ConfirmDialog } from "@/components/teacher/ConfirmDialog";
+import { SlideDeckImporter } from "@/components/teacher/SlideDeckImporter";
+import { SlideDecks } from "@/components/teacher/SlideDecks";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type DragDropItem = { id: string; text: string };
@@ -873,6 +875,9 @@ export function ContentManager() {
           <h1 className="text-2xl font-bold text-slate-900">Content Manager</h1>
           <p className="text-slate-500 text-sm mt-1">Manage modules, lessons, questions, and glossary.</p>
         </div>
+
+        <SlideDeckImporter moduleKey={lessonModuleFilter === "all" ? undefined : lessonModuleFilter} />
+        <Card className="shadow-sm"><CardHeader><CardTitle className="text-base">Imported lecture decks</CardTitle></CardHeader><CardContent><SlideDecks /></CardContent></Card>
 
         {/* ── Action bar ── */}
         <Card className="shadow-sm">
