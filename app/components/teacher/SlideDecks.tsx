@@ -13,8 +13,10 @@ import { useToast } from "@/components/teacher/useToast";
 
 export function SlideDecks() {
   const decks = useQuery(api.slides.list);
+  const lessons = useQuery(api.lessons.getAll);
   const pdfDecks = decks?.filter((deck) => deck.originalFileName.toLowerCase().endsWith(".pdf"));
   const removeDeck = useMutation(api.slides.remove);
+  const moveDeck = useMutation(api.slides.move);
   const [deckToRemove, setDeckToRemove] = useState<{ id: string; title: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const { toasts, toast, dismiss } = useToast();
@@ -30,6 +32,15 @@ export function SlideDecks() {
       toast("error", error instanceof Error ? error.message : "Could not remove the deck.");
     } finally {
       setIsRemoving(false);
+    }
+  };
+
+  const handleMove = async (deckId: string, lessonId: string) => {
+    try {
+      await moveDeck({ id: deckId as Id<"slideDecks">, lessonId: lessonId === "unassigned" ? undefined : lessonId as Id<"lessons"> });
+      toast("success", "Lecture deck moved.");
+    } catch (error: unknown) {
+      toast("error", error instanceof Error ? error.message : "Could not move the deck.");
     }
   };
 
@@ -51,6 +62,13 @@ export function SlideDecks() {
           <h2 className="font-semibold text-slate-900">{deck.title}</h2>
           <p className="mt-1 text-xs text-slate-500">PDF lecture deck · {deck.originalFileName}</p>
         </Link>
+        <label className="mt-3 block text-xs font-medium text-slate-600">
+          Move to lesson
+          <select value={deck.lessonId ?? "unassigned"} onChange={(event) => void handleMove(deck._id, event.target.value)} className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700">
+            <option value="unassigned">No lesson assigned</option>
+            {lessons?.map((lesson) => <option key={lesson._id} value={lesson._id}>{lesson.title}</option>)}
+          </select>
+        </label>
         <Button
           type="button"
           variant="ghost"

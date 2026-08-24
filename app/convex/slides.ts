@@ -32,6 +32,7 @@ export const create = mutation({
   args: {
     title: v.string(),
     moduleKey: v.optional(v.string()),
+    lessonId: v.optional(v.id("lessons")),
     originalFileName: v.string(),
     originalStorageId: v.id("_storage"),
     slides: v.array(slideValidator),
@@ -42,12 +43,25 @@ export const create = mutation({
     if (!args.originalFileName.toLowerCase().endsWith(".pdf")) {
       throw new Error("Only PDF lecture decks are supported.");
     }
+    if (args.lessonId && !(await ctx.db.get(args.lessonId))) throw new Error("Lesson not found.");
     return await ctx.db.insert("slideDecks", {
       ...args,
       title: args.title.trim() || args.originalFileName,
       importedAt: new Date().toISOString(),
       ownerId: identity.subject,
     });
+  },
+});
+
+export const move = mutation({
+  args: { id: v.id("slideDecks"), lessonId: v.optional(v.id("lessons")) },
+  handler: async (ctx, { id, lessonId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const deck = await ctx.db.get(id);
+    if (!deck || deck.ownerId !== identity.subject) throw new Error("Deck not found");
+    if (lessonId && !(await ctx.db.get(lessonId))) throw new Error("Lesson not found.");
+    await ctx.db.patch(id, { lessonId });
   },
 });
 

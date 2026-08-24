@@ -158,6 +158,7 @@ export default defineSchema({
   slideDecks: defineTable({
     title: v.string(),
     moduleKey: v.optional(v.string()),
+    lessonId: v.optional(v.id("lessons")),
     originalFileName: v.string(),
     originalStorageId: v.id("_storage"),
     importedAt: v.string(),
