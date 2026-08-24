@@ -43,7 +43,7 @@ export function PdfGlossaryViewer({ url, glossary }: { url: string; glossary: Gl
         Math.max(240, (window.innerHeight - 220) * pageAspectRatio),
       );
 
-  return <div className="pr-1">
+  return <div className="pdf-glossary-page pr-1">
     {pageCount > 0 && <div className="mb-4 flex items-center justify-center gap-3"><Button type="button" variant="outline" size="sm" disabled={pageNumber <= 1} onClick={() => setPageNumber((value) => value - 1)}>Previous</Button><span className="text-sm text-slate-300">Page {pageNumber} of {pageCount}</span><Button type="button" variant="outline" size="sm" disabled={pageNumber >= pageCount} onClick={() => setPageNumber((value) => value + 1)}>Next</Button></div>}
     {error && <div className="mb-4 rounded border border-red-400/40 bg-red-950/40 p-4 text-sm text-red-100">{error}</div>}
     <div className="flex justify-center">

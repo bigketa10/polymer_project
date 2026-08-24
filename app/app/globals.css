@@ -180,16 +180,21 @@ body {
 }
 
 @layer utilities {
-  .pdf-glossary-term {
-    position: relative !important;
-    display: inline-block !important;
+  .pdf-glossary-page .textLayer .pdf-glossary-term {
+    position: relative;
+    display: inline-block;
+    width: max-content;
+    max-width: max-content;
+    transform: none;
   }
 
-  .pdf-glossary-word {
-    position: static !important;
-    display: inline !important;
-    color: transparent !important;
-    white-space: normal !important;
+  .pdf-glossary-page .textLayer .pdf-glossary-word {
+    position: static;
+    display: inline-block;
+    width: max-content;
+    color: transparent;
+    white-space: normal;
+    transform: none;
     cursor: help;
     border-bottom: 2px dotted rgb(99 102 241 / 0.9);
     background: rgb(165 180 252 / 0.28);
@@ -201,8 +206,8 @@ body {
     background: rgb(165 180 252 / 0.45);
   }
 
-  .pdf-glossary-tooltip {
-    position: absolute !important;
+  .pdf-glossary-page .textLayer .pdf-glossary-tooltip {
+    position: absolute;
     bottom: 100%;
     left: 50%;
     z-index: 50;
@@ -211,16 +216,16 @@ body {
     max-width: calc(100vw - 2rem);
     margin-bottom: 0.5rem;
     transform: translateX(-50%);
-    white-space: normal !important;
-    color: rgb(30 41 59) !important;
+    white-space: normal;
+    color: rgb(30 41 59);
   }
 
   .pdf-glossary-term:hover .pdf-glossary-tooltip {
     display: block;
   }
 
-  .pdf-glossary-tooltip-content {
-    position: relative !important;
+  .pdf-glossary-page .textLayer .pdf-glossary-tooltip-content {
+    position: relative;
     display: block;
     box-sizing: border-box;
     width: 100%;
@@ -228,29 +233,30 @@ body {
     border-radius: 0.75rem;
     background: white;
     padding: 0.75rem;
-    color: rgb(30 41 59) !important;
-    font-size: 0.875rem !important;
-    line-height: 1.25 !important;
-    white-space: normal !important;
+    color: rgb(30 41 59);
+    font-size: 0.875rem;
+    line-height: 1.25;
+    white-space: normal;
     overflow-wrap: anywhere;
+    transform: none;
     box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.2), 0 8px 10px -6px rgb(15 23 42 / 0.2);
   }
 
-  .pdf-glossary-tooltip-arrow {
+  .pdf-glossary-page .textLayer .pdf-glossary-tooltip-arrow {
     position: absolute;
     top: 100%;
     left: 50%;
     width: 0.75rem;
     height: 0.75rem;
-    color: transparent !important;
+    color: transparent;
     border-right: 2px solid rgb(226 232 240);
     border-bottom: 2px solid rgb(226 232 240);
     background: white;
     transform: translate(-50%, -0.375rem) rotate(45deg);
   }
 
-  .textLayer {
-    overflow: visible !important;
+  .pdf-glossary-page .textLayer {
+    overflow: visible;
   }
 
   .party-popper-star {
