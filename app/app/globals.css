@@ -187,16 +187,17 @@ body {
   .pdf-glossary-word {
     position: static !important;
     display: inline !important;
-    color: rgb(49 46 129) !important;
+    color: transparent !important;
     white-space: normal !important;
     cursor: help;
-    border-bottom: 2px dotted rgb(129 140 248);
+    border-bottom: 2px dotted rgb(99 102 241 / 0.9);
+    background: rgb(165 180 252 / 0.28);
     font-weight: 500;
     transition: color 150ms ease;
   }
 
   .pdf-glossary-term:hover .pdf-glossary-word {
-    color: rgb(79 70 229);
+    background: rgb(165 180 252 / 0.45);
   }
 
   .pdf-glossary-tooltip {
