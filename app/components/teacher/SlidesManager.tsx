@@ -11,7 +11,7 @@ export function SlidesManager() {
   const [moduleKey, setModuleKey] = useState("");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <label className="block text-sm font-medium text-slate-700" htmlFor="slide-module">
           Assign uploaded deck to module

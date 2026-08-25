@@ -278,7 +278,7 @@ export function AnalyticsDashboard() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-3 lg:p-4 space-y-4">
+    <div className="min-h-full bg-slate-50 p-3 lg:p-4 font-sans space-y-4">
       <ConfirmDialog
         open={confirmReset}
         title="Reset all student progress"
@@ -293,7 +293,12 @@ export function AnalyticsDashboard() {
 
       {/* ── Class Stats ──────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-lg font-bold text-slate-900">Analytics</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Track student performance, leaderboards, and lesson statistics.
+          </p>
+        </div>
         <Button
           variant="destructive"
           size="sm"

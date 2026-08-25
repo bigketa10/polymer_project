@@ -1036,7 +1036,7 @@ export function ContentManager() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-slate-50 p-3 lg:p-4 font-sans">
+    <div className="min-h-full bg-slate-50 p-3 lg:p-4 font-sans">
       {/* ── Confirm Dialog ── */}
       <ConfirmDialog
         open={pendingAction !== null}
@@ -1054,7 +1054,7 @@ export function ContentManager() {
         {/* ── Header ── */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Content Manager</h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="mt-1 text-sm text-slate-500">
             Manage modules, lessons, questions, and glossary.
           </p>
         </div>
