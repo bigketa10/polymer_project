@@ -1054,7 +1054,7 @@ export function ContentManager() {
         {/* ── Header ── */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Content Manager</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-slate-500 text-sm mt-1">
             Manage modules, lessons, questions, and glossary.
           </p>
         </div>

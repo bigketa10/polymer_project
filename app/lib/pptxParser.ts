@@ -2,7 +2,8 @@ import JSZip from "jszip";
 
 export type NativeSlide = { number: number; title: string; body: string[] };
 
-const DRAWING_NAMESPACE = "http://schemas.openxmlformats.org/drawingml/2006/main";
+const DRAWING_NAMESPACE =
+  "http://schemas.openxmlformats.org/drawingml/2006/main";
 
 export async function parsePptx(
   file: File,
@@ -22,9 +23,14 @@ export async function parsePptx(
     onProgress?.(`Reading slide ${index + 1} of ${slideNames.length}...`);
     const xml = await zip.file(name)!.async("string");
     const document = new DOMParser().parseFromString(xml, "application/xml");
-    const paragraphs = [...document.getElementsByTagNameNS(DRAWING_NAMESPACE, "p")]
-      .map((paragraph) => [...paragraph.getElementsByTagNameNS(DRAWING_NAMESPACE, "t")]
-        .map((text) => text.textContent || "").join(""))
+    const paragraphs = [
+      ...document.getElementsByTagNameNS(DRAWING_NAMESPACE, "p"),
+    ]
+      .map((paragraph) =>
+        [...paragraph.getElementsByTagNameNS(DRAWING_NAMESPACE, "t")]
+          .map((text) => text.textContent || "")
+          .join(""),
+      )
       .map((text) => text.trim())
       .filter(Boolean);
     slides.push({

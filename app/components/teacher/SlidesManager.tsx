@@ -13,7 +13,10 @@ export function SlidesManager() {
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <label className="block text-sm font-medium text-slate-700" htmlFor="slide-module">
+        <label
+          className="block text-sm font-medium text-slate-700"
+          htmlFor="slide-module"
+        >
           Assign uploaded deck to module
         </label>
         <select
@@ -32,7 +35,9 @@ export function SlidesManager() {
       </section>
       <SlideDeckImporter moduleKey={moduleKey || undefined} />
       <section>
-        <h2 className="mb-3 text-base font-semibold text-slate-900">Imported PDF decks</h2>
+        <h2 className="mb-3 text-base font-semibold text-slate-900">
+          Imported PDF decks
+        </h2>
         <SlideDecks />
       </section>
     </div>
